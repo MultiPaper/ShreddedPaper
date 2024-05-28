@@ -38,7 +38,7 @@ index 0000000000000000000000000000000000000000..15057bd8191f3fba9952a5c768f45009
 +            This is the main configuration file for ShreddedPaper.
 +            There's quite alot to configure. Read the docs for more information.
 +
-+            Docs: https://github.com/ShreddedPaper/ShreddedPaper/blob/main/SHREDDEDPAPER_YAML.md\s
++            Docs: https://github.com/MultiPaper/ShreddedPaper/blob/main/SHREDDEDPAPER_YAML.md\s
 +            """;
 +
 +    private static ShreddedPaperConfiguration instance;
