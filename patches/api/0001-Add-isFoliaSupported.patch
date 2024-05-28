@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sat, 25 May 2024 18:44:13 +0900
+Subject: [PATCH] Add isFoliaSupported
+
+
+diff --git a/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java b/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java
+index 8f45caade7357bc55c6a90cfe0c3a2feb2d877ff..514216f93e60a0ea7ae048bf95810d9b4f0733e6 100644
+--- a/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java
++++ b/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java
+@@ -259,6 +259,7 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
+     private Set<PluginAwareness> awareness = ImmutableSet.of();
+     private String apiVersion = null;
+     private List<String> libraries = ImmutableList.of();
++    private String foliaSupported = null; // ShreddedPaper
+     // Paper start - plugin loader api
+     private String paperPluginLoader;
+     @org.jetbrains.annotations.ApiStatus.Internal @org.jetbrains.annotations.Nullable
+@@ -1056,6 +1057,11 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
+         return libraries;
+     }
+ 
++    // ShreddedPaper start
++    public boolean isFoliaSupported() {
++        return "true".equalsIgnoreCase(foliaSupported);
++    }
++
+     /**
+      * @return unused
+      * @deprecated unused
+@@ -1257,6 +1263,12 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
+         }
+         // Paper end - plugin loader api
+ 
++        // ShreddedPaper start
++        if (map.get("folia-supported") != null) {
++            foliaSupported = map.get("folia-supported").toString();
++        }
++        // ShreddedPaper end
++
+         try {
+             lazyPermissions = (Map<?, ?>) map.get("permissions");
+         } catch (ClassCastException ex) {
+@@ -1335,6 +1347,12 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
+             map.put("libraries", libraries);
+         }
+ 
++        // ShreddedPaper start
++        if (foliaSupported != null) {
++            map.put("folia-supported", foliaSupported);
++        }
++        // ShreddedPaper end
++
+         if (classLoaderOf != null) {
+             map.put("class-loader-of", classLoaderOf);
+         }
