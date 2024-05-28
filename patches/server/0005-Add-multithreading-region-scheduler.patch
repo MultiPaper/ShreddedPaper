@@ -4,221 +4,9 @@ Date: Sat, 4 May 2024 14:40:58 +0900
 Subject: [PATCH] Add multithreading region scheduler
 
 
-diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
-index bdaf062f9b66ceab303a0807eca301342886a8ea..5216c3f6ef1abe30c4f4c4343512b1c64604075b 100644
---- a/src/main/java/io/papermc/paper/util/TickThread.java
-+++ b/src/main/java/io/papermc/paper/util/TickThread.java
-@@ -12,6 +12,8 @@ import net.minecraft.world.level.Level;
- import net.minecraft.world.phys.AABB;
- import net.minecraft.world.phys.Vec3;
- import org.bukkit.Bukkit;
-+import io.multipaper.shreddedpaper.region.RegionPos;
-+
- import java.util.concurrent.atomic.AtomicInteger;
- 
- public class TickThread extends Thread {
-@@ -114,46 +116,76 @@ public class TickThread extends Thread {
-     }
- 
-     public static boolean isShutdownThread() {
--        return false;
-+        return Thread.currentThread() == MinecraftServer.getServer().shutdownThread;
-     }
- 
-     public static boolean isTickThreadFor(final ServerLevel world, final BlockPos pos) {
--        return isTickThread();
-+        return isTickThreadFor(world, new ChunkPos(pos));
-     }
- 
-     public static boolean isTickThreadFor(final ServerLevel world, final ChunkPos pos) {
--        return isTickThread();
-+        return world.getServer().forceTicks || isShutdownThread() || world.chunkScheduler.getRegionLocker().hasLock(RegionPos.forChunk(pos));
-     }
- 
-     public static boolean isTickThreadFor(final ServerLevel world, final Vec3 pos) {
--        return isTickThread();
-+        return isTickThreadFor(world, pos.x, pos.z);
-     }
- 
-     public static boolean isTickThreadFor(final ServerLevel world, final int chunkX, final int chunkZ) {
--        return isTickThread();
-+        return isTickThreadFor(world, new ChunkPos(chunkX, chunkZ));
-     }
- 
-     public static boolean isTickThreadFor(final ServerLevel world, final AABB aabb) {
--        return isTickThread();
-+        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(aabb.minX), CoordinateUtils.getChunkCoordinate(aabb.minZ), CoordinateUtils.getChunkCoordinate(aabb.maxX), CoordinateUtils.getChunkCoordinate(aabb.maxZ));
-     }
- 
-     public static boolean isTickThreadFor(final ServerLevel world, final double blockX, final double blockZ) {
--        return isTickThread();
-+        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(blockX), CoordinateUtils.getChunkCoordinate(blockZ));
-     }
- 
-     public static boolean isTickThreadFor(final ServerLevel world, final Vec3 position, final Vec3 deltaMovement, final int buffer) {
--        return isTickThread();
-+        int fromChunkX = CoordinateUtils.getChunkCoordinate(position.x);
-+        int fromChunkZ = CoordinateUtils.getChunkCoordinate(position.z);
-+        int toChunkX = CoordinateUtils.getChunkCoordinate(position.x + deltaMovement.x);
-+        int toChunkZ = CoordinateUtils.getChunkCoordinate(position.z + deltaMovement.z);
-+
-+        int minChunkX = Math.min(fromChunkX, toChunkX) - buffer;
-+        int minChunkZ = Math.min(fromChunkZ, toChunkZ) - buffer;
-+        int maxChunkX = Math.max(fromChunkX, toChunkX) + buffer;
-+        int maxChunkZ = Math.max(fromChunkZ, toChunkZ) + buffer;
-+
-+        return isTickThreadFor(world, minChunkX, minChunkZ, maxChunkX, maxChunkZ);
-     }
- 
-     public static boolean isTickThreadFor(final ServerLevel world, final int fromChunkX, final int fromChunkZ, final int toChunkX, final int toChunkZ) {
--        return isTickThread();
-+        if (world.getServer().forceTicks || isShutdownThread()) return true;
-+
-+        int fromRegionX = fromChunkX >> RegionPos.REGION_SHIFT;
-+        int fromRegionZ = fromChunkZ >> RegionPos.REGION_SHIFT;
-+        int toRegionX = toChunkX >> RegionPos.REGION_SHIFT;
-+        int toRegionZ = toChunkZ >> RegionPos.REGION_SHIFT;
-+
-+        int minRegionX = Math.min(fromRegionX, toRegionX);
-+        int maxRegionX = Math.max(fromRegionX, toRegionX);
-+        int minRegionZ = Math.min(fromRegionZ, toRegionZ);
-+        int maxRegionZ = Math.max(fromRegionZ, toRegionZ);
-+
-+        for (int x = minRegionX; x <= maxRegionX; x++) {
-+            for (int z = minRegionZ; z <= maxRegionZ; z++) {
-+                if (!world.chunkScheduler.getRegionLocker().hasLock(new RegionPos(x, z))) {
-+                    return false;
-+                }
-+            }
-+        }
-+
-+        return true;
-     }
- 
-     public static boolean isTickThreadFor(final ServerLevel world, final int chunkX, final int chunkZ, final int radius) {
--        return isTickThread();
-+        return isTickThreadFor(world, chunkX - radius, chunkZ - radius, chunkX + radius, chunkZ + radius);
-     }
- 
-     public static boolean isTickThreadFor(final Entity entity) {
--        return isTickThread();
-+        return isTickThreadFor((ServerLevel) entity.level(), entity.chunkPosition());
-     }
- }
-diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 330bae815c0a332e3dc9fa7b224c9f92098199b9..d3239eb3378b66103e178e58a51efb128919c0bf 100644
---- a/src/main/java/net/minecraft/server/MinecraftServer.java
-+++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -191,6 +191,7 @@ import org.bukkit.event.server.ServerLoadEvent;
- // CraftBukkit end
- 
- import co.aikar.timings.MinecraftTimings; // Paper
-+import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
- 
- public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, CommandSource, AutoCloseable {
- 
-@@ -976,6 +977,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-         MinecraftServer.LOGGER.info("Stopping server");
-         Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
-         MinecraftTimings.stopServer(); // Paper
-+        ShreddedPaperTickThread.stopServer(); // ShreddedPaper
-         // Purpur start
-         if (upnp) {
-             if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
-diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 7924e3c597164f71056cd58dd167ee8b1d41b9c3..5aa9a56a530d40bd61c813c39cf5c60be4815429 100644
---- a/src/main/java/net/minecraft/server/level/ServerLevel.java
-+++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -50,7 +50,6 @@ import net.minecraft.core.particles.ParticleOptions;
- import net.minecraft.core.registries.BuiltInRegistries;
- import net.minecraft.core.registries.Registries;
- import net.minecraft.network.chat.Component;
--import net.minecraft.network.chat.MutableComponent;
- import net.minecraft.network.protocol.Packet;
- import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
- import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
-@@ -78,8 +77,6 @@ import net.minecraft.util.Mth;
- import net.minecraft.util.ProgressListener;
- import net.minecraft.util.RandomSource;
- import net.minecraft.util.Unit;
--import net.minecraft.util.datafix.DataFixTypes;
--import net.minecraft.util.profiling.ProfilerFiller;
- import net.minecraft.util.valueproviders.IntProvider;
- import net.minecraft.util.valueproviders.UniformInt;
- import net.minecraft.world.DifficultyInstance;
-@@ -134,16 +131,13 @@ import net.minecraft.world.level.chunk.LevelChunk;
- import net.minecraft.world.level.chunk.LevelChunkSection;
- import net.minecraft.world.level.chunk.storage.EntityStorage;
- import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
--import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
- import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
- import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.dimension.end.EndDragonFight;
--import net.minecraft.world.level.entity.EntityPersistentStorage;
- import net.minecraft.world.level.entity.EntityTickList;
- import net.minecraft.world.level.entity.EntityTypeTest;
- import net.minecraft.world.level.entity.LevelCallback;
- import net.minecraft.world.level.entity.LevelEntityGetter;
--import net.minecraft.world.level.entity.PersistentEntitySectionManager;
- import net.minecraft.world.level.gameevent.DynamicGameEventListener;
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.level.gameevent.GameEventDispatcher;
-@@ -180,6 +174,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
- import org.bukkit.event.server.MapInitializeEvent;
- import org.bukkit.event.weather.LightningStrikeEvent;
- import org.bukkit.event.world.TimeSkipEvent;
-+import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
- // CraftBukkit end
- 
- public class ServerLevel extends Level implements WorldGenLevel {
-@@ -223,6 +218,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
-     private double preciseTime; // Purpur
-     private boolean forceTime; // Purpur
-     private final RandomSequences randomSequences;
-+    public final ShreddedPaperRegionScheduler chunkScheduler = new ShreddedPaperRegionScheduler(); // ShreddedPaper
-     public long lastMidTickExecuteFailure; // Paper - execute chunk tasks mid tick
- 
-     // CraftBukkit start
-diff --git a/src/main/java/net/minecraft/world/level/ChunkPos.java b/src/main/java/net/minecraft/world/level/ChunkPos.java
-index 54cd046587c2f9dd26204bfa4eb65b8ad52b2d5e..542379e2fa11df8af8ee11ee12c4372a724db5c0 100644
---- a/src/main/java/net/minecraft/world/level/ChunkPos.java
-+++ b/src/main/java/net/minecraft/world/level/ChunkPos.java
-@@ -7,6 +7,7 @@ import java.util.stream.StreamSupport;
- import javax.annotation.Nullable;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.SectionPos;
-+import io.multipaper.shreddedpaper.region.RegionPos;
- 
- public class ChunkPos {
-     private static final int SAFETY_MARGIN = 1056;
-@@ -24,6 +25,7 @@ public class ChunkPos {
-     private static final int HASH_A = 1664525;
-     private static final int HASH_C = 1013904223;
-     private static final int HASH_Z_XOR = -559038737;
-+    @Nullable private RegionPos regionPos; // ShreddedPaper
- 
-     public ChunkPos(int x, int z) {
-         this.x = x;
-@@ -43,6 +45,16 @@ public class ChunkPos {
-         this.longKey = asLong(this.x, this.z); // Paper
-     }
- 
-+    // ShreddedPaper start
-+    public RegionPos getRegionPos() {
-+        if (this.regionPos == null) {
-+            // Cache the RegionPos to minimize object creation
-+            this.regionPos = new RegionPos(RegionPos.asLong(this));
-+        }
-+        return this.regionPos;
-+    }
-+    // ShreddedPaper end
-+
-     public static ChunkPos minFromRegion(int x, int z) {
-         return new ChunkPos(x << 5, z << 5);
-     }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/RegionPos.java b/src/main/java/io/multipaper/shreddedpaper/region/RegionPos.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..e99ce8b04a773e4604ca1ac7bd560a605d9f9368
+index 0000000000000000000000000000000000000000..784b77356ad1e28285650a2c6cf0c0969da9d40c
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/RegionPos.java
 @@ -0,0 +1,111 @@
@@ -244,7 +32,7 @@ index 0000000000000000000000000000000000000000..e99ce8b04a773e4604ca1ac7bd560a60
 +        // desiredRegionSize = 7 -> shift = 3, size = 8, mask = 7
 +        // desiredRegionSize = 8 -> shift = 3, size = 8, mask = 7
 +        // desiredRegionSize = 9 -> shift = 4, size = 16, mask = 15
-+        int desiredRegionSize = ShreddedPaperConfiguration.get().verticalScaling.regionSize - 1;
++        int desiredRegionSize = ShreddedPaperConfiguration.get().multithreading.regionSize - 1;
 +        int shift = 0;
 +        while (desiredRegionSize > 0) {
 +            shift++;
@@ -335,7 +123,7 @@ index 0000000000000000000000000000000000000000..e99ce8b04a773e4604ca1ac7bd560a60
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5faabd96d271d7acd734cc620e25c4b6558057a2
+index 0000000000000000000000000000000000000000..5032e1a823a00f6a09066d63cc3095bb9885cd7e
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 @@ -0,0 +1,128 @@
@@ -469,7 +257,7 @@ index 0000000000000000000000000000000000000000..5faabd96d271d7acd734cc620e25c4b6
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionScheduler.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionScheduler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..165d830ac07d82894c0820b6ccb7c33e5377aad6
+index 0000000000000000000000000000000000000000..1a0f4e1d5c1de71221d10528c39cd777e471e155
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionScheduler.java
 @@ -0,0 +1,194 @@
@@ -669,7 +457,7 @@ index 0000000000000000000000000000000000000000..165d830ac07d82894c0820b6ccb7c33e
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..eac9c360e6f050910fcd1505971b3b11569283f0
+index 0000000000000000000000000000000000000000..c579607b2bd1dea47f65c6f274dc08d75a574548
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 @@ -0,0 +1,57 @@
@@ -693,7 +481,7 @@ index 0000000000000000000000000000000000000000..eac9c360e6f050910fcd1505971b3b11
 +    private static final ScheduledThreadPoolExecutor executor;
 +
 +    static {
-+        int threadCount = ShreddedPaperConfiguration.get().verticalScaling.threadCount;
++        int threadCount = ShreddedPaperConfiguration.get().multithreading.threadCount;
 +
 +        if (threadCount <= 0) {
 +            threadCount = Math.max(Runtime.getRuntime().availableProcessors() - 1, 1);
@@ -732,7 +520,7 @@ index 0000000000000000000000000000000000000000..eac9c360e6f050910fcd1505971b3b11
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/util/ObjectHolder.java b/src/main/java/io/multipaper/shreddedpaper/util/ObjectHolder.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..840b90f124b6b403906f89fe1807f60dde947ebf
+index 0000000000000000000000000000000000000000..f98327c487394dd1e1a97987518102786114fcad
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/util/ObjectHolder.java
 @@ -0,0 +1,22 @@
@@ -758,3 +546,215 @@ index 0000000000000000000000000000000000000000..840b90f124b6b403906f89fe1807f60d
 +        this.value = value;
 +    }
 +}
+diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
+index bdaf062f9b66ceab303a0807eca301342886a8ea..645e39222d81a5049888c86881ee381310fa7060 100644
+--- a/src/main/java/io/papermc/paper/util/TickThread.java
++++ b/src/main/java/io/papermc/paper/util/TickThread.java
+@@ -12,6 +12,8 @@ import net.minecraft.world.level.Level;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
+ import org.bukkit.Bukkit;
++import io.multipaper.shreddedpaper.region.RegionPos;
++
+ import java.util.concurrent.atomic.AtomicInteger;
+ 
+ public class TickThread extends Thread {
+@@ -114,46 +116,76 @@ public class TickThread extends Thread {
+     }
+ 
+     public static boolean isShutdownThread() {
+-        return false;
++        return Thread.currentThread() == MinecraftServer.getServer().shutdownThread;
+     }
+ 
+     public static boolean isTickThreadFor(final ServerLevel world, final BlockPos pos) {
+-        return isTickThread();
++        return isTickThreadFor(world, new ChunkPos(pos));
+     }
+ 
+     public static boolean isTickThreadFor(final ServerLevel world, final ChunkPos pos) {
+-        return isTickThread();
++        return world.getServer().forceTicks || isShutdownThread() || world.chunkScheduler.getRegionLocker().hasLock(RegionPos.forChunk(pos));
+     }
+ 
+     public static boolean isTickThreadFor(final ServerLevel world, final Vec3 pos) {
+-        return isTickThread();
++        return isTickThreadFor(world, pos.x, pos.z);
+     }
+ 
+     public static boolean isTickThreadFor(final ServerLevel world, final int chunkX, final int chunkZ) {
+-        return isTickThread();
++        return isTickThreadFor(world, new ChunkPos(chunkX, chunkZ));
+     }
+ 
+     public static boolean isTickThreadFor(final ServerLevel world, final AABB aabb) {
+-        return isTickThread();
++        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(aabb.minX), CoordinateUtils.getChunkCoordinate(aabb.minZ), CoordinateUtils.getChunkCoordinate(aabb.maxX), CoordinateUtils.getChunkCoordinate(aabb.maxZ));
+     }
+ 
+     public static boolean isTickThreadFor(final ServerLevel world, final double blockX, final double blockZ) {
+-        return isTickThread();
++        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(blockX), CoordinateUtils.getChunkCoordinate(blockZ));
+     }
+ 
+     public static boolean isTickThreadFor(final ServerLevel world, final Vec3 position, final Vec3 deltaMovement, final int buffer) {
+-        return isTickThread();
++        int fromChunkX = CoordinateUtils.getChunkCoordinate(position.x);
++        int fromChunkZ = CoordinateUtils.getChunkCoordinate(position.z);
++        int toChunkX = CoordinateUtils.getChunkCoordinate(position.x + deltaMovement.x);
++        int toChunkZ = CoordinateUtils.getChunkCoordinate(position.z + deltaMovement.z);
++
++        int minChunkX = Math.min(fromChunkX, toChunkX) - buffer;
++        int minChunkZ = Math.min(fromChunkZ, toChunkZ) - buffer;
++        int maxChunkX = Math.max(fromChunkX, toChunkX) + buffer;
++        int maxChunkZ = Math.max(fromChunkZ, toChunkZ) + buffer;
++
++        return isTickThreadFor(world, minChunkX, minChunkZ, maxChunkX, maxChunkZ);
+     }
+ 
+     public static boolean isTickThreadFor(final ServerLevel world, final int fromChunkX, final int fromChunkZ, final int toChunkX, final int toChunkZ) {
+-        return isTickThread();
++        if (world.getServer().forceTicks || isShutdownThread()) return true;
++
++        int fromRegionX = fromChunkX >> RegionPos.REGION_SHIFT;
++        int fromRegionZ = fromChunkZ >> RegionPos.REGION_SHIFT;
++        int toRegionX = toChunkX >> RegionPos.REGION_SHIFT;
++        int toRegionZ = toChunkZ >> RegionPos.REGION_SHIFT;
++
++        int minRegionX = Math.min(fromRegionX, toRegionX);
++        int maxRegionX = Math.max(fromRegionX, toRegionX);
++        int minRegionZ = Math.min(fromRegionZ, toRegionZ);
++        int maxRegionZ = Math.max(fromRegionZ, toRegionZ);
++
++        for (int x = minRegionX; x <= maxRegionX; x++) {
++            for (int z = minRegionZ; z <= maxRegionZ; z++) {
++                if (!world.chunkScheduler.getRegionLocker().hasLock(new RegionPos(x, z))) {
++                    return false;
++                }
++            }
++        }
++
++        return true;
+     }
+ 
+     public static boolean isTickThreadFor(final ServerLevel world, final int chunkX, final int chunkZ, final int radius) {
+-        return isTickThread();
++        return isTickThreadFor(world, chunkX - radius, chunkZ - radius, chunkX + radius, chunkZ + radius);
+     }
+ 
+     public static boolean isTickThreadFor(final Entity entity) {
+-        return isTickThread();
++        return isTickThreadFor((ServerLevel) entity.level(), entity.chunkPosition());
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 330bae815c0a332e3dc9fa7b224c9f92098199b9..3f11f17a85e24821a168ccd39a7298cd91438fbf 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -191,6 +191,7 @@ import org.bukkit.event.server.ServerLoadEvent;
+ // CraftBukkit end
+ 
+ import co.aikar.timings.MinecraftTimings; // Paper
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
+ 
+ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements ServerInfo, CommandSource, AutoCloseable {
+ 
+@@ -976,6 +977,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         MinecraftServer.LOGGER.info("Stopping server");
+         Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
+         MinecraftTimings.stopServer(); // Paper
++        ShreddedPaperTickThread.stopServer(); // ShreddedPaper
+         // Purpur start
+         if (upnp) {
+             if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 7924e3c597164f71056cd58dd167ee8b1d41b9c3..f2bb2ee3c0efe21fae1fac39333cc6742ea75559 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -50,7 +50,6 @@ import net.minecraft.core.particles.ParticleOptions;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.network.chat.Component;
+-import net.minecraft.network.chat.MutableComponent;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
+ import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
+@@ -78,8 +77,6 @@ import net.minecraft.util.Mth;
+ import net.minecraft.util.ProgressListener;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.Unit;
+-import net.minecraft.util.datafix.DataFixTypes;
+-import net.minecraft.util.profiling.ProfilerFiller;
+ import net.minecraft.util.valueproviders.IntProvider;
+ import net.minecraft.util.valueproviders.UniformInt;
+ import net.minecraft.world.DifficultyInstance;
+@@ -134,16 +131,13 @@ import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.level.chunk.LevelChunkSection;
+ import net.minecraft.world.level.chunk.storage.EntityStorage;
+ import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
+-import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
+ import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
+ import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.dimension.end.EndDragonFight;
+-import net.minecraft.world.level.entity.EntityPersistentStorage;
+ import net.minecraft.world.level.entity.EntityTickList;
+ import net.minecraft.world.level.entity.EntityTypeTest;
+ import net.minecraft.world.level.entity.LevelCallback;
+ import net.minecraft.world.level.entity.LevelEntityGetter;
+-import net.minecraft.world.level.entity.PersistentEntitySectionManager;
+ import net.minecraft.world.level.gameevent.DynamicGameEventListener;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.gameevent.GameEventDispatcher;
+@@ -180,6 +174,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
+ import org.bukkit.event.server.MapInitializeEvent;
+ import org.bukkit.event.weather.LightningStrikeEvent;
+ import org.bukkit.event.world.TimeSkipEvent;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
+ // CraftBukkit end
+ 
+ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -223,6 +218,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     private double preciseTime; // Purpur
+     private boolean forceTime; // Purpur
+     private final RandomSequences randomSequences;
++    public final ShreddedPaperRegionScheduler chunkScheduler = new ShreddedPaperRegionScheduler(); // ShreddedPaper
+     public long lastMidTickExecuteFailure; // Paper - execute chunk tasks mid tick
+ 
+     // CraftBukkit start
+diff --git a/src/main/java/net/minecraft/world/level/ChunkPos.java b/src/main/java/net/minecraft/world/level/ChunkPos.java
+index 54cd046587c2f9dd26204bfa4eb65b8ad52b2d5e..4f35bd9adc5b977ab30eb3c208b420788d4fbb58 100644
+--- a/src/main/java/net/minecraft/world/level/ChunkPos.java
++++ b/src/main/java/net/minecraft/world/level/ChunkPos.java
+@@ -7,6 +7,7 @@ import java.util.stream.StreamSupport;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.SectionPos;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ 
+ public class ChunkPos {
+     private static final int SAFETY_MARGIN = 1056;
+@@ -24,6 +25,7 @@ public class ChunkPos {
+     private static final int HASH_A = 1664525;
+     private static final int HASH_C = 1013904223;
+     private static final int HASH_Z_XOR = -559038737;
++    @Nullable private RegionPos regionPos; // ShreddedPaper
+ 
+     public ChunkPos(int x, int z) {
+         this.x = x;
+@@ -43,6 +45,16 @@ public class ChunkPos {
+         this.longKey = asLong(this.x, this.z); // Paper
+     }
+ 
++    // ShreddedPaper start
++    public RegionPos getRegionPos() {
++        if (this.regionPos == null) {
++            // Cache the RegionPos to minimize object creation
++            this.regionPos = new RegionPos(RegionPos.asLong(this));
++        }
++        return this.regionPos;
++    }
++    // ShreddedPaper end
++
+     public static ChunkPos minFromRegion(int x, int z) {
+         return new ChunkPos(x << 5, z << 5);
+     }

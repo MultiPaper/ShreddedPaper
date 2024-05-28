@@ -4,30 +4,9 @@ Date: Sun, 5 May 2024 01:31:47 +0900
 Subject: [PATCH] Thread-safe NeigbhorUpdater
 
 
-diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 487bb3e75afc5871a79506a54f0f4af806460b14..8f7a1f1e3be9a7a2dd86d6f1dd836aa5b242a258 100644
---- a/src/main/java/net/minecraft/world/level/Level.java
-+++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -99,6 +99,7 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
- import org.bukkit.craftbukkit.util.CraftSpawnCategory;
- import org.bukkit.entity.SpawnCategory;
- import org.bukkit.event.block.BlockPhysicsEvent;
-+import io.multipaper.shreddedpaper.threading.PerThreadNeighborUpdater;
- // CraftBukkit end
- 
- public abstract class Level implements LevelAccessor, AutoCloseable {
-@@ -290,7 +291,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
-         this.thread = Thread.currentThread();
-         this.biomeManager = new BiomeManager(this, i);
-         this.isDebug = flag1;
--        this.neighborUpdater = new CollectingNeighborUpdater(this, j);
-+        this.neighborUpdater = new PerThreadNeighborUpdater(() -> new CollectingNeighborUpdater(this, j)); // ShreddedPaper - thread-safe
-         this.registryAccess = iregistrycustom;
-         this.damageSources = new DamageSources(iregistrycustom);
-         // CraftBukkit start
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/PerThreadNeighborUpdater.java b/src/main/java/io/multipaper/shreddedpaper/threading/PerThreadNeighborUpdater.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..15e4928cc0948b53b8713cd3584070fa6dfe2cba
+index 0000000000000000000000000000000000000000..9f06ff3bf8ddebf3e97623c1db1c69f0a085a9f2
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/PerThreadNeighborUpdater.java
 @@ -0,0 +1,60 @@
@@ -91,3 +70,24 @@ index 0000000000000000000000000000000000000000..15e4928cc0948b53b8713cd3584070fa
 +        getOrCreate().updateNeighborsAtExceptFromFacing(pos, sourceBlock, except);
 +    }
 +}
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 4beada452d014ec7dc7c167466ec2af3c5bfcd33..f2e988b6fe9cc62c3fc167afac4a41a2e3fc8d75 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -99,6 +99,7 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
+ import org.bukkit.craftbukkit.util.CraftSpawnCategory;
+ import org.bukkit.entity.SpawnCategory;
+ import org.bukkit.event.block.BlockPhysicsEvent;
++import io.multipaper.shreddedpaper.threading.PerThreadNeighborUpdater;
+ // CraftBukkit end
+ 
+ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -291,7 +292,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+         this.thread = Thread.currentThread();
+         this.biomeManager = new BiomeManager(this, i);
+         this.isDebug = flag1;
+-        this.neighborUpdater = new CollectingNeighborUpdater(this, j);
++        this.neighborUpdater = new PerThreadNeighborUpdater(() -> new CollectingNeighborUpdater(this, j)); // ShreddedPaper - thread-safe
+         this.registryAccess = iregistrycustom;
+         this.damageSources = new DamageSources(iregistrycustom);
+         // CraftBukkit start

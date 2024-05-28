@@ -4,134 +4,9 @@ Date: Fri, 17 May 2024 00:26:43 +0900
 Subject: [PATCH] Level ticks
 
 
-diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 5c9f33457252f17bcc2a97242a726934040ebc94..2c4aa7a10f073227fbb98fa419e224a4caab4693 100644
---- a/src/main/java/net/minecraft/server/level/ServerLevel.java
-+++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -176,6 +176,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
- import org.bukkit.event.server.MapInitializeEvent;
- import org.bukkit.event.weather.LightningStrikeEvent;
- import org.bukkit.event.world.TimeSkipEvent;
-+import io.multipaper.shreddedpaper.region.LevelTicksRegionProxy;
- import io.multipaper.shreddedpaper.region.RegionPos;
- import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
- // CraftBukkit end
-@@ -202,8 +203,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
-     private final SleepStatus sleepStatus;
-     private int emptyTime;
-     private final PortalForcer portalForcer;
--    private final LevelTicks<Block> blockTicks;
--    private final LevelTicks<Fluid> fluidTicks;
-+    public final LevelTicksRegionProxy<Block> blockTicks; // ShreddedPaper
-+    public final LevelTicksRegionProxy<Fluid> fluidTicks; // ShreddedPaper
-     private final PathTypeCache pathTypesByPosCache;
-     final Set<Mob> navigatingMobs;
-     final ThreadLocal<Boolean> isUpdatingNavigations = ThreadLocal.withInitial(() -> false); // ShreddedPaper - make thread local
-@@ -706,8 +707,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
-         // CraftBukkit end
-         this.players = new CopyOnWriteArrayList<>(); // ShreddedPaper - thread-safe (players should not be changing worlds often, thus copy-on-write is sufficient)
-         this.entityTickList = new EntityTickList();
--        this.blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
--        this.fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
-+        this.blockTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier()); // ShreddedPaper
-+        this.fluidTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier()); // ShreddedPaper
-         this.pathTypesByPosCache = new PathTypeCache();
-         this.navigatingMobs = new ObjectOpenHashSet();
-         this.blockEvents = new ObjectLinkedOpenHashSet();
-@@ -1412,23 +1413,25 @@ public class ServerLevel extends Level implements WorldGenLevel {
-         this.emptyTime = 0;
-     }
- 
--    private void tickFluid(BlockPos pos, Fluid fluid) {
-+    public void tickFluid(BlockPos pos, Fluid fluid) { // ShreddedPaper - make public
-+        TickThread.ensureTickThread(this, pos, "Cannot tick fluid outside of tick thread"); // ShreddedPaper
-         FluidState fluid1 = this.getFluidState(pos);
- 
-         if (fluid1.is(fluid)) {
-             fluid1.tick(this, pos);
-         }
--        MinecraftServer.getServer().executeMidTickTasks(); // Paper - exec chunk tasks during world tick
-+        // MinecraftServer.getServer().executeMidTickTasks(); // Paper - exec chunk tasks during world tick // ShreddedPaper - unnecessary now
- 
-     }
- 
--    private void tickBlock(BlockPos pos, Block block) {
-+    public void tickBlock(BlockPos pos, Block block) { // ShreddedPaper - make public
-+        TickThread.ensureTickThread(this, pos, "Cannot tick block outside of tick thread"); // ShreddedPaper
-         BlockState iblockdata = this.getBlockState(pos);
- 
-         if (iblockdata.is(block)) {
-             iblockdata.tick(this, pos, this.random);
-         }
--        MinecraftServer.getServer().executeMidTickTasks(); // Paper - exec chunk tasks during world tick
-+        // MinecraftServer.getServer().executeMidTickTasks(); // Paper - exec chunk tasks during world tick // ShreddedPaper - unnecessary now
- 
-     }
- 
-diff --git a/src/main/java/net/minecraft/world/level/LevelAccessor.java b/src/main/java/net/minecraft/world/level/LevelAccessor.java
-index 54d13eebc9b01e9d77f51011b7de95b80bc21669..60fccf860bc6264e701463f3993035b67f8dc5c8 100644
---- a/src/main/java/net/minecraft/world/level/LevelAccessor.java
-+++ b/src/main/java/net/minecraft/world/level/LevelAccessor.java
-@@ -1,6 +1,8 @@
- package net.minecraft.world.level;
- 
- import javax.annotation.Nullable;
-+
-+import io.papermc.paper.util.TickThread;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
- import net.minecraft.core.Holder;
-@@ -8,6 +10,7 @@ import net.minecraft.core.particles.ParticleOptions;
- import net.minecraft.core.registries.Registries;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.level.ServerLevel;
- import net.minecraft.sounds.SoundEvent;
- import net.minecraft.sounds.SoundSource;
- import net.minecraft.util.RandomSource;
-@@ -47,20 +50,24 @@ public interface LevelAccessor extends CommonLevelAccessor, LevelTimeAccess {
-     }
- 
-     default void scheduleTick(BlockPos pos, Block block, int delay, TickPriority priority) {
-+        if (this instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, pos, "Cannot schedule outside of tick thread"); // ShreddedPaper
-         this.getBlockTicks().schedule(this.createTick(pos, block, delay, priority));
-     }
- 
-     default void scheduleTick(BlockPos pos, Block block, int delay) {
-+        if (this instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, pos, "Cannot schedule outside of tick thread"); // ShreddedPaper
-         this.getBlockTicks().schedule(this.createTick(pos, block, delay));
-     }
- 
-     LevelTickAccess<Fluid> getFluidTicks();
- 
-     default void scheduleTick(BlockPos pos, Fluid fluid, int delay, TickPriority priority) {
-+        if (this instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, pos, "Cannot schedule outside of tick thread"); // ShreddedPaper
-         this.getFluidTicks().schedule(this.createTick(pos, fluid, delay, priority));
-     }
- 
-     default void scheduleTick(BlockPos pos, Fluid fluid, int delay) {
-+        if (this instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, pos, "Cannot schedule outside of tick thread"); // ShreddedPaper
-         this.getFluidTicks().schedule(this.createTick(pos, fluid, delay));
-     }
- 
-diff --git a/src/main/java/net/minecraft/world/ticks/LevelTicks.java b/src/main/java/net/minecraft/world/ticks/LevelTicks.java
-index a6d62abd3102770652f914b9d697c6d3c2533cfc..5473c7ea4da15d7acc2092ddbe4dd3baa84c14ea 100644
---- a/src/main/java/net/minecraft/world/ticks/LevelTicks.java
-+++ b/src/main/java/net/minecraft/world/ticks/LevelTicks.java
-@@ -282,4 +282,10 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
-     interface PosAndContainerConsumer<T> {
-         void accept(long chunkPos, LevelChunkTicks<T> chunkTickScheduler);
-     }
-+
-+    // ShreddedPaper start
-+    public boolean isEmpty() {
-+        return this.allContainers.isEmpty();
-+    }
-+    // ShreddedPaper end
- }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelTicksRegionProxy.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelTicksRegionProxy.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0f711b2ee6092f1c1a7c8449b9c34ebd2edc1b7f
+index 0000000000000000000000000000000000000000..051e74363aea1aff0a9d3da4300fca9002369fc3
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelTicksRegionProxy.java
 @@ -0,0 +1,114 @@
@@ -250,7 +125,7 @@ index 0000000000000000000000000000000000000000..0f711b2ee6092f1c1a7c8449b9c34ebd
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index f708cee785c1e86406d1eab2a29a53f507e79be8..f6a12adfbc11a5449d089bcb1bbf1d5b992f4c36 100644
+index 3c90d3b3dc48814a2b9ce03e35d0c562bbbaa761..0aedc67c7447242d7d3fa65a983d70911da9f2e0 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -56,6 +56,9 @@ public class ShreddedPaperChunkTicker {
@@ -263,3 +138,128 @@ index f708cee785c1e86406d1eab2a29a53f507e79be8..f6a12adfbc11a5449d089bcb1bbf1d5b
          region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
  
          while (region.getInternalTaskQueue().executeTask());
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 7c7823b7cd733a02c1dfef24de28b8010c7dbe52..123ad0385d5de867abfbec293730d8277ec99e4d 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -176,6 +176,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
+ import org.bukkit.event.server.MapInitializeEvent;
+ import org.bukkit.event.weather.LightningStrikeEvent;
+ import org.bukkit.event.world.TimeSkipEvent;
++import io.multipaper.shreddedpaper.region.LevelTicksRegionProxy;
+ import io.multipaper.shreddedpaper.region.RegionPos;
+ import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
+ // CraftBukkit end
+@@ -202,8 +203,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     private final SleepStatus sleepStatus;
+     private int emptyTime;
+     private final PortalForcer portalForcer;
+-    private final LevelTicks<Block> blockTicks;
+-    private final LevelTicks<Fluid> fluidTicks;
++    public final LevelTicksRegionProxy<Block> blockTicks; // ShreddedPaper
++    public final LevelTicksRegionProxy<Fluid> fluidTicks; // ShreddedPaper
+     private final PathTypeCache pathTypesByPosCache;
+     final Set<Mob> navigatingMobs;
+     final ThreadLocal<Boolean> isUpdatingNavigations = ThreadLocal.withInitial(() -> false); // ShreddedPaper - make thread local
+@@ -706,8 +707,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+         // CraftBukkit end
+         this.players = new CopyOnWriteArrayList<>(); // ShreddedPaper - thread-safe (players should not be changing worlds often, thus copy-on-write is sufficient)
+         this.entityTickList = new EntityTickList();
+-        this.blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
+-        this.fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
++        this.blockTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier()); // ShreddedPaper
++        this.fluidTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier()); // ShreddedPaper
+         this.pathTypesByPosCache = new PathTypeCache();
+         this.navigatingMobs = new ObjectOpenHashSet();
+         this.blockEvents = new ObjectLinkedOpenHashSet();
+@@ -1412,23 +1413,25 @@ public class ServerLevel extends Level implements WorldGenLevel {
+         this.emptyTime = 0;
+     }
+ 
+-    private void tickFluid(BlockPos pos, Fluid fluid) {
++    public void tickFluid(BlockPos pos, Fluid fluid) { // ShreddedPaper - make public
++        TickThread.ensureTickThread(this, pos, "Cannot tick fluid outside of tick thread"); // ShreddedPaper
+         FluidState fluid1 = this.getFluidState(pos);
+ 
+         if (fluid1.is(fluid)) {
+             fluid1.tick(this, pos);
+         }
+-        MinecraftServer.getServer().executeMidTickTasks(); // Paper - exec chunk tasks during world tick
++        // MinecraftServer.getServer().executeMidTickTasks(); // Paper - exec chunk tasks during world tick // ShreddedPaper - unnecessary now
+ 
+     }
+ 
+-    private void tickBlock(BlockPos pos, Block block) {
++    public void tickBlock(BlockPos pos, Block block) { // ShreddedPaper - make public
++        TickThread.ensureTickThread(this, pos, "Cannot tick block outside of tick thread"); // ShreddedPaper
+         BlockState iblockdata = this.getBlockState(pos);
+ 
+         if (iblockdata.is(block)) {
+             iblockdata.tick(this, pos, this.random);
+         }
+-        MinecraftServer.getServer().executeMidTickTasks(); // Paper - exec chunk tasks during world tick
++        // MinecraftServer.getServer().executeMidTickTasks(); // Paper - exec chunk tasks during world tick // ShreddedPaper - unnecessary now
+ 
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/LevelAccessor.java b/src/main/java/net/minecraft/world/level/LevelAccessor.java
+index 54d13eebc9b01e9d77f51011b7de95b80bc21669..4712c018da6b4b8c6c512f71133b76a18c2e966b 100644
+--- a/src/main/java/net/minecraft/world/level/LevelAccessor.java
++++ b/src/main/java/net/minecraft/world/level/LevelAccessor.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.level;
+ 
+ import javax.annotation.Nullable;
++
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Holder;
+@@ -8,6 +10,7 @@ import net.minecraft.core.particles.ParticleOptions;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvent;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.util.RandomSource;
+@@ -47,20 +50,24 @@ public interface LevelAccessor extends CommonLevelAccessor, LevelTimeAccess {
+     }
+ 
+     default void scheduleTick(BlockPos pos, Block block, int delay, TickPriority priority) {
++        if (this instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, pos, "Cannot schedule outside of tick thread"); // ShreddedPaper
+         this.getBlockTicks().schedule(this.createTick(pos, block, delay, priority));
+     }
+ 
+     default void scheduleTick(BlockPos pos, Block block, int delay) {
++        if (this instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, pos, "Cannot schedule outside of tick thread"); // ShreddedPaper
+         this.getBlockTicks().schedule(this.createTick(pos, block, delay));
+     }
+ 
+     LevelTickAccess<Fluid> getFluidTicks();
+ 
+     default void scheduleTick(BlockPos pos, Fluid fluid, int delay, TickPriority priority) {
++        if (this instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, pos, "Cannot schedule outside of tick thread"); // ShreddedPaper
+         this.getFluidTicks().schedule(this.createTick(pos, fluid, delay, priority));
+     }
+ 
+     default void scheduleTick(BlockPos pos, Fluid fluid, int delay) {
++        if (this instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, pos, "Cannot schedule outside of tick thread"); // ShreddedPaper
+         this.getFluidTicks().schedule(this.createTick(pos, fluid, delay));
+     }
+ 
+diff --git a/src/main/java/net/minecraft/world/ticks/LevelTicks.java b/src/main/java/net/minecraft/world/ticks/LevelTicks.java
+index a6d62abd3102770652f914b9d697c6d3c2533cfc..5d7aeaa8dc31906713e65808f675830df23cd0e4 100644
+--- a/src/main/java/net/minecraft/world/ticks/LevelTicks.java
++++ b/src/main/java/net/minecraft/world/ticks/LevelTicks.java
+@@ -282,4 +282,10 @@ public class LevelTicks<T> implements LevelTickAccess<T> {
+     interface PosAndContainerConsumer<T> {
+         void accept(long chunkPos, LevelChunkTicks<T> chunkTickScheduler);
+     }
++
++    // ShreddedPaper start
++    public boolean isEmpty() {
++        return this.allContainers.isEmpty();
++    }
++    // ShreddedPaper end
+ }

@@ -5,7 +5,7 @@ Subject: [PATCH] ShreddedPaper Metrics
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/Metrics.java b/src/main/java/com/destroystokyo/paper/Metrics.java
-index 8cde30544e14f8fc2dac32966ae3c21f8cf3a551..ead87ad864494358096d59a4dbe2fe2b20e3ae37 100644
+index 8cde30544e14f8fc2dac32966ae3c21f8cf3a551..cc152e9a86bcb0dad498d7332f01dcbf44c43995 100644
 --- a/src/main/java/com/destroystokyo/paper/Metrics.java
 +++ b/src/main/java/com/destroystokyo/paper/Metrics.java
 @@ -3,6 +3,7 @@ package com.destroystokyo.paper;

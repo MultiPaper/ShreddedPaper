@@ -4,8 +4,30 @@ Date: Sat, 25 May 2024 14:36:09 +0900
 Subject: [PATCH] NearbyPlayers
 
 
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+index 0ce56810ba00461b16d945165be798cc3589a516..6c684c701cdae2c87a553fdf01291800d5918279 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+@@ -94,7 +94,9 @@ public class ShreddedPaperChunkTicker {
+         boolean spawn = false;
+         boolean tick = false;
+         for (int itr = 0, len = playersNearby.size(); itr < len; ++itr) {
++            try { // ShreddedPaper - concurrent modification
+             ServerPlayer player = (ServerPlayer)rawData[itr];
++            if (player == null) continue; // ShreddedPaper - concurrent modification
+             if (player.isSpectator()) {
+                 continue;
+             }
+@@ -105,6 +107,7 @@ public class ShreddedPaperChunkTicker {
+             if (spawn & tick) {
+                 break;
+             }
++            } catch (IndexOutOfBoundsException ignored) {} // ShreddedPaper - concurrent modification
+         }
+         if (tick && chunk1.chunkStatus.isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING)) {
+             // Paper end - optimise chunk tick iteration
 diff --git a/src/main/java/io/papermc/paper/util/player/NearbyPlayers.java b/src/main/java/io/papermc/paper/util/player/NearbyPlayers.java
-index f164256d59b761264876ca0c85f812d101bfd5de..f767716b0cefbba05f14a3d1ab2faa4ca9fcfa72 100644
+index f164256d59b761264876ca0c85f812d101bfd5de..d7c8430ddd73b6de2119a3cd8be3d3865aa0bcbd 100644
 --- a/src/main/java/io/papermc/paper/util/player/NearbyPlayers.java
 +++ b/src/main/java/io/papermc/paper/util/player/NearbyPlayers.java
 @@ -9,6 +9,7 @@ import net.minecraft.core.BlockPos;
@@ -167,7 +189,7 @@ index f164256d59b761264876ca0c85f812d101bfd5de..f767716b0cefbba05f14a3d1ab2faa4c
          }
      }
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index ec789b9391cc311fad435b4bc46d2c5fcdb4532f..05cb2f1830c75643a8c1ee19172d97b06197c032 100644
+index 8ea36e3ade095e77dbc796f5e76d03276c947dec..e8d9cb71daf8047117097c201a6dc6c683a8b8a1 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -391,7 +391,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -191,7 +213,7 @@ index ec789b9391cc311fad435b4bc46d2c5fcdb4532f..05cb2f1830c75643a8c1ee19172d97b0
      }
      // Paper end - per player mob count backoff
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index f7f51b82d5140222ebaf1ee4e29db53b258f1db3..880591f1918a3c61518e5fbe88cf4aee277d091b 100644
+index 7142c6e43b84cd253f85c59bb268c3dbbd88f1f2..6c75198bbcac7de6f688348f00cbe9bd58d9fc8e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -611,7 +611,9 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -231,7 +253,7 @@ index f7f51b82d5140222ebaf1ee4e29db53b258f1db3..880591f1918a3c61518e5fbe88cf4aee
  
              return nearest;
 diff --git a/src/main/java/net/minecraft/world/entity/ai/sensing/PlayerSensor.java b/src/main/java/net/minecraft/world/entity/ai/sensing/PlayerSensor.java
-index 65cd42ce9f553e0aa5bf248bdbf902f9d1f55460..0fd3a8dba0234d71352ab28c5f7cbbce2ca48a73 100644
+index 65cd42ce9f553e0aa5bf248bdbf902f9d1f55460..00bd56773a857e207ddf6b04880571054b0b6bb9 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/sensing/PlayerSensor.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/sensing/PlayerSensor.java
 @@ -34,6 +34,7 @@ public class PlayerSensor extends Sensor<LivingEntity> {
@@ -251,7 +273,7 @@ index 65cd42ce9f553e0aa5bf248bdbf902f9d1f55460..0fd3a8dba0234d71352ab28c5f7cbbce
          }
          players.sort(Comparator.comparingDouble(entity::distanceToSqr));
 diff --git a/src/main/java/net/minecraft/world/level/NaturalSpawner.java b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
-index 0f90a6803851eba51e164772c984b1cd1193d882..f31a9dea92e6035361962a19be3e5d4683a7f677 100644
+index 0f90a6803851eba51e164772c984b1cd1193d882..bf2e3885226dfe2ae6dd9340bd4371ad5c072e75 100644
 --- a/src/main/java/net/minecraft/world/level/NaturalSpawner.java
 +++ b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
 @@ -161,7 +161,9 @@ public final class NaturalSpawner {
@@ -264,25 +286,3 @@ index 0f90a6803851eba51e164772c984b1cd1193d882..f31a9dea92e6035361962a19be3e5d46
                      }
                  }
                  difference = (minDiff == Integer.MAX_VALUE) ? 0 : minDiff;
-diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 21042d0412846794ae20e233e7accb52177d110f..9880dc26a676be0c66fce9e4f27c04e20740e6d0 100644
---- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -94,7 +94,9 @@ public class ShreddedPaperChunkTicker {
-         boolean spawn = false;
-         boolean tick = false;
-         for (int itr = 0, len = playersNearby.size(); itr < len; ++itr) {
-+            try { // ShreddedPaper - concurrent modification
-             ServerPlayer player = (ServerPlayer)rawData[itr];
-+            if (player == null) continue; // ShreddedPaper - concurrent modification
-             if (player.isSpectator()) {
-                 continue;
-             }
-@@ -105,6 +107,7 @@ public class ShreddedPaperChunkTicker {
-             if (spawn & tick) {
-                 break;
-             }
-+            } catch (IndexOutOfBoundsException ignored) {} // ShreddedPaper - concurrent modification
-         }
-         if (tick && chunk1.chunkStatus.isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING)) {
-             // Paper end - optimise chunk tick iteration

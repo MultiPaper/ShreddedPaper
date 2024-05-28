@@ -4,8 +4,46 @@ Date: Sat, 25 May 2024 02:10:04 +0900
 Subject: [PATCH] Block entities
 
 
+diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
+index 1ddc4ad7737cd7daaf415fa74f014f36c7eb21d7..a32a820b3ec6f21475542e56527bb79b4a8418a7 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
++++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
+@@ -4,9 +4,11 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
+ import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
++import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Mob;
++import net.minecraft.world.level.block.entity.TickingBlockEntity;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ 
+ import java.util.ArrayList;
+@@ -25,6 +27,8 @@ public class LevelChunkRegion {
+     private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
+     private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
+     public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
++    public List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
++    public List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
+ 
+     public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
+         this.level = level;
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+index 2d01d065b13f23a59ec8609e53f9919c802d3601..0ce56810ba00461b16d945165be798cc3589a516 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+@@ -58,6 +58,8 @@ public class ShreddedPaperChunkTicker {
+         region.tickTasks();
+         region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+ 
++        level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
++
+         level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
+         level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
+ 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 8534e378cc9edf232cb58ff8d2a3723c85033b74..f7f51b82d5140222ebaf1ee4e29db53b258f1db3 100644
+index 26af30fc335a84d5733c4892aefb59908dcc6ec3..7142c6e43b84cd253f85c59bb268c3dbbd88f1f2 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -949,7 +949,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -61,7 +99,7 @@ index 8534e378cc9edf232cb58ff8d2a3723c85033b74..f7f51b82d5140222ebaf1ee4e29db53b
  
      private static <T> String getTypeCount(Iterable<T> items, Function<T, String> classifier) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index e6c3a7367999e9a8d3fe7c53c38953490319aeca..5b029a1e31c1731da03f340780a7df605a8b06c6 100644
+index 28f4e0f7ee069f891b8ff1124902d4154ab15138..32781f611dc2d28690dfa799f58e8e6970fa0301 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -6,6 +6,7 @@ import java.io.IOException;
@@ -92,7 +130,7 @@ index e6c3a7367999e9a8d3fe7c53c38953490319aeca..5b029a1e31c1731da03f340780a7df60
      private boolean tickingBlockEntities;
      public final Thread thread;
      private final boolean isDebug;
-@@ -176,7 +178,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -177,7 +179,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public static BlockPos lastPhysicsProblem; // Spigot
      private org.spigotmc.TickLimiter entityLimiter;
      private org.spigotmc.TickLimiter tileLimiter;
@@ -101,7 +139,7 @@ index e6c3a7367999e9a8d3fe7c53c38953490319aeca..5b029a1e31c1731da03f340780a7df60
      public final Map<Explosion.CacheKey, Float> explosionDensityCache = new HashMap<>(); // Paper - Optimize explosions
      public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
  
-@@ -1291,18 +1293,19 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1292,18 +1294,19 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      }
  
      public void addBlockEntityTicker(TickingBlockEntity ticker) {
@@ -126,7 +164,7 @@ index e6c3a7367999e9a8d3fe7c53c38953490319aeca..5b029a1e31c1731da03f340780a7df60
          }
          //this.timings.tileEntityPending.stopTiming(); // Spigot // Purpur
  
-@@ -1314,9 +1317,9 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1315,9 +1318,9 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          int tilesThisCycle = 0;
          var toRemove = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<TickingBlockEntity>(); // Paper - Fix MC-117075; use removeAll
          toRemove.add(null); // Paper - Fix MC-117075
@@ -139,7 +177,7 @@ index e6c3a7367999e9a8d3fe7c53c38953490319aeca..5b029a1e31c1731da03f340780a7df60
              // Spigot end
  
              if (tickingblockentity.isRemoved()) {
-@@ -1327,17 +1330,17 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1328,17 +1331,17 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
              } else if (flag && this.shouldTickBlocksAt(tickingblockentity.getPos())) {
                  tickingblockentity.tick();
                  // Paper start - execute chunk tasks during tick
@@ -161,7 +199,7 @@ index e6c3a7367999e9a8d3fe7c53c38953490319aeca..5b029a1e31c1731da03f340780a7df60
          this.spigotConfig.currentPrimedTnt = 0; // Spigot
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..aef9a80b3beffc0fe6dbfac9b24989a80e98c25d 100644
+index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..4f377872ba132e3d45f939ffae9db1a45025907e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -193,7 +193,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
@@ -173,41 +211,3 @@ index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..aef9a80b3beffc0fe6dbfac9b24989a8
      }
  
      @Override
-diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index d8e257164815036fe65bba7377cbc0de90921750..8b4824609f7748f4341607b70dcd0f1ce97e8bae 100644
---- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -4,9 +4,11 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
- import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
- import it.unimi.dsi.fastutil.objects.ObjectArrayList;
- import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-+import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.world.entity.Mob;
-+import net.minecraft.world.level.block.entity.TickingBlockEntity;
- import net.minecraft.world.level.chunk.LevelChunk;
- 
- import java.util.ArrayList;
-@@ -25,6 +27,8 @@ public class LevelChunkRegion {
-     private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
-     private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
-     public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
-+    public List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
-+    public List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
- 
-     public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
-         this.level = level;
-diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index e8cdaa02648e4352c5ceb8b10a19baf29d51c879..21042d0412846794ae20e233e7accb52177d110f 100644
---- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -58,6 +58,8 @@ public class ShreddedPaperChunkTicker {
-         region.tickTasks();
-         region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
- 
-+        level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
-+
-         level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
-         level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
- 

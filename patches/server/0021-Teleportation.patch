@@ -5,7 +5,7 @@ Subject: [PATCH] Teleportation
 
 
 diff --git a/src/main/java/net/minecraft/server/commands/TeleportCommand.java b/src/main/java/net/minecraft/server/commands/TeleportCommand.java
-index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..54d88d05bded806ab4c5f612f244e99d99b07fc2 100644
+index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b1c6482ba 100644
 --- a/src/main/java/net/minecraft/server/commands/TeleportCommand.java
 +++ b/src/main/java/net/minecraft/server/commands/TeleportCommand.java
 @@ -12,7 +12,10 @@ import java.util.EnumSet;
@@ -108,10 +108,10 @@ index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..54d88d05bded806ab4c5f612f244e99d
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 162087bd74f53dce7eef9efa7e85c83538db23a7..ff841b91a4c3f41bc39781339dbf639a720464dd 100644
+index d03e9227859d1432bea814407f88de14ece24db2..01904ed991aecab3a399d62c562195b84c713750 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -2170,6 +2170,8 @@ public class ServerPlayer extends Player {
+@@ -2171,6 +2171,8 @@ public class ServerPlayer extends Player {
      }
  
      public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, TeleportCause cause) {
@@ -121,7 +121,7 @@ index 162087bd74f53dce7eef9efa7e85c83538db23a7..ff841b91a4c3f41bc39781339dbf639a
          ChunkPos chunkcoordintpair = new ChunkPos(BlockPos.containing(d0, d1, d2));
  
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 94a7194de023208917e29e22b7d5fd9e8d90846c..8f237d9f3ee31304146f602bf9c382daabf9fc48 100644
+index 20b2cc2be26292e85655773ef84ef33da459cb47..174aeea6e464ae2a4f1254360c3b3ee333445999 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -2981,19 +2981,27 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
@@ -161,7 +161,7 @@ index 94a7194de023208917e29e22b7d5fd9e8d90846c..8f237d9f3ee31304146f602bf9c382da
                  break;
              case REQUEST_STATS:
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
-index e8d6a2b1a0870da97e3a004486ad94a725d313a5..7186515bb246261d04a62c4cd0c939b7a19e4da9 100644
+index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f61f37f19 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
 @@ -22,9 +22,13 @@ import java.util.Objects;
@@ -345,7 +345,7 @@ index e8d6a2b1a0870da97e3a004486ad94a725d313a5..7186515bb246261d04a62c4cd0c939b7
  
      public void sendPlayerPermissionLevel(ServerPlayer player) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 852613327dd20d1758612ec1026772b4e556d3de..bf3b25db00d62d1cafc9ba1921553bdf6a4b5bab 100644
+index 0c02fcbf76506bf2fc1ca2a16f361947ff6365b7..56ee8c1c5794ae82579d638a71ac1043a78ffe19 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
@@ -364,7 +364,7 @@ index 852613327dd20d1758612ec1026772b4e556d3de..bf3b25db00d62d1cafc9ba1921553bdf
  import net.minecraft.world.level.gameevent.DynamicGameEventListener;
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.level.levelgen.Heightmap;
-@@ -2140,6 +2142,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2139,6 +2141,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      public void moveTo(double x, double y, double z, float yaw, float pitch) {
@@ -372,7 +372,7 @@ index 852613327dd20d1758612ec1026772b4e556d3de..bf3b25db00d62d1cafc9ba1921553bdf
          // Paper start - Fix Entity Teleportation and cancel velocity if teleported
          if (!preserveMotion) {
              this.deltaMovement = Vec3.ZERO;
-@@ -3797,6 +3800,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3796,6 +3799,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                      this.setDeltaMovement(shapedetectorshape.speed);
                      return this;
                  }
@@ -381,7 +381,7 @@ index 852613327dd20d1758612ec1026772b4e556d3de..bf3b25db00d62d1cafc9ba1921553bdf
                  // CraftBukkit end
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index aef9a80b3beffc0fe6dbfac9b24989a80e98c25d..5afc547b41ab33c1ae22a362b8e1092958c9f221 100644
+index 4f377872ba132e3d45f939ffae9db1a45025907e..056104a0c15937dad4f63ee56ef288eac53eff8b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -5,6 +5,7 @@ import com.google.common.base.Predicates;
@@ -416,7 +416,7 @@ index aef9a80b3beffc0fe6dbfac9b24989a80e98c25d..5afc547b41ab33c1ae22a362b8e10929
  
          return ret;
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..9fc8cb99b575e9e3f037de22bc8a03b29317e4cc 100644
+index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..b75fc4424cb138a79c1e86cd3bb8e6393be7cfe0 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 @@ -8,6 +8,9 @@ import com.google.common.collect.Lists;
@@ -459,7 +459,7 @@ index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..9fc8cb99b575e9e3f037de22bc8a03b2
                          ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
                      } catch (Throwable throwable) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 241340a6d66f17f2a31fb03ff0dfab121b856368..e1c1b5a10efb492b92bf45915048a711fd1c5227 100644
+index 241340a6d66f17f2a31fb03ff0dfab121b856368..d16b61e2c92e35e184270eb293c7717d15051e11 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -3355,7 +3355,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {

@@ -4,326 +4,9 @@ Date: Sun, 5 May 2024 23:21:04 +0900
 Subject: [PATCH] Add task scheduling API
 
 
-diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
-index e1ffd62f4ebceecb9bc5471df3da406cffea0483..140bff5cbb948116fc63a31dba4b895d47a5e98e 100644
---- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
-+++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
-@@ -37,6 +37,9 @@ import net.minecraft.util.Unit;
- import net.minecraft.world.level.ChunkPos;
- import org.bukkit.plugin.Plugin;
- import org.slf4j.Logger;
-+import io.multipaper.shreddedpaper.ShreddedPaper;
-+import io.multipaper.shreddedpaper.util.SimpleStampedLock;
-+
- import java.io.IOException;
- import java.text.DecimalFormat;
- import java.util.ArrayDeque;
-@@ -113,6 +116,7 @@ public final class ChunkHolderManager {
-     private long currentTick;
- 
-     private final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = new ArrayDeque<>();
-+    private final SimpleStampedLock autoSaveQueueLock = new SimpleStampedLock(); // ShreddedPaper - multithread-safe auto save queue
-     private final ObjectRBTreeSet<NewChunkHolder> autoSaveQueue = new ObjectRBTreeSet<>((final NewChunkHolder c1, final NewChunkHolder c2) -> {
-         if (c1 == c2) {
-             return 0;
-@@ -204,9 +208,9 @@ public final class ChunkHolderManager {
-     }
- 
-     void ensureInAutosave(final NewChunkHolder holder) {
--        if (!this.autoSaveQueue.contains(holder)) {
-+        if (!this.autoSaveQueueLock.optimisticRead(() -> this.autoSaveQueue.contains(holder))) { // ShreddedPaper - multithread-safe auto save queue
-             holder.lastAutoSave = MinecraftServer.currentTick;
--            this.autoSaveQueue.add(holder);
-+            this.autoSaveQueueLock.write(() -> this.autoSaveQueue.add(holder)); // ShreddedPaper - multithread-safe auto save queue
-         }
-     }
- 
-@@ -214,30 +218,40 @@ public final class ChunkHolderManager {
-         final List<NewChunkHolder> reschedule = new ArrayList<>();
-         final long currentTick = MinecraftServer.currentTickLong;
-         final long maxSaveTime = currentTick - this.world.paperConfig().chunks.autoSaveInterval.value();
--        for (int autoSaved = 0; autoSaved < this.world.paperConfig().chunks.maxAutoSaveChunksPerTick && !this.autoSaveQueue.isEmpty();) {
--            final NewChunkHolder holder = this.autoSaveQueue.first();
-+        for (int autoSaved = 0; autoSaved < this.world.paperConfig().chunks.maxAutoSaveChunksPerTick;) { // ShreddedPaper - multithread-safe auto save queue
-+            final NewChunkHolder holder = this.autoSaveQueueLock.optimisticRead(() -> this.autoSaveQueue.isEmpty() ? null : this.autoSaveQueue.first()); // ShreddedPaper - multithread-safe auto save queue
-+
-+            if (holder == null) break; // ShreddedPaper - multithread-safe auto save queue
- 
-             if (holder.lastAutoSave > maxSaveTime) {
-                 break;
-             }
- 
--            this.autoSaveQueue.remove(holder);
-+            this.autoSaveQueueLock.write(() -> this.autoSaveQueue.remove(holder)); // ShreddedPaper - multithread-safe auto save queue
- 
-             holder.lastAutoSave = currentTick;
--            if (holder.save(false, false) != null) {
--                ++autoSaved;
--            }
-+            // ShreddedPaper start - run on chunk's thread
-+            ShreddedPaper.runSync(holder.world, new ChunkPos(holder.chunkX, holder.chunkZ), () -> {
-+                holder.save(false, false);
-+            });
-+            ++autoSaved;
-+            // if (holder.save(false, false) != null) {
-+            //    ++autoSaved;
-+            // }
-+            // ShreddedPaper end - run on chunk's thread
- 
-             if (holder.getChunkStatus().isOrAfter(FullChunkStatus.FULL)) {
-                 reschedule.add(holder);
-             }
-         }
- 
-+        this.autoSaveQueueLock.write(() -> { // ShreddedPaper - multithread-safe auto save queue
-         for (final NewChunkHolder holder : reschedule) {
-             if (holder.getChunkStatus().isOrAfter(FullChunkStatus.FULL)) {
-                 this.autoSaveQueue.add(holder);
-             }
-         }
-+        }); // ShreddedPaper - multithread-safe auto save queue
-     }
- 
-     public void saveAllChunks(final boolean flush, final boolean shutdown, final boolean logProgress) {
-@@ -1024,6 +1038,16 @@ public final class ChunkHolderManager {
-         if (changedFullStatus.isEmpty()) {
-             return;
-         }
-+        // ShreddedPaper start
-+        for (NewChunkHolder chunkHolder : changedFullStatus) {
-+            this.taskScheduler.scheduleChunkTask(chunkHolder.chunkX, chunkHolder.chunkZ, () -> {
-+                List<NewChunkHolder> newChangedFullStatus = new ArrayList<>();
-+                chunkHolder.handleFullStatusChange(newChangedFullStatus);
-+                addChangedStatuses(newChangedFullStatus);
-+            });
-+        }
-+        if (true) return;
-+        // ShreddedPaper end
-         if (!TickThread.isTickThread()) {
-             this.taskScheduler.scheduleChunkTask(() -> {
-                 final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = ChunkHolderManager.this.pendingFullLoadUpdate;
-@@ -1044,7 +1068,7 @@ public final class ChunkHolderManager {
-     private void removeChunkHolder(final NewChunkHolder holder) {
-         holder.killed = true;
-         holder.vanillaChunkHolder.onChunkRemove();
--        this.autoSaveQueue.remove(holder);
-+        this.autoSaveQueueLock.write(() -> this.autoSaveQueue.remove(holder)); // ShreddedPaper - multithread-safe auto save queue
-         ChunkSystem.onChunkHolderDelete(this.world, holder.vanillaChunkHolder);
-         synchronized (this.chunkHolders) {
-             this.chunkHolders.remove(CoordinateUtils.getChunkKey(holder.chunkX, holder.chunkZ));
-diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
-index 049e20407033073b06fcdeb46c38485f4926d778..c7fdea820341ac116255e3cd8a9d5e28edf0e9aa 100644
---- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
-+++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
-@@ -11,6 +11,8 @@ import io.papermc.paper.chunk.system.scheduling.queue.RadiusAwarePrioritisedExec
- import io.papermc.paper.configuration.GlobalConfiguration;
- import io.papermc.paper.util.CoordinateUtils;
- import io.papermc.paper.util.TickThread;
-+
-+import java.util.Optional;
- import java.util.function.BooleanSupplier;
- import net.minecraft.CrashReport;
- import net.minecraft.CrashReportCategory;
-@@ -27,6 +29,10 @@ import net.minecraft.world.level.chunk.status.ChunkStatus;
- import net.minecraft.world.level.chunk.LevelChunk;
- import org.bukkit.Bukkit;
- import org.slf4j.Logger;
-+import io.multipaper.shreddedpaper.region.LevelChunkRegion;
-+import io.multipaper.shreddedpaper.region.RegionPos;
-+import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
-+
- import java.io.File;
- import java.util.ArrayDeque;
- import java.util.ArrayList;
-@@ -309,6 +315,19 @@ public final class ChunkTaskScheduler {
-     }
- 
-     public boolean executeMainThreadTask() {
-+        // ShreddedPaper start
-+        boolean ret = false;
-+        for (RegionPos regionPos : world.chunkScheduler.getRegionLocker().getLockedRegions()) {
-+            LevelChunkRegion region = world.chunkSource.tickingRegions.get(regionPos);
-+            if (region != null) {
-+                ret |= region.getInternalTaskQueue().executeTask();
-+            }
-+        }
-+        if (ret || ShreddedPaperTickThread.isShreddedPaperTickThread()) {
-+            // Don't run the mainThreadExecutor tasks below if we're a ShreddedPaperTickThread
-+            return ret;
-+        }
-+        // ShreddedPaper end
-         TickThread.ensureTickThread("Cannot execute main thread task off-main");
-         return this.mainThreadExecutor.executeTask();
-     }
-@@ -486,7 +505,7 @@ public final class ChunkTaskScheduler {
- 
-     public void scheduleChunkLoad(final int chunkX, final int chunkZ, final ChunkStatus toStatus, final boolean addTicket,
-                                   final PrioritisedExecutor.Priority priority, final Consumer<ChunkAccess> onComplete) {
--        if (!TickThread.isTickThread()) {
-+        if (!TickThread.isTickThreadFor(world, chunkX, chunkZ)) { // ShreddedPaper - ensure on chunk's thread
-             this.scheduleChunkTask(chunkX, chunkZ, () -> {
-                 ChunkTaskScheduler.this.scheduleChunkLoad(chunkX, chunkZ, toStatus, addTicket, priority, onComplete);
-             }, priority);
-@@ -774,16 +793,19 @@ public final class ChunkTaskScheduler {
- 
-     public PrioritisedExecutor.PrioritisedTask createChunkTask(final int chunkX, final int chunkZ, final Runnable run,
-                                                                final PrioritisedExecutor.Priority priority) {
--        return this.mainThreadExecutor.createTask(run, priority);
-+        return world.chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(chunkX, chunkZ))).getInternalTaskQueue().createTask(run, priority); // ShreddedPaper
-+        // return this.mainThreadExecutor.createTask(run, priority); // ShreddedPaper
-     }
- 
-     public PrioritisedExecutor.PrioritisedTask scheduleChunkTask(final int chunkX, final int chunkZ, final Runnable run) {
--        return this.mainThreadExecutor.queueRunnable(run);
-+        return world.chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(chunkX, chunkZ))).getInternalTaskQueue().queueRunnable(run); // ShreddedPaper
-+        // return this.mainThreadExecutor.queueRunnable(run); // ShreddedPaper
-     }
- 
-     public PrioritisedExecutor.PrioritisedTask scheduleChunkTask(final int chunkX, final int chunkZ, final Runnable run,
-                                                                  final PrioritisedExecutor.Priority priority) {
--        return this.mainThreadExecutor.queueRunnable(run, priority);
-+        return world.chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(chunkX, chunkZ))).getInternalTaskQueue().queueRunnable(run); // ShreddedPaper
-+        // return this.mainThreadExecutor.queueRunnable(run, priority); // ShreddedPaper
-     }
- 
-     public void executeTasksUntil(final BooleanSupplier exit) {
-diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index d3239eb3378b66103e178e58a51efb128919c0bf..b52b1ffe427ae4ae6c51d8eb2f1e78349edb2a05 100644
---- a/src/main/java/net/minecraft/server/MinecraftServer.java
-+++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -14,6 +14,7 @@ import com.mojang.authlib.GameProfileRepository;
- import com.mojang.authlib.minecraft.MinecraftSessionService;
- import com.mojang.datafixers.DataFixer;
- import com.mojang.logging.LogUtils;
-+import io.papermc.paper.util.TickThread;
- import it.unimi.dsi.fastutil.longs.LongIterator;
- import it.unimi.dsi.fastutil.objects.ObjectArrayList;
- import it.unimi.dsi.fastutil.objects.ObjectArraySet;
-@@ -1737,17 +1738,17 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
-         //MinecraftTimings.bukkitSchedulerTimer.stopTiming(); // Spigot // Paper // Purpur
-         // Paper start - Folia scheduler API
-         ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
--        getAllLevels().forEach(level -> {
--            for (final Entity entity : level.getEntityLookup().getAllCopy()) { // Paper - rewrite chunk system
--                if (entity.isRemoved()) {
--                    continue;
--                }
--                final org.bukkit.craftbukkit.entity.CraftEntity bukkit = entity.getBukkitEntityRaw();
--                if (bukkit != null) {
--                    bukkit.taskScheduler.executeTick();
--                }
--            }
--        });
-+//        getAllLevels().forEach(level -> {
-+//            for (final Entity entity : level.getEntityLookup().getAllCopy()) { // Paper - rewrite chunk system
-+//                if (entity.isRemoved()) {
-+//                    continue;
-+//                }
-+//                final org.bukkit.craftbukkit.entity.CraftEntity bukkit = entity.getBukkitEntityRaw();
-+//                if (bukkit != null) {
-+//                    bukkit.taskScheduler.executeTick();
-+//                }
-+//            }
-+//        });
-         // Paper end - Folia scheduler API
-         io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
-         //this.profiler.push("commandFunctions"); // Purpur
-diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 84677d254e9b5c1bbb5100e8d5e10002aae3cfcb..296768dad4aa4aa7b7bb162088dde63446ccdd92 100644
---- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-+++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -13,6 +13,8 @@ import java.util.function.BooleanSupplier;
- import java.util.function.Consumer;
- import java.util.function.Supplier;
- import javax.annotation.Nullable;
-+
-+import io.papermc.paper.util.TickThread;
- import net.minecraft.Util;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.SectionPos;
-@@ -43,6 +45,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
- import net.minecraft.world.level.storage.LevelStorageSource;
- import io.multipaper.shreddedpaper.region.LevelChunkRegionMap;
- import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
-+import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
- 
- public class ServerChunkCache extends ChunkSource {
- 
-@@ -735,7 +738,7 @@ public class ServerChunkCache extends ChunkSource {
- 
-     @Override
-     public void onLightUpdate(LightLayer type, SectionPos pos) {
--        this.mainThreadProcessor.execute(() -> {
-+        this.level.chunkTaskScheduler.scheduleChunkTask(pos.x(), pos.z(), () -> { // ShreddedPaper - run on chunk thread
-             ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos.chunk().toLong());
- 
-             if (playerchunk != null) {
-@@ -859,7 +862,12 @@ public class ServerChunkCache extends ChunkSource {
-             if (ServerChunkCache.this.runDistanceManagerUpdates()) {
-                 return true;
-             }
--            return super.pollTask() | ServerChunkCache.this.level.chunkTaskScheduler.executeMainThreadTask(); // Paper - rewrite chunk system
-+            // ShreddedPaper start - run region tasks aswell when starting or shutting down
-+            if (level.getServer().forceTicks || TickThread.isShutdownThread()) {
-+                level.getChunkSource().tickingRegions.forEach(region -> region.getInternalTaskQueue().executeTask());
-+            }
-+            // ShreddedPaper end
-+            return (!ShreddedPaperTickThread.isShreddedPaperTickThread() && super.pollTask()) | ServerChunkCache.this.level.chunkTaskScheduler.executeMainThreadTask(); // Paper - rewrite chunk system // ShreddedPaper - don't run main thread tasks on workers
-         }
-     }
- 
-diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index ad88bd9d6e77caf322d8f9d7fc52c38bee20bda0..c5e2f280d9abeaaa141d68eddd63300f6ede9810 100644
---- a/src/main/java/net/minecraft/server/level/ServerLevel.java
-+++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -174,6 +174,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
- import org.bukkit.event.server.MapInitializeEvent;
- import org.bukkit.event.weather.LightningStrikeEvent;
- import org.bukkit.event.world.TimeSkipEvent;
-+import io.multipaper.shreddedpaper.region.RegionPos;
- import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
- // CraftBukkit end
- 
-@@ -2297,13 +2298,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
-             BlockPos blockposition1 = pos.immutable();
- 
-             optional.ifPresent((holder) -> {
--                this.getServer().execute(() -> {
-+                chunkSource.tickingRegions.execute(RegionPos.forChunk(new ChunkPos(pos)), () -> { // ShreddedPaper
-                     this.getPoiManager().remove(blockposition1);
-                     DebugPackets.sendPoiRemovedPacket(this, blockposition1);
-                 });
-             });
-             optional1.ifPresent((holder) -> {
--                this.getServer().execute(() -> {
-+                chunkSource.tickingRegions.execute(RegionPos.forChunk(new ChunkPos(pos)), () -> { // ShreddedPaper
-                     // Paper start - Remove stale POIs
-                     if (optional.isEmpty() && this.getPoiManager().exists(blockposition1, poiType -> true)) {
-                         this.getPoiManager().remove(blockposition1);
-diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 5abd5ced015be7de740d504b5c0b0620822f22ac..e077376cfb44e51031348932623b58325c89039a 100644
---- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-+++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -260,6 +260,7 @@ import org.yaml.snakeyaml.error.MarkedYAMLException;
- 
- import net.md_5.bungee.api.chat.BaseComponent; // Spigot
- import io.multipaper.shreddedpaper.permissions.ShreddedPaperPermissions;
-+import io.multipaper.shreddedpaper.region.ShreddedPaperRegionSchedulerApiImpl;
- 
- import javax.annotation.Nullable; // Paper
- import javax.annotation.Nonnull; // Paper
-@@ -308,7 +309,7 @@ public final class CraftServer implements Server {
-     private final io.papermc.paper.potion.PaperPotionBrewer potionBrewer; // Paper - Custom Potion Mixes
- 
-     // Paper start - Folia region threading API
--    private final io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler regionizedScheduler = new io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler();
-+    private final io.papermc.paper.threadedregions.scheduler.RegionScheduler regionizedScheduler = new ShreddedPaperRegionSchedulerApiImpl(); // ShreddedPaper
-     private final io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler asyncScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler();
-     private final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler globalRegionScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler();
- 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1ffc040d99aa77965b9db019409864d7416013f7
+index 0000000000000000000000000000000000000000..9c02586147e22a9a09c67d28dd47e0496a475fa1
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 @@ -0,0 +1,41 @@
@@ -370,7 +53,7 @@ index 0000000000000000000000000000000000000000..1ffc040d99aa77965b9db019409864d7
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/DelayedTask.java b/src/main/java/io/multipaper/shreddedpaper/region/DelayedTask.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5e502f75055b49d6f5e8258568cec52bc8885439
+index 0000000000000000000000000000000000000000..7f3344a89ceab9c362c48eabc8ec4b1487529e0c
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/DelayedTask.java
 @@ -0,0 +1,29 @@
@@ -404,7 +87,7 @@ index 0000000000000000000000000000000000000000..5e502f75055b49d6f5e8258568cec52b
 +
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 96851c9fa41c3f146feb33c00b4e942367d81294..65166e43ae0b69174e12b431fdb4a6925e0976e3 100644
+index 42d281c3ebfbc94021dea2e786010ec33d4c4ea1..faa4be4f608a4f2b8bba24e231742c689399f5c5 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,10 +1,12 @@
@@ -470,7 +153,7 @@ index 96851c9fa41c3f146feb33c00b4e942367d81294..65166e43ae0b69174e12b431fdb4a692
 +    }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index ccda9c9f240205d744e9e7beb68bf7a340598ef1..607004069df259785ac3227ca538b988e21371ce 100644
+index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..03f1dc4755b4e2c58c2e53aabf7bf8342cc26d70 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 @@ -57,4 +57,25 @@ public class LevelChunkRegionMap {
@@ -502,7 +185,7 @@ index ccda9c9f240205d744e9e7beb68bf7a340598ef1..607004069df259785ac3227ca538b988
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/ShreddedPaperRegionSchedulerApiImpl.java b/src/main/java/io/multipaper/shreddedpaper/region/ShreddedPaperRegionSchedulerApiImpl.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..43464b91841109668c811e83568c92b568f3044d
+index 0000000000000000000000000000000000000000..692dee8b14e70b2a1e9af885a7f758601724e278
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/ShreddedPaperRegionSchedulerApiImpl.java
 @@ -0,0 +1,142 @@
@@ -649,7 +332,7 @@ index 0000000000000000000000000000000000000000..43464b91841109668c811e83568c92b5
 +}
 +
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 509219927c274f7170764d7cb0d4c9a9779fc3b5..88ab6031b615199f43b63c5e2dcd7c566f5c4c50 100644
+index b9cf7512d4be69b8162775126fa7ab7d03a35994..87fc320a30bc02c36159c4d6062e3f120356cf1e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -15,6 +15,7 @@ import io.multipaper.shreddedpaper.region.LevelChunkRegion;
@@ -687,7 +370,7 @@ index 509219927c274f7170764d7cb0d4c9a9779fc3b5..88ab6031b615199f43b63c5e2dcd7c56
          int j = 1; // Inhabited time increment in ticks
          boolean flag = level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !level.players().isEmpty(); // Should run mob spawning code
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-index 5faabd96d271d7acd734cc620e25c4b6558057a2..c6ca26d6416c48e3e4bfed97bef5a671442d0941 100644
+index 5032e1a823a00f6a09066d63cc3095bb9885cd7e..37553f76d0f438793f613749e5b6141a948234bf 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 @@ -15,7 +15,7 @@ import java.util.function.Supplier;
@@ -698,4 +381,321 @@ index 5faabd96d271d7acd734cc620e25c4b6558057a2..c6ca26d6416c48e3e4bfed97bef5a671
 +    public static final int REGION_LOCK_RADIUS = 1;
  
      private final ConcurrentHashMap<RegionPos, Thread> lockedRegions = new ConcurrentHashMap<>();
+ 
+diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
+index e1ffd62f4ebceecb9bc5471df3da406cffea0483..bb31681d91f54c7d4e242579081f64dfcf481340 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
++++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
+@@ -37,6 +37,9 @@ import net.minecraft.util.Unit;
+ import net.minecraft.world.level.ChunkPos;
+ import org.bukkit.plugin.Plugin;
+ import org.slf4j.Logger;
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.util.SimpleStampedLock;
++
+ import java.io.IOException;
+ import java.text.DecimalFormat;
+ import java.util.ArrayDeque;
+@@ -113,6 +116,7 @@ public final class ChunkHolderManager {
+     private long currentTick;
+ 
+     private final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = new ArrayDeque<>();
++    private final SimpleStampedLock autoSaveQueueLock = new SimpleStampedLock(); // ShreddedPaper - multithread-safe auto save queue
+     private final ObjectRBTreeSet<NewChunkHolder> autoSaveQueue = new ObjectRBTreeSet<>((final NewChunkHolder c1, final NewChunkHolder c2) -> {
+         if (c1 == c2) {
+             return 0;
+@@ -204,9 +208,9 @@ public final class ChunkHolderManager {
+     }
+ 
+     void ensureInAutosave(final NewChunkHolder holder) {
+-        if (!this.autoSaveQueue.contains(holder)) {
++        if (!this.autoSaveQueueLock.optimisticRead(() -> this.autoSaveQueue.contains(holder))) { // ShreddedPaper - multithread-safe auto save queue
+             holder.lastAutoSave = MinecraftServer.currentTick;
+-            this.autoSaveQueue.add(holder);
++            this.autoSaveQueueLock.write(() -> this.autoSaveQueue.add(holder)); // ShreddedPaper - multithread-safe auto save queue
+         }
+     }
+ 
+@@ -214,30 +218,40 @@ public final class ChunkHolderManager {
+         final List<NewChunkHolder> reschedule = new ArrayList<>();
+         final long currentTick = MinecraftServer.currentTickLong;
+         final long maxSaveTime = currentTick - this.world.paperConfig().chunks.autoSaveInterval.value();
+-        for (int autoSaved = 0; autoSaved < this.world.paperConfig().chunks.maxAutoSaveChunksPerTick && !this.autoSaveQueue.isEmpty();) {
+-            final NewChunkHolder holder = this.autoSaveQueue.first();
++        for (int autoSaved = 0; autoSaved < this.world.paperConfig().chunks.maxAutoSaveChunksPerTick;) { // ShreddedPaper - multithread-safe auto save queue
++            final NewChunkHolder holder = this.autoSaveQueueLock.optimisticRead(() -> this.autoSaveQueue.isEmpty() ? null : this.autoSaveQueue.first()); // ShreddedPaper - multithread-safe auto save queue
++
++            if (holder == null) break; // ShreddedPaper - multithread-safe auto save queue
+ 
+             if (holder.lastAutoSave > maxSaveTime) {
+                 break;
+             }
+ 
+-            this.autoSaveQueue.remove(holder);
++            this.autoSaveQueueLock.write(() -> this.autoSaveQueue.remove(holder)); // ShreddedPaper - multithread-safe auto save queue
+ 
+             holder.lastAutoSave = currentTick;
+-            if (holder.save(false, false) != null) {
+-                ++autoSaved;
+-            }
++            // ShreddedPaper start - run on chunk's thread
++            ShreddedPaper.runSync(holder.world, new ChunkPos(holder.chunkX, holder.chunkZ), () -> {
++                holder.save(false, false);
++            });
++            ++autoSaved;
++            // if (holder.save(false, false) != null) {
++            //    ++autoSaved;
++            // }
++            // ShreddedPaper end - run on chunk's thread
+ 
+             if (holder.getChunkStatus().isOrAfter(FullChunkStatus.FULL)) {
+                 reschedule.add(holder);
+             }
+         }
+ 
++        this.autoSaveQueueLock.write(() -> { // ShreddedPaper - multithread-safe auto save queue
+         for (final NewChunkHolder holder : reschedule) {
+             if (holder.getChunkStatus().isOrAfter(FullChunkStatus.FULL)) {
+                 this.autoSaveQueue.add(holder);
+             }
+         }
++        }); // ShreddedPaper - multithread-safe auto save queue
+     }
+ 
+     public void saveAllChunks(final boolean flush, final boolean shutdown, final boolean logProgress) {
+@@ -1024,6 +1038,16 @@ public final class ChunkHolderManager {
+         if (changedFullStatus.isEmpty()) {
+             return;
+         }
++        // ShreddedPaper start
++        for (NewChunkHolder chunkHolder : changedFullStatus) {
++            this.taskScheduler.scheduleChunkTask(chunkHolder.chunkX, chunkHolder.chunkZ, () -> {
++                List<NewChunkHolder> newChangedFullStatus = new ArrayList<>();
++                chunkHolder.handleFullStatusChange(newChangedFullStatus);
++                addChangedStatuses(newChangedFullStatus);
++            });
++        }
++        if (true) return;
++        // ShreddedPaper end
+         if (!TickThread.isTickThread()) {
+             this.taskScheduler.scheduleChunkTask(() -> {
+                 final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = ChunkHolderManager.this.pendingFullLoadUpdate;
+@@ -1044,7 +1068,7 @@ public final class ChunkHolderManager {
+     private void removeChunkHolder(final NewChunkHolder holder) {
+         holder.killed = true;
+         holder.vanillaChunkHolder.onChunkRemove();
+-        this.autoSaveQueue.remove(holder);
++        this.autoSaveQueueLock.write(() -> this.autoSaveQueue.remove(holder)); // ShreddedPaper - multithread-safe auto save queue
+         ChunkSystem.onChunkHolderDelete(this.world, holder.vanillaChunkHolder);
+         synchronized (this.chunkHolders) {
+             this.chunkHolders.remove(CoordinateUtils.getChunkKey(holder.chunkX, holder.chunkZ));
+diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
+index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106cd9e75d6 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
++++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
+@@ -11,6 +11,8 @@ import io.papermc.paper.chunk.system.scheduling.queue.RadiusAwarePrioritisedExec
+ import io.papermc.paper.configuration.GlobalConfiguration;
+ import io.papermc.paper.util.CoordinateUtils;
+ import io.papermc.paper.util.TickThread;
++
++import java.util.Optional;
+ import java.util.function.BooleanSupplier;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+@@ -27,6 +29,10 @@ import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import org.bukkit.Bukkit;
+ import org.slf4j.Logger;
++import io.multipaper.shreddedpaper.region.LevelChunkRegion;
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
++
+ import java.io.File;
+ import java.util.ArrayDeque;
+ import java.util.ArrayList;
+@@ -309,6 +315,19 @@ public final class ChunkTaskScheduler {
+     }
+ 
+     public boolean executeMainThreadTask() {
++        // ShreddedPaper start
++        boolean ret = false;
++        for (RegionPos regionPos : world.chunkScheduler.getRegionLocker().getLockedRegions()) {
++            LevelChunkRegion region = world.chunkSource.tickingRegions.get(regionPos);
++            if (region != null) {
++                ret |= region.getInternalTaskQueue().executeTask();
++            }
++        }
++        if (ret || ShreddedPaperTickThread.isShreddedPaperTickThread()) {
++            // Don't run the mainThreadExecutor tasks below if we're a ShreddedPaperTickThread
++            return ret;
++        }
++        // ShreddedPaper end
+         TickThread.ensureTickThread("Cannot execute main thread task off-main");
+         return this.mainThreadExecutor.executeTask();
+     }
+@@ -486,7 +505,7 @@ public final class ChunkTaskScheduler {
+ 
+     public void scheduleChunkLoad(final int chunkX, final int chunkZ, final ChunkStatus toStatus, final boolean addTicket,
+                                   final PrioritisedExecutor.Priority priority, final Consumer<ChunkAccess> onComplete) {
+-        if (!TickThread.isTickThread()) {
++        if (!TickThread.isTickThreadFor(world, chunkX, chunkZ)) { // ShreddedPaper - ensure on chunk's thread
+             this.scheduleChunkTask(chunkX, chunkZ, () -> {
+                 ChunkTaskScheduler.this.scheduleChunkLoad(chunkX, chunkZ, toStatus, addTicket, priority, onComplete);
+             }, priority);
+@@ -774,16 +793,19 @@ public final class ChunkTaskScheduler {
+ 
+     public PrioritisedExecutor.PrioritisedTask createChunkTask(final int chunkX, final int chunkZ, final Runnable run,
+                                                                final PrioritisedExecutor.Priority priority) {
+-        return this.mainThreadExecutor.createTask(run, priority);
++        return world.chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(chunkX, chunkZ))).getInternalTaskQueue().createTask(run, priority); // ShreddedPaper
++        // return this.mainThreadExecutor.createTask(run, priority); // ShreddedPaper
+     }
+ 
+     public PrioritisedExecutor.PrioritisedTask scheduleChunkTask(final int chunkX, final int chunkZ, final Runnable run) {
+-        return this.mainThreadExecutor.queueRunnable(run);
++        return world.chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(chunkX, chunkZ))).getInternalTaskQueue().queueRunnable(run); // ShreddedPaper
++        // return this.mainThreadExecutor.queueRunnable(run); // ShreddedPaper
+     }
+ 
+     public PrioritisedExecutor.PrioritisedTask scheduleChunkTask(final int chunkX, final int chunkZ, final Runnable run,
+                                                                  final PrioritisedExecutor.Priority priority) {
+-        return this.mainThreadExecutor.queueRunnable(run, priority);
++        return world.chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(chunkX, chunkZ))).getInternalTaskQueue().queueRunnable(run); // ShreddedPaper
++        // return this.mainThreadExecutor.queueRunnable(run, priority); // ShreddedPaper
+     }
+ 
+     public void executeTasksUntil(final BooleanSupplier exit) {
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 3f11f17a85e24821a168ccd39a7298cd91438fbf..03a20945dd94c29f84f05e769866aeef75677f0f 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -14,6 +14,7 @@ import com.mojang.authlib.GameProfileRepository;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.longs.LongIterator;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import it.unimi.dsi.fastutil.objects.ObjectArraySet;
+@@ -1737,17 +1738,17 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         //MinecraftTimings.bukkitSchedulerTimer.stopTiming(); // Spigot // Paper // Purpur
+         // Paper start - Folia scheduler API
+         ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
+-        getAllLevels().forEach(level -> {
+-            for (final Entity entity : level.getEntityLookup().getAllCopy()) { // Paper - rewrite chunk system
+-                if (entity.isRemoved()) {
+-                    continue;
+-                }
+-                final org.bukkit.craftbukkit.entity.CraftEntity bukkit = entity.getBukkitEntityRaw();
+-                if (bukkit != null) {
+-                    bukkit.taskScheduler.executeTick();
+-                }
+-            }
+-        });
++//        getAllLevels().forEach(level -> {
++//            for (final Entity entity : level.getEntityLookup().getAllCopy()) { // Paper - rewrite chunk system
++//                if (entity.isRemoved()) {
++//                    continue;
++//                }
++//                final org.bukkit.craftbukkit.entity.CraftEntity bukkit = entity.getBukkitEntityRaw();
++//                if (bukkit != null) {
++//                    bukkit.taskScheduler.executeTick();
++//                }
++//            }
++//        });
+         // Paper end - Folia scheduler API
+         io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
+         //this.profiler.push("commandFunctions"); // Purpur
+diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..bf6158348ebb195753423df77fc4584314842df0 100644
+--- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
++++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+@@ -13,6 +13,8 @@ import java.util.function.BooleanSupplier;
+ import java.util.function.Consumer;
+ import java.util.function.Supplier;
+ import javax.annotation.Nullable;
++
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.Util;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.SectionPos;
+@@ -43,6 +45,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
+ import net.minecraft.world.level.storage.LevelStorageSource;
+ import io.multipaper.shreddedpaper.region.LevelChunkRegionMap;
+ import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
+ 
+ public class ServerChunkCache extends ChunkSource {
+ 
+@@ -735,7 +738,7 @@ public class ServerChunkCache extends ChunkSource {
+ 
+     @Override
+     public void onLightUpdate(LightLayer type, SectionPos pos) {
+-        this.mainThreadProcessor.execute(() -> {
++        this.level.chunkTaskScheduler.scheduleChunkTask(pos.x(), pos.z(), () -> { // ShreddedPaper - run on chunk thread
+             ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos.chunk().toLong());
+ 
+             if (playerchunk != null) {
+@@ -859,7 +862,12 @@ public class ServerChunkCache extends ChunkSource {
+             if (ServerChunkCache.this.runDistanceManagerUpdates()) {
+                 return true;
+             }
+-            return super.pollTask() | ServerChunkCache.this.level.chunkTaskScheduler.executeMainThreadTask(); // Paper - rewrite chunk system
++            // ShreddedPaper start - run region tasks aswell when starting or shutting down
++            if (level.getServer().forceTicks || TickThread.isShutdownThread()) {
++                level.getChunkSource().tickingRegions.forEach(region -> region.getInternalTaskQueue().executeTask());
++            }
++            // ShreddedPaper end
++            return (!ShreddedPaperTickThread.isShreddedPaperTickThread() && super.pollTask()) | ServerChunkCache.this.level.chunkTaskScheduler.executeMainThreadTask(); // Paper - rewrite chunk system // ShreddedPaper - don't run main thread tasks on workers
+         }
+     }
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 713444b84fd910e9633f60d38ce759d69835cfcd..2555d09b1b44fb35f5a72f8d96d721166e0983ed 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -174,6 +174,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
+ import org.bukkit.event.server.MapInitializeEvent;
+ import org.bukkit.event.weather.LightningStrikeEvent;
+ import org.bukkit.event.world.TimeSkipEvent;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
+ // CraftBukkit end
+ 
+@@ -2297,13 +2298,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
+             BlockPos blockposition1 = pos.immutable();
+ 
+             optional.ifPresent((holder) -> {
+-                this.getServer().execute(() -> {
++                chunkSource.tickingRegions.execute(RegionPos.forChunk(new ChunkPos(pos)), () -> { // ShreddedPaper
+                     this.getPoiManager().remove(blockposition1);
+                     DebugPackets.sendPoiRemovedPacket(this, blockposition1);
+                 });
+             });
+             optional1.ifPresent((holder) -> {
+-                this.getServer().execute(() -> {
++                chunkSource.tickingRegions.execute(RegionPos.forChunk(new ChunkPos(pos)), () -> { // ShreddedPaper
+                     // Paper start - Remove stale POIs
+                     if (optional.isEmpty() && this.getPoiManager().exists(blockposition1, poiType -> true)) {
+                         this.getPoiManager().remove(blockposition1);
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 87ed749633aba04e6b86eb7ddf09f58884b552a4..e5e00c49965ceaddea205e0415fa5e13d48848ff 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -260,6 +260,7 @@ import org.yaml.snakeyaml.error.MarkedYAMLException;
+ 
+ import net.md_5.bungee.api.chat.BaseComponent; // Spigot
+ import io.multipaper.shreddedpaper.permissions.ShreddedPaperPermissions;
++import io.multipaper.shreddedpaper.region.ShreddedPaperRegionSchedulerApiImpl;
+ 
+ import javax.annotation.Nullable; // Paper
+ import javax.annotation.Nonnull; // Paper
+@@ -308,7 +309,7 @@ public final class CraftServer implements Server {
+     private final io.papermc.paper.potion.PaperPotionBrewer potionBrewer; // Paper - Custom Potion Mixes
+ 
+     // Paper start - Folia region threading API
+-    private final io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler regionizedScheduler = new io.papermc.paper.threadedregions.scheduler.FallbackRegionScheduler();
++    private final io.papermc.paper.threadedregions.scheduler.RegionScheduler regionizedScheduler = new ShreddedPaperRegionSchedulerApiImpl(); // ShreddedPaper
+     private final io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler asyncScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler();
+     private final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler globalRegionScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler();
  

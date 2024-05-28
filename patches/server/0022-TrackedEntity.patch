@@ -4,8 +4,32 @@ Date: Sat, 25 May 2024 13:07:30 +0900
 Subject: [PATCH] TrackedEntity
 
 
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
+index 81d6ae082047fdda6f2271a830e700fa90b9d0ac..bcec4b8ccde9be55e15a2222ef7dabf00d720864 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
+@@ -1,5 +1,6 @@
+ package io.multipaper.shreddedpaper.threading;
+ 
++import net.minecraft.server.level.ChunkMap;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.Entity;
+ 
+@@ -31,6 +32,12 @@ public class ShreddedPaperEntityTicker {
+                     //gameprofilerfiller.pop(); // Purpur
+                 }
+             }
++
++            ChunkMap.TrackedEntity tracker = entity.tracker;
++            if (tracker != null) {
++                tracker.updatePlayers(entity.getPlayersInTrackRange());
++                tracker.serverEntity.sendChanges();
++            }
+         }
+     }
+ 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index a97f6b6646c31ee8879223a202b83a5662024d04..ec789b9391cc311fad435b4bc46d2c5fcdb4532f 100644
+index 976c2e6181a29d70c63fe970d7524cc8f1b1174b..8ea36e3ade095e77dbc796f5e76d03276c947dec 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -42,6 +42,7 @@ import java.util.Set;
@@ -77,28 +101,4 @@ index a97f6b6646c31ee8879223a202b83a5662024d04..ec789b9391cc311fad435b4bc46d2c5f
 +        public final void updatePlayers(com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> newTrackerCandidates) { // ShreddedPaper - make public
              com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> oldTrackerCandidates = this.lastTrackerCandidates;
              this.lastTrackerCandidates = newTrackerCandidates;
- 
-diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
-index 68b41b85db26bb7e7ff3ed03b7a9a652b0d1371e..5067fa3defb5c589a563899df5f0bd2d31d8f80f 100644
---- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
-@@ -1,5 +1,6 @@
- package io.multipaper.shreddedpaper.threading;
- 
-+import net.minecraft.server.level.ChunkMap;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.world.entity.Entity;
- 
-@@ -31,6 +32,12 @@ public class ShreddedPaperEntityTicker {
-                     //gameprofilerfiller.pop(); // Purpur
-                 }
-             }
-+
-+            ChunkMap.TrackedEntity tracker = entity.tracker;
-+            if (tracker != null) {
-+                tracker.updatePlayers(entity.getPlayersInTrackRange());
-+                tracker.serverEntity.sendChanges();
-+            }
-         }
-     }
  

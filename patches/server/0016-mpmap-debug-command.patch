@@ -4,29 +4,9 @@ Date: Tue, 21 May 2024 23:54:30 +0900
 Subject: [PATCH] mpmap debug command
 
 
-diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index 957da64ddd0a56f457122a3f590b45e348f22382..348eb5a7193d3d099832fcfe7cdc7c832bf30a39 100644
---- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-+++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-@@ -69,6 +69,7 @@ import org.bukkit.craftbukkit.util.TerminalConsoleWriterThread;
- import org.bukkit.event.server.ServerCommandEvent;
- import org.bukkit.craftbukkit.util.Waitable; // Paper
- import org.bukkit.event.server.RemoteServerCommandEvent;
-+import io.multipaper.shreddedpaper.commands.ShreddedPaperCommands;
- // CraftBukkit end
- 
- public class DedicatedServer extends MinecraftServer implements ServerInterface {
-@@ -242,6 +243,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
-         }
-         org.purpurmc.purpur.PurpurConfig.registerCommands();
-         // Purpur end
-+        ShreddedPaperCommands.registerCommands(this); // ShreddedPaper
-         com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
- 
-         this.setPvpAllowed(dedicatedserverproperties.pvp);
 diff --git a/src/main/java/io/multipaper/shreddedpaper/commands/MPMapCommand.java b/src/main/java/io/multipaper/shreddedpaper/commands/MPMapCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fe311b990915f5fed475cad2f553fbcc2920a8db
+index 0000000000000000000000000000000000000000..6fad03268943c9e4d4a6be3afac14f43da5e83d2
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/commands/MPMapCommand.java
 @@ -0,0 +1,48 @@
@@ -80,7 +60,7 @@ index 0000000000000000000000000000000000000000..fe311b990915f5fed475cad2f553fbcc
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/commands/MapCommandBase.java b/src/main/java/io/multipaper/shreddedpaper/commands/MapCommandBase.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5bea6e574cb2d90c1557667583554e4f4bfa5f93
+index 0000000000000000000000000000000000000000..da00cc8e1cc540b5d042996837b4f546b2b361cb
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/commands/MapCommandBase.java
 @@ -0,0 +1,93 @@
@@ -179,7 +159,7 @@ index 0000000000000000000000000000000000000000..5bea6e574cb2d90c1557667583554e4f
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java b/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cb73abf45926aed5b408a8cbeacadc020f949eb1
+index 0000000000000000000000000000000000000000..4dd39bce7ed93bf96cc893cc5e3cf539f44763fe
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java
 @@ -0,0 +1,26 @@
@@ -210,7 +190,7 @@ index 0000000000000000000000000000000000000000..cb73abf45926aed5b408a8cbeacadc02
 +
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java b/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java
-index f7d9a1538ec842e453e5add3f9e33f8c43bfa3d2..2b0033c18074cc5c3a72808e25aed7d4f0abe394 100644
+index 53dcfbdf38f007fc86064ac1a495288d5f25f598..89436f82a49d69f3bd21195bf44dfc4fa9bd4df7 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java
 @@ -1,6 +1,7 @@
@@ -229,3 +209,23 @@ index f7d9a1538ec842e453e5add3f9e33f8c43bfa3d2..2b0033c18074cc5c3a72808e25aed7d4
  
          commands.recalculatePermissibles();
      }
+diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+index 957da64ddd0a56f457122a3f590b45e348f22382..7507624e1e40b902855ac846f64a39a23e5a3646 100644
+--- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -69,6 +69,7 @@ import org.bukkit.craftbukkit.util.TerminalConsoleWriterThread;
+ import org.bukkit.event.server.ServerCommandEvent;
+ import org.bukkit.craftbukkit.util.Waitable; // Paper
+ import org.bukkit.event.server.RemoteServerCommandEvent;
++import io.multipaper.shreddedpaper.commands.ShreddedPaperCommands;
+ // CraftBukkit end
+ 
+ public class DedicatedServer extends MinecraftServer implements ServerInterface {
+@@ -242,6 +243,7 @@ public class DedicatedServer extends MinecraftServer implements ServerInterface
+         }
+         org.purpurmc.purpur.PurpurConfig.registerCommands();
+         // Purpur end
++        ShreddedPaperCommands.registerCommands(this); // ShreddedPaper
+         com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
+ 
+         this.setPvpAllowed(dedicatedserverproperties.pvp);

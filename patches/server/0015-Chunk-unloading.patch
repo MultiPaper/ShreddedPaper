@@ -4,8 +4,50 @@ Date: Sun, 19 May 2024 18:20:55 +0900
 Subject: [PATCH] Chunk unloading
 
 
+diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
+index 5a1184d992a34a4ed11a9c5fb7711a6723ae976c..1ddc4ad7737cd7daaf415fa74f014f36c7eb21d7 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
++++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
+@@ -1,6 +1,7 @@
+ package io.multipaper.shreddedpaper.region;
+ 
+ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQueue;
++import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+ import net.minecraft.server.level.ServerLevel;
+@@ -23,6 +24,7 @@ public class LevelChunkRegion {
+     private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue();
+     private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
+     private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
++    public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
+ 
+     public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
+         this.level = level;
+@@ -110,6 +112,7 @@ public class LevelChunkRegion {
+ 
+     public boolean isEmpty() {
+         return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty()
+-                && players.isEmpty();
++                && players.isEmpty()
++                && unloadQueue.isEmpty();
+     }
+ }
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+index 0aedc67c7447242d7d3fa65a983d70911da9f2e0..2d01d065b13f23a59ec8609e53f9919c802d3601 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+@@ -53,6 +53,8 @@ public class ShreddedPaperChunkTicker {
+ 
+         while (region.getInternalTaskQueue().executeTask());
+ 
++        level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
++
+         region.tickTasks();
+         region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+ 
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
-index 140bff5cbb948116fc63a31dba4b895d47a5e98e..f73e4be75786d774eb4374567a34472d23f607d7 100644
+index bb31681d91f54c7d4e242579081f64dfcf481340..758c155c23d95c3cc952cb14f864c703f9b45127 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
 @@ -38,6 +38,8 @@ import net.minecraft.world.level.ChunkPos;
@@ -270,7 +312,7 @@ index 140bff5cbb948116fc63a31dba4b895d47a5e98e..f73e4be75786d774eb4374567a34472d
          final JsonArray holders = new JsonArray();
          ret.add("chunkholders", holders);
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
-index 604de7aed6db44c9c84d541765e57da48883cf00..45bca2195a35861d04635fdadd16e0bb9b85265f 100644
+index 604de7aed6db44c9c84d541765e57da48883cf00..c7e53d4f3182d08ffb0c0fc714dcff4d6900062d 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
 @@ -36,12 +36,15 @@ import net.minecraft.world.level.chunk.LevelChunk;
@@ -303,7 +345,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..45bca2195a35861d04635fdadd16e0bb
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 345f143b0eeb77acb96e4bc716f3b23782ac782f..a97f6b6646c31ee8879223a202b83a5662024d04 100644
+index 345f143b0eeb77acb96e4bc716f3b23782ac782f..976c2e6181a29d70c63fe970d7524cc8f1b1174b 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -562,7 +562,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -314,46 +356,4 @@ index 345f143b0eeb77acb96e4bc716f3b23782ac782f..a97f6b6646c31ee8879223a202b83a56
 +        // this.level.chunkTaskScheduler.chunkHolderManager.processUnloads(); // Paper - rewrite chunk system // ShreddedPaper - we unload chunks on the chunk thread
  
      }
- 
-diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index e16024658f7ad8381b6c466f5fc55441b792ea60..d8e257164815036fe65bba7377cbc0de90921750 100644
---- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -1,6 +1,7 @@
- package io.multipaper.shreddedpaper.region;
- 
- import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQueue;
-+import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
- import it.unimi.dsi.fastutil.objects.ObjectArrayList;
- import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
- import net.minecraft.server.level.ServerLevel;
-@@ -23,6 +24,7 @@ public class LevelChunkRegion {
-     private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue();
-     private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
-     private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
-+    public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
- 
-     public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
-         this.level = level;
-@@ -110,6 +112,7 @@ public class LevelChunkRegion {
- 
-     public boolean isEmpty() {
-         return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty()
--                && players.isEmpty();
-+                && players.isEmpty()
-+                && unloadQueue.isEmpty();
-     }
- }
-diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index f6a12adfbc11a5449d089bcb1bbf1d5b992f4c36..e8cdaa02648e4352c5ceb8b10a19baf29d51c879 100644
---- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -53,6 +53,8 @@ public class ShreddedPaperChunkTicker {
- 
-         while (region.getInternalTaskQueue().executeTask());
- 
-+        level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
-+
-         region.tickTasks();
-         region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  
