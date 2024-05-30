@@ -113,6 +113,51 @@ index 0000000000000000000000000000000000000000..cfe65dfbb6c3b6d2572fdda534a9f15e
 +    }
 +
 +}
+diff --git a/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java b/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java
+index e94224ed280247ee69dfdff8dc960f2b8729be33..9025b44a3ef50e95dcbb4351763f550c0d49e193 100644
+--- a/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java
++++ b/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java
+@@ -3,6 +3,7 @@ package io.papermc.paper.command;
+ import com.google.common.collect.Lists;
+ import io.leangen.geantyref.GenericTypeReflector;
+ import io.leangen.geantyref.TypeToken;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
+ import io.papermc.paper.plugin.configuration.PluginMeta;
+ import io.papermc.paper.plugin.entrypoint.Entrypoint;
+ import io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler;
+@@ -61,8 +62,18 @@ public class PaperPluginsCommand extends BukkitCommand {
+             performance issues.
+             """));
+ 
++    private static final Component NON_FOLIA_PLUGIN_INFO = Component.text("ℹ What is a non-supported plugin?", INFO_COLOR)
++            .append(asPlainComponents("""
++            A non-supported plugin is a plugin that was not made
++            to run in a multi-threaded environment.
++                        
++            It is encouraged that you replace this plugin,
++            as they might not work correctly and may cause
++            performance issues.
++            """));
++
+     private static final Component LEGACY_PLUGIN_STAR = Component.text('*', TextColor.color(255, 212, 42)).hoverEvent(LEGACY_PLUGIN_INFO);
+-    private static final Component INFO_ICON_START = Component.text("ℹ ", INFO_COLOR);
++    private static final Component NON_FOLIA_PLUGIN_STAR = Component.text('⁺', TextColor.color(255, 212, 42)).hoverEvent(NON_FOLIA_PLUGIN_INFO); // ShreddedPaper
+     private static final Component PAPER_HEADER = Component.text("Paper Plugins:", TextColor.color(2, 136, 209));
+     private static final Component BUKKIT_HEADER = Component.text("Bukkit Plugins:", TextColor.color(237, 129, 6));
+     private static final Component PLUGIN_TICK = Component.text("- ", NamedTextColor.DARK_GRAY);
+@@ -115,6 +126,12 @@ public class PaperPluginsCommand extends BukkitCommand {
+             builder.append(LEGACY_PLUGIN_STAR);
+         }
+ 
++        // ShreddedPaper start
++        if (provider instanceof SpigotPluginProvider spigotPluginProvider && ShreddedPaperConfiguration.get().multithreading.threadCount != 1 && !spigotPluginProvider.getMeta().isFoliaSupported()) {
++            builder.append(NON_FOLIA_PLUGIN_STAR);
++        }
++        // ShreddedPaper end
++
+         String name = provider.getMeta().getName();
+         Component pluginName = Component.text(name, fromStatus(provider))
+         // Purpur start
 diff --git a/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java b/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
 index 02597f890ac7f2dc12c94c283356b8309638dd17..169a940429a0e7f2318bcc88b4bd78986d62d314 100644
 --- a/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
