@@ -5,7 +5,7 @@ Subject: [PATCH] Block entities
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 1ddc4ad7737cd7daaf415fa74f014f36c7eb21d7..a32a820b3ec6f21475542e56527bb79b4a8418a7 100644
+index 1ddc4ad7737cd7daaf415fa74f014f36c7eb21d7..9c9fa516d451d67d8ed6c1721766572ed43c8a9e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -4,9 +4,11 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
@@ -24,8 +24,8 @@ index 1ddc4ad7737cd7daaf415fa74f014f36c7eb21d7..a32a820b3ec6f21475542e56527bb79b
      private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
      private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
      public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
-+    public List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
-+    public List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
++    public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
++    public final List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
@@ -99,10 +99,10 @@ index 26af30fc335a84d5733c4892aefb59908dcc6ec3..7142c6e43b84cd253f85c59bb268c3db
  
      private static <T> String getTypeCount(Iterable<T> items, Function<T, String> classifier) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 28f4e0f7ee069f891b8ff1124902d4154ab15138..32781f611dc2d28690dfa799f58e8e6970fa0301 100644
+index 28f4e0f7ee069f891b8ff1124902d4154ab15138..97742d2286468c55daf2076f6da1f31a58412c0c 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
-@@ -6,6 +6,7 @@ import java.io.IOException;
+@@ -6,10 +6,13 @@ import java.io.IOException;
  import java.util.Iterator;
  import java.util.List;
  import java.util.Objects;
@@ -110,7 +110,13 @@ index 28f4e0f7ee069f891b8ff1124902d4154ab15138..32781f611dc2d28690dfa799f58e8e69
  import java.util.function.Consumer;
  import java.util.function.Predicate;
  import java.util.function.Supplier;
-@@ -99,6 +100,7 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
+ import javax.annotation.Nullable;
++
++import io.multipaper.shreddedpaper.region.LevelChunkRegion;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+@@ -99,6 +102,7 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
  import org.bukkit.craftbukkit.util.CraftSpawnCategory;
  import org.bukkit.entity.SpawnCategory;
  import org.bukkit.event.block.BlockPhysicsEvent;
@@ -118,7 +124,7 @@ index 28f4e0f7ee069f891b8ff1124902d4154ab15138..32781f611dc2d28690dfa799f58e8e69
  import io.multipaper.shreddedpaper.threading.PerThreadNeighborUpdater;
  // CraftBukkit end
  
-@@ -115,9 +117,9 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -115,9 +119,9 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public static final int TICKS_PER_DAY = 24000;
      public static final int MAX_ENTITY_SPAWN_Y = 20000000;
      public static final int MIN_ENTITY_SPAWN_Y = -20000000;
@@ -130,7 +136,7 @@ index 28f4e0f7ee069f891b8ff1124902d4154ab15138..32781f611dc2d28690dfa799f58e8e69
      private boolean tickingBlockEntities;
      public final Thread thread;
      private final boolean isDebug;
-@@ -177,7 +179,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -177,7 +181,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      public static BlockPos lastPhysicsProblem; // Spigot
      private org.spigotmc.TickLimiter entityLimiter;
      private org.spigotmc.TickLimiter tileLimiter;
@@ -139,12 +145,17 @@ index 28f4e0f7ee069f891b8ff1124902d4154ab15138..32781f611dc2d28690dfa799f58e8e69
      public final Map<Explosion.CacheKey, Float> explosionDensityCache = new HashMap<>(); // Paper - Optimize explosions
      public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
  
-@@ -1292,18 +1294,19 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1292,18 +1296,26 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
      }
  
      public void addBlockEntityTicker(TickingBlockEntity ticker) {
 -        (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(ticker);
-+        ((ServerLevel) this).chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(ticker.getPos()))).pendingBlockEntityTickers.add(ticker); // ShreddedPaper
++        // ShreddedPaper start
++        LevelChunkRegion region = ((ServerLevel) this).chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(ticker.getPos())));
++        synchronized (region.pendingBlockEntityTickers) {
++            region.pendingBlockEntityTickers.add(ticker);
++        }
++        // ShreddedPaper end
 +//        (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(ticker); // ShreddedPaper
      }
  
@@ -159,12 +170,14 @@ index 28f4e0f7ee069f891b8ff1124902d4154ab15138..32781f611dc2d28690dfa799f58e8e69
 -            this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
 -            this.pendingBlockEntityTickers.clear();
 +        if (!pendingBlockEntityTickers.isEmpty()) { // ShreddedPaper
-+            blockEntityTickers.addAll(pendingBlockEntityTickers); // ShreddedPaper
-+            pendingBlockEntityTickers.clear(); // ShreddedPaper
++            synchronized (pendingBlockEntityTickers) { // ShreddedPaper
++                blockEntityTickers.addAll(pendingBlockEntityTickers); // ShreddedPaper
++                pendingBlockEntityTickers.clear(); // ShreddedPaper
++            } // ShreddedPaper
          }
          //this.timings.tileEntityPending.stopTiming(); // Spigot // Purpur
  
-@@ -1315,9 +1318,9 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1315,9 +1327,9 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
          int tilesThisCycle = 0;
          var toRemove = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<TickingBlockEntity>(); // Paper - Fix MC-117075; use removeAll
          toRemove.add(null); // Paper - Fix MC-117075
@@ -177,7 +190,7 @@ index 28f4e0f7ee069f891b8ff1124902d4154ab15138..32781f611dc2d28690dfa799f58e8e69
              // Spigot end
  
              if (tickingblockentity.isRemoved()) {
-@@ -1328,17 +1331,17 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+@@ -1328,17 +1340,17 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
              } else if (flag && this.shouldTickBlocksAt(tickingblockentity.getPos())) {
                  tickingblockentity.tick();
                  // Paper start - execute chunk tasks during tick

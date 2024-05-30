@@ -4,52 +4,8 @@ Date: Sat, 25 May 2024 13:58:42 +0900
 Subject: [PATCH] Misc threadsafety
 
 
-diff --git a/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java b/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
-index 41b9405d6759d865e0d14dd4f95163e9690e967d..888813d162408a05c33bf7b5931afe29dd082405 100644
---- a/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
-+++ b/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
-@@ -203,7 +203,7 @@ public abstract class AreaMap<E> {
-         }
-     }
- 
--    private void addObjectTo(final E object, final int chunkX, final int chunkZ, final int currChunkX,
-+    private synchronized void addObjectTo(final E object, final int chunkX, final int chunkZ, final int currChunkX, // ShreddedPaper - synchronized
-                              final int currChunkZ, final int prevChunkX, final int prevChunkZ) {
-         final long key = MCUtil.getCoordinateKey(chunkX, chunkZ);
- 
-@@ -235,7 +235,7 @@ public abstract class AreaMap<E> {
-         }
-     }
- 
--    private void removeObjectFrom(final E object, final int chunkX, final int chunkZ, final int currChunkX,
-+    private synchronized void removeObjectFrom(final E object, final int chunkX, final int chunkZ, final int currChunkX, // ShreddedPaper - synchronized
-                                   final int currChunkZ, final int prevChunkX, final int prevChunkZ) {
-         final long key = MCUtil.getCoordinateKey(chunkX, chunkZ);
- 
-diff --git a/src/main/java/com/destroystokyo/paper/util/misc/PooledLinkedHashSets.java b/src/main/java/com/destroystokyo/paper/util/misc/PooledLinkedHashSets.java
-index e51104e65a07b6ea7bbbcbb6afb066ef6401cc5b..318c572fc430115f81ef19ccfdd1f9f5356e1c88 100644
---- a/src/main/java/com/destroystokyo/paper/util/misc/PooledLinkedHashSets.java
-+++ b/src/main/java/com/destroystokyo/paper/util/misc/PooledLinkedHashSets.java
-@@ -24,7 +24,7 @@ public class PooledLinkedHashSets<E> {
-         return;
-     }
- 
--    public PooledObjectLinkedOpenHashSet<E> findMapWith(final PooledObjectLinkedOpenHashSet<E> current, final E object) {
-+    public synchronized PooledObjectLinkedOpenHashSet<E> findMapWith(final PooledObjectLinkedOpenHashSet<E> current, final E object) { // ShreddedPaper - synchronized
-         final PooledObjectLinkedOpenHashSet<E> cached = current.getAddCache(object);
- 
-         if (cached != null) {
-@@ -76,7 +76,7 @@ public class PooledLinkedHashSets<E> {
-     }
- 
-     // rets null if current.size() == 1
--    public PooledObjectLinkedOpenHashSet<E> findMapWithout(final PooledObjectLinkedOpenHashSet<E> current, final E object) {
-+    public synchronized PooledObjectLinkedOpenHashSet<E> findMapWithout(final PooledObjectLinkedOpenHashSet<E> current, final E object) { // ShreddedPaper - synchronized
-         if (current.set.size() == 1) {
-             decrementReferenceCount(current);
-             return null;
 diff --git a/src/main/java/net/minecraft/server/level/PlayerMap.java b/src/main/java/net/minecraft/server/level/PlayerMap.java
-index 12f1345ff70388fb217100bfc717ef861785381d..500306eea8bb92a0987d6242821c910c25b1e453 100644
+index 12f1345ff70388fb217100bfc717ef861785381d..9c0f561a65ed5f5b45ce4c30754f71b310e614b0 100644
 --- a/src/main/java/net/minecraft/server/level/PlayerMap.java
 +++ b/src/main/java/net/minecraft/server/level/PlayerMap.java
 @@ -2,36 +2,47 @@ package net.minecraft.server.level;
@@ -141,7 +97,7 @@ index c6f193339fdcbcc938d4eafdcad0b112cf1698d5..256fbdc2a287a8232c8ecb9d0e06290a
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
-index 81dd0aa6a90fd9dda9e7752f85b9cf4568e3b575..e9a517404bba7363e254555b043236692bf5794d 100644
+index 81dd0aa6a90fd9dda9e7752f85b9cf4568e3b575..49d288e22911acd20c8935bfbed415a6f7374c4e 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 @@ -45,9 +45,9 @@ public class SculkCatalystBlockEntity extends BlockEntity implements GameEventLi
@@ -157,7 +113,7 @@ index 81dd0aa6a90fd9dda9e7752f85b9cf4568e3b575..e9a517404bba7363e254555b04323669
  
      @Override
 diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 031fc626d2075cbe0941fecc188406712ab9953f..1ac2b3e091be5b3c2a3d37a35c3a18642aa0d06f 100644
+index 031fc626d2075cbe0941fecc188406712ab9953f..b9b084b7e9d5c9b4613d45eed9612ad5f7a4af77 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 @@ -3,6 +3,7 @@ package net.minecraft.world.level.block.state;
@@ -183,7 +139,7 @@ index 031fc626d2075cbe0941fecc188406712ab9953f..1ac2b3e091be5b3c2a3d37a35c3a1864
              world.removeBlockEntity(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-index b452ebbe11145987fb5e66b39993898457322080..c499b51ff28e597d2eff16a8c2395441b63f375c 100644
+index 9060380754e5553b1628f17402bcb80ba9042fae..885000a84270642b436c9c20d643df070ad724cf 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 @@ -9,6 +9,8 @@ import java.util.Iterator;
@@ -205,7 +161,7 @@ index b452ebbe11145987fb5e66b39993898457322080..c499b51ff28e597d2eff16a8c2395441
          return true;
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 241340a6d66f17f2a31fb03ff0dfab121b856368..581ead183b59369fe32f973167f23fe58c1d5809 100644
+index d16b61e2c92e35e184270eb293c7717d15051e11..bc86def0f426f1b033599f83126130f5026a7aae 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -6,6 +6,7 @@ import com.google.common.io.BaseEncoding;
@@ -244,7 +200,7 @@ index 241340a6d66f17f2a31fb03ff0dfab121b856368..581ead183b59369fe32f973167f23fe5
      }
      // Paper end
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index e650b85464ac886b4adb1a8924026d34f805aba6..a647edf62f5ef5d0123394215a5146898e3c887a 100644
+index 04e77b85044403b8c594cd419eaa3a153ba42150..42121b162526d5cb944d828b63617fd3c7c80901 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 @@ -951,7 +951,7 @@ public class CraftEventFactory {
