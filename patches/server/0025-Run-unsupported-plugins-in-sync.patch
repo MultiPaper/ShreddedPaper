@@ -6,10 +6,10 @@ Subject: [PATCH] Run unsupported plugins in sync
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..8205b14ca0302d754b0a8e4ef327c59cc94b18fa
+index 0000000000000000000000000000000000000000..9b9a154aea851be0933cf0a45fed19dbf4f04598
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,82 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
@@ -27,6 +27,7 @@ index 0000000000000000000000000000000000000000..8205b14ca0302d754b0a8e4ef327c59c
 +
 +    private static final Logger LOGGER = LogUtils.getClassLogger();
 +
++    private static final Map<String, TreeSet<String>> cachedDependencyLists = new ConcurrentHashMap<>(); // Does not support dynamic plugin reloading, but oh well
 +    private static final Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 +
 +    public static void execute(Plugin plugin, RunnableWithException runnable) throws Exception {
@@ -37,25 +38,27 @@ index 0000000000000000000000000000000000000000..8205b14ca0302d754b0a8e4ef327c59c
 +        }
 +
 +        // Lock the plugins in a predictable order to prevent deadlocks
-+        TreeSet<Plugin> pluginsToLock = new TreeSet<>(Comparator.comparing(Plugin::getName));
++        TreeSet<String> pluginsToLock = cachedDependencyLists.computeIfAbsent(plugin.getName(), (name) -> {
++            TreeSet<String> dependencyList = new TreeSet<>(Comparator.naturalOrder());
++            fillPluginsToLock(plugin, dependencyList);
++            return dependencyList;
++        });
 +
-+        fillPluginsToLock(plugin, pluginsToLock);
-+
-+        for (Plugin pluginToLock : pluginsToLock) {
-+            locks.computeIfAbsent(pluginToLock.getName(), (name) -> new ReentrantLock()).lock();
++        for (String pluginToLock : pluginsToLock) {
++            locks.computeIfAbsent(pluginToLock, (name) -> new ReentrantLock()).lock();
 +        }
 +
 +        try {
 +            runnable.run();
 +        } finally {
-+            for (Plugin pluginToLock : pluginsToLock) {
-+                locks.get(pluginToLock.getName()).unlock();
++            for (String pluginToLock : pluginsToLock) {
++                locks.get(pluginToLock).unlock();
 +            }
 +        }
 +    }
 +
-+    private static void fillPluginsToLock(Plugin plugin, TreeSet<Plugin> pluginsToLock) {
-+        if (pluginsToLock.contains(plugin)) {
++    private static void fillPluginsToLock(Plugin plugin, TreeSet<String> pluginsToLock) {
++        if (pluginsToLock.contains(plugin.getName())) {
 +            // Cyclic graphhhh
 +            return;
 +        }
@@ -65,7 +68,7 @@ index 0000000000000000000000000000000000000000..8205b14ca0302d754b0a8e4ef327c59c
 +            return;
 +        }
 +
-+        pluginsToLock.add(plugin);
++        pluginsToLock.add(plugin.getName());
 +
 +        for (String depend : plugin.getDescription().getDepend()) {
 +            Plugin dependPlugin = plugin.getServer().getPluginManager().getPlugin(depend);
