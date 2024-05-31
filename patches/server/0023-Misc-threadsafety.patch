@@ -139,7 +139,7 @@ index 031fc626d2075cbe0941fecc188406712ab9953f..b9b084b7e9d5c9b4613d45eed9612ad5
              world.removeBlockEntity(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-index 9060380754e5553b1628f17402bcb80ba9042fae..885000a84270642b436c9c20d643df070ad724cf 100644
+index 1284c941a4c863c287098a0a04efcc723e727bb3..51090b56d26645bfb0ff943c3efb849912d74ff6 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 @@ -9,6 +9,8 @@ import java.util.Iterator;
@@ -151,7 +151,7 @@ index 9060380754e5553b1628f17402bcb80ba9042fae..885000a84270642b436c9c20d643df07
  import net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.sounds.SoundEvent;
-@@ -516,7 +518,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
+@@ -523,7 +525,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
  
      @Override
      public boolean addPotionEffect(PotionEffect effect, boolean force) {
@@ -200,7 +200,7 @@ index d16b61e2c92e35e184270eb293c7717d15051e11..bc86def0f426f1b033599f83126130f5
      }
      // Paper end
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index 04e77b85044403b8c594cd419eaa3a153ba42150..42121b162526d5cb944d828b63617fd3c7c80901 100644
+index 5308dc55bcc334ad6bef927de6c2d9b9364d99ff..7e91d1ea6e144826e3d88e61a25fd533f2c9407d 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 @@ -951,7 +951,7 @@ public class CraftEventFactory {
