@@ -6,14 +6,15 @@ Subject: [PATCH] Add multithreading region scheduler
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/RegionPos.java b/src/main/java/io/multipaper/shreddedpaper/region/RegionPos.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..784b77356ad1e28285650a2c6cf0c0969da9d40c
+index 0000000000000000000000000000000000000000..c8caf9240e1aa5e434a47cbdf4b7bf68e4025586
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/RegionPos.java
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,138 @@
 +package io.multipaper.shreddedpaper.region;
 +
 +import com.mojang.logging.LogUtils;
 +import net.minecraft.core.BlockPos;
++import net.minecraft.core.SectionPos;
 +import net.minecraft.world.level.ChunkPos;
 +import org.bukkit.Location;
 +import org.slf4j.Logger;
@@ -48,7 +49,9 @@ index 0000000000000000000000000000000000000000..784b77356ad1e28285650a2c6cf0c096
 +        }
 +
 +        if (REGION_SIZE < 8) {
-+            LOGGER.warn("Region size is less than 8 chunks, this will cause issues unless you know what you're doing!!!");
++            LOGGER.warn("!!! !!!");
++            LOGGER.warn("!!! Region size is less than 8 chunks, this will cause issues unless you know what you're doing!!!");
++            LOGGER.warn("!!! !!!");
 +        }
 +
 +        LOGGER.info("Using region size: {}, shift={}, mask={}", REGION_SIZE, REGION_SHIFT, REGION_SIZE_MASK);
@@ -71,15 +74,39 @@ index 0000000000000000000000000000000000000000..784b77356ad1e28285650a2c6cf0c096
 +    }
 +
 +    public static RegionPos forChunk(ChunkPos chunkPos) {
-+        return chunkPos.getRegionPos();
++        return chunkPos.getRegionPos(); // Cache the RegionPos on the ChunkPos to minimize object creation
++    }
++
++    public static RegionPos forChunk(int chunkX, int chunkZ) {
++        return new RegionPos(asLongForChunk(chunkX, chunkZ));
++    }
++
++    public static RegionPos forBlockPos(BlockPos blockPos) {
++        return forBlockPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
++    }
++
++    public static RegionPos forBlockPos(int x, int y, int z) {
++        return new RegionPos(asLongForBlockPos(x, y, z));
 +    }
 +
 +    public static RegionPos forLocation(Location location) {
-+        return forChunk(new ChunkPos(new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ())));
++        return forBlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ());
 +    }
 +
-+    public static long asLong(ChunkPos chunkPos) {
-+        return asLong(chunkPos.x >> REGION_SHIFT, chunkPos.z >> REGION_SHIFT);
++    public static long asLongForChunk(ChunkPos chunkPos) {
++        return asLongForChunk(chunkPos.x, chunkPos.z);
++    }
++
++    public static long asLongForChunk(int chunkX, int chunkZ) {
++        return asLong(chunkX >> REGION_SHIFT, chunkZ >> REGION_SHIFT);
++    }
++
++    public static long asLongForBlockPos(BlockPos blockPos) {
++        return asLongForBlockPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
++    }
++
++    public static long asLongForBlockPos(int x, int y, int z) {
++        return asLongForChunk(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z));
 +    }
 +
 +    public static long asLong(RegionPos regionPos) {
@@ -123,13 +150,12 @@ index 0000000000000000000000000000000000000000..784b77356ad1e28285650a2c6cf0c096
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5032e1a823a00f6a09066d63cc3095bb9885cd7e
+index 0000000000000000000000000000000000000000..d82795c57f15c6d96ad2e78dc5e715e194f467cc
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-@@ -0,0 +1,128 @@
+@@ -0,0 +1,161 @@
 +package io.multipaper.shreddedpaper.threading;
 +
-+import com.google.common.collect.ImmutableSet;
 +import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.util.ObjectHolder;
@@ -142,6 +168,16 @@ index 0000000000000000000000000000000000000000..5032e1a823a00f6a09066d63cc3095bb
 +import java.util.concurrent.locks.LockSupport;
 +import java.util.function.Supplier;
 +
++/**
++ * Read lock:
++ *  - Only one thread can hold a read lock at a time.
++ *  - Many servers can hold a read lock at the same time.
++ *  - Good for tasks such as sending data to clients and loading chunks.
++ * Write lock:
++ *  - An extension of the read lock.
++ *  - Only one server can hold a write lock at a time.
++ *  - Important for tasks that modify the region, such as modifying blocks or entities.
++ */
 +public class ShreddedPaperRegionLocker {
 +
 +    private static final int REGION_LOCK_RADIUS = 1;
@@ -149,13 +185,24 @@ index 0000000000000000000000000000000000000000..5032e1a823a00f6a09066d63cc3095bb
 +    private final ConcurrentHashMap<RegionPos, Thread> lockedRegions = new ConcurrentHashMap<>();
 +
 +    private final ThreadLocal<Set<RegionPos>> localLocks = ThreadLocal.withInitial(ObjectOpenHashSet::new);
++    private final ThreadLocal<Set<RegionPos>> readOnlyLocks = ThreadLocal.withInitial(ObjectOpenHashSet::new);
++    private final ThreadLocal<Set<RegionPos>> writeLocks = ThreadLocal.withInitial(ObjectOpenHashSet::new);
 +    private final ThreadLocal<Set<RegionPos>> unmodifiableLocalLocks = ThreadLocal.withInitial(() -> Collections.unmodifiableSet(localLocks.get()));
 +
 +    /**
-+     * Checks if the current thread holds a lock for the given region
++     * Checks if the current thread holds a read lock for the given region
 +     */
 +    public boolean hasLock(RegionPos regionPos) {
 +        return localLocks.get().contains(regionPos);
++    }
++
++    /**
++     * Checks if the current thread holds a write lock for the given region.
++     * This check is usually unnecessary, but ensures that there will be no
++     * syncing conflicts with other servers.
++     */
++    public boolean hasWriteLock(RegionPos regionPos) {
++        return writeLocks.get().contains(regionPos);
 +    }
 +
 +    /**
@@ -203,7 +250,18 @@ index 0000000000000000000000000000000000000000..5032e1a823a00f6a09066d63cc3095bb
 +     * @return true if the lock was acquired and the runnable was run, false if the runnable was not run
 +     */
 +    public boolean tryLockNow(RegionPos centerPos, Runnable ifSuccess) {
-+        return tryReadOnlyLockNow(centerPos, ifSuccess);
++        return tryReadOnlyLockNow(centerPos, () -> {
++            // Upgrade the read only locks to write locks
++            Set<RegionPos> locksUpgradedToWrite = new ObjectOpenHashSet<>(readOnlyLocks.get());
++            writeLocks.get().addAll(locksUpgradedToWrite);
++            readOnlyLocks.get().clear();
++
++            ifSuccess.run();
++
++            // Downgrade the write locks to read only locks
++            writeLocks.get().removeAll(locksUpgradedToWrite);
++            readOnlyLocks.get().addAll(locksUpgradedToWrite);
++        });
 +    }
 +
 +    /**
@@ -227,6 +285,7 @@ index 0000000000000000000000000000000000000000..5032e1a823a00f6a09066d63cc3095bb
 +                            // This region is unlocked, let's lock it
 +                            regionsToUnlock.add(regionPos);
 +                            localLocks.get().add(regionPos);
++                            readOnlyLocks.get().add(regionPos);
 +                            return currentThread;
 +                        } else {
 +                            // This region is already locked, it could be already locked by us or someone else
@@ -250,6 +309,7 @@ index 0000000000000000000000000000000000000000..5032e1a823a00f6a09066d63cc3095bb
 +            for (RegionPos regionPos : regionsToUnlock) {
 +                lockedRegions.remove(regionPos, currentThread);
 +                localLocks.get().remove(regionPos);
++                readOnlyLocks.get().remove(regionPos);
 +            }
 +        }
 +    }
@@ -457,7 +517,7 @@ index 0000000000000000000000000000000000000000..1a0f4e1d5c1de71221d10528c39cd777
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c579607b2bd1dea47f65c6f274dc08d75a574548
+index 0000000000000000000000000000000000000000..3949e39afcf36c4c5012e157ce95fd4d873126b5
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 @@ -0,0 +1,57 @@
@@ -667,6 +727,28 @@ index 330bae815c0a332e3dc9fa7b224c9f92098199b9..3f11f17a85e24821a168ccd39a7298cd
          // Purpur start
          if (upnp) {
              if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
+diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+index 472b9494f8a34a8ba90d6a2936b0db7530a229ad..22151e99264bb2de80da90c7df200990f9cf8b9d 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
++++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+@@ -1,6 +1,7 @@
+ package net.minecraft.server.level;
+ 
+ import com.mojang.datafixers.util.Pair;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
+ import it.unimi.dsi.fastutil.shorts.ShortSet;
+ import java.util.ArrayList;
+@@ -212,6 +213,9 @@ public class ChunkHolder {
+     // Paper - rewrite chunk system
+ 
+     public void blockChanged(BlockPos pos) {
++        if (!this.chunkMap.level.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forBlockPos(pos))) { // ShreddedPaper
++            throw new IllegalStateException("Block change @ " + pos + " in chunk " + this.pos + " in world '" + this.chunkMap.level.getWorld().getName() + "' is not write locked"); // ShreddedPaper
++        } // ShreddedPaper
+         // Paper start - replace player chunk loader
+         if (this.playersSentChunkTo.size() == 0) {
+             return;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index 7924e3c597164f71056cd58dd167ee8b1d41b9c3..f2bb2ee3c0efe21fae1fac39333cc6742ea75559 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
@@ -722,7 +804,7 @@ index 7924e3c597164f71056cd58dd167ee8b1d41b9c3..f2bb2ee3c0efe21fae1fac39333cc674
  
      // CraftBukkit start
 diff --git a/src/main/java/net/minecraft/world/level/ChunkPos.java b/src/main/java/net/minecraft/world/level/ChunkPos.java
-index 54cd046587c2f9dd26204bfa4eb65b8ad52b2d5e..4f35bd9adc5b977ab30eb3c208b420788d4fbb58 100644
+index 54cd046587c2f9dd26204bfa4eb65b8ad52b2d5e..cf28077748878476d7059828a04ea78921a94c71 100644
 --- a/src/main/java/net/minecraft/world/level/ChunkPos.java
 +++ b/src/main/java/net/minecraft/world/level/ChunkPos.java
 @@ -7,6 +7,7 @@ import java.util.stream.StreamSupport;
@@ -749,7 +831,7 @@ index 54cd046587c2f9dd26204bfa4eb65b8ad52b2d5e..4f35bd9adc5b977ab30eb3c208b42078
 +    public RegionPos getRegionPos() {
 +        if (this.regionPos == null) {
 +            // Cache the RegionPos to minimize object creation
-+            this.regionPos = new RegionPos(RegionPos.asLong(this));
++            this.regionPos = RegionPos.forChunk(this.x, this.z);
 +        }
 +        return this.regionPos;
 +    }

@@ -423,10 +423,10 @@ index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..fe771ae4fe21dc0d9753552be1081d9f
              tileentity = (BlockEntity) this.blockEntities.get(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 82899402344bb12e6fa11027156535885d89501c..565127fbffd228123a5890a9348fae6392bc8a7f 100644
+index 50cee0735fc22d1ba6dd1bf18218cc5b24a392bc..1d0ccc1b3fdcfd399a4a9b5783e2321c2b25ac87 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -842,13 +842,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -849,13 +849,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
@@ -445,7 +445,7 @@ index 82899402344bb12e6fa11027156535885d89501c..565127fbffd228123a5890a9348fae63
                  BlockPos position = ((CraftBlockState) blockstate).getPosition();
                  net.minecraft.world.level.block.state.BlockState oldBlock = this.world.getBlockState(position);
                  int flag = ((CraftBlockState) blockstate).getFlag();
-@@ -856,10 +856,10 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -863,10 +863,10 @@ public class CraftWorld extends CraftRegionAccessor implements World {
                  net.minecraft.world.level.block.state.BlockState newBlock = this.world.getBlockState(position);
                  this.world.notifyAndUpdatePhysics(position, null, oldBlock, newBlock, newBlock, flag, 512);
              }

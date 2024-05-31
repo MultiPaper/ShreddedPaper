@@ -5,7 +5,7 @@ Subject: [PATCH] Player
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-index 9c02586147e22a9a09c67d28dd47e0496a475fa1..fbe4e31033a4e975d2d26ff0870861e4c10e78f3 100644
+index 9c02586147e22a9a09c67d28dd47e0496a475fa1..ab5c9563615faa09871d8870f7a31042c4f10d04 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 @@ -3,6 +3,7 @@ package io.multipaper.shreddedpaper;
@@ -21,14 +21,14 @@ index 9c02586147e22a9a09c67d28dd47e0496a475fa1..fbe4e31033a4e975d2d26ff0870861e4
      }
  
 +    public static void runSync(Entity entity, Runnable runnable) {
-+        runSync((ServerLevel) entity.level(), entity.chunkPosition(), runnable);
++        entity.getBukkitEntity().taskScheduler.schedule(e -> runnable.run(), null, 1);
 +    }
 +
      public static void runSync(ServerLevel serverLevel, BlockPos blockPos, Runnable runnable) {
          runSync(serverLevel, new ChunkPos(blockPos), runnable);
      }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index b6e138a6e747715203571b0ccc180339852c5c22..5a1184d992a34a4ed11a9c5fb7711a6723ae976c 100644
+index 56e5970735ddc3d5c5562adc31b2db4ae153c25a..b1ab34bc73a56f15413208947673cdbd10964a73 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,8 +1,10 @@
@@ -43,8 +43,8 @@ index b6e138a6e747715203571b0ccc180339852c5c22..5a1184d992a34a4ed11a9c5fb7711a67
  import net.minecraft.world.level.chunk.LevelChunk;
  
 @@ -20,6 +22,7 @@ public class LevelChunkRegion {
-     private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>();
-     private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue();
+     private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
+     private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
      private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
 +    private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
  
@@ -83,7 +83,7 @@ index b6e138a6e747715203571b0ccc180339852c5c22..5a1184d992a34a4ed11a9c5fb7711a67
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 57c2059e7a579b5a192254c57fe55527b977f5e1..f6ccfb44265505042b210c61e59688a3450886d9 100644
+index a9b6fdaaec268ea694e84e8467886777b49e1a6b..9b4c50b2d677b15e9dd1f923114496f597b2e4cf 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 @@ -3,7 +3,9 @@ package io.multipaper.shreddedpaper.region;
@@ -96,7 +96,7 @@ index 57c2059e7a579b5a192254c57fe55527b977f5e1..f6ccfb44265505042b210c61e59688a3
  import net.minecraft.world.level.chunk.LevelChunk;
  import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
  import io.multipaper.shreddedpaper.util.SimpleStampedLock;
-@@ -113,4 +115,24 @@ public class LevelChunkRegionMap {
+@@ -125,4 +127,24 @@ public class LevelChunkRegionMap {
  
          return navigatingMobs;
      }
@@ -488,8 +488,49 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..d03e9227859d1432bea814407f88de14
  
      private int getCoprime(int horizontalSpawnArea) {
          return horizontalSpawnArea <= 16 ? horizontalSpawnArea - 1 : 17;
+diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
+index b82a72775f9de5ad65ae46a8b97f93a7ef852265..88b9b8345b6e7b9523c7f0c48481c523ce4a8b8b 100644
+--- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
+@@ -4,6 +4,9 @@ import com.mojang.authlib.GameProfile;
+ import com.mojang.logging.LogUtils;
+ import java.util.Objects;
+ import javax.annotation.Nullable;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+@@ -143,7 +146,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+             this.keepAlivePending = false;
+         } else if (!this.isSingleplayerOwner()) {
+             // Paper start - This needs to be handled on the main thread for plugins
+-            server.submit(() -> {
++            ShreddedPaper.runSync(this.player, () -> { // ShreddedPaper - run on player's thread
+                 this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
+             });
+             // Paper end - This needs to be handled on the main thread for plugins
+@@ -382,7 +385,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         if (this.processedDisconnect) {
+             return;
+         }
+-        if (!this.cserver.isPrimaryThread()) {
++        if (!TickThread.isTickThreadFor(this.player)) { // ShreddedPaper - run on player's thread
+             Waitable waitable = new Waitable() {
+                 @Override
+                 protected Object evaluate() {
+@@ -391,7 +394,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+                 }
+             };
+ 
+-            this.server.processQueue.add(waitable);
++            ShreddedPaper.runSync(this.player, waitable); // this.server.processQueue.add(waitable); // ShreddedPaper - run on player's thread
+ 
+             try {
+                 waitable.get();
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 772415165782bc4880286d52ccfea26be2cb6733..20b2cc2be26292e85655773ef84ef33da459cb47 100644
+index 64f5d5ed295fd4bddb2d27f6fefcdf36c29d3254..2df36cae9539007ad9e9363890a421124ad45b28 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -2147,9 +2147,11 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl

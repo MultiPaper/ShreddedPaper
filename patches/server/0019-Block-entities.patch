@@ -5,7 +5,7 @@ Subject: [PATCH] Block entities
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 1ddc4ad7737cd7daaf415fa74f014f36c7eb21d7..9c9fa516d451d67d8ed6c1721766572ed43c8a9e 100644
+index bc18833892aab53c92973a821eb9d4767555a8d3..3c069b801b60efe68a7c1594a188515bc727144f 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -4,9 +4,11 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
@@ -212,10 +212,10 @@ index 28f4e0f7ee069f891b8ff1124902d4154ab15138..97742d2286468c55daf2076f6da1f31a
          this.spigotConfig.currentPrimedTnt = 0; // Spigot
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..4f377872ba132e3d45f939ffae9db1a45025907e 100644
+index 90af83480224ae4534af3d0f86c33db6bc480636..95eeb3c1415a08d62d6f98ee3b1b4a1ea2d97f55 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -193,7 +193,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -196,7 +196,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public int getTickableTileEntityCount() {

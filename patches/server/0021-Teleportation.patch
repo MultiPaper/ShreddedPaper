@@ -121,7 +121,7 @@ index d03e9227859d1432bea814407f88de14ece24db2..01904ed991aecab3a399d62c562195b8
          ChunkPos chunkcoordintpair = new ChunkPos(BlockPos.containing(d0, d1, d2));
  
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 20b2cc2be26292e85655773ef84ef33da459cb47..174aeea6e464ae2a4f1254360c3b3ee333445999 100644
+index 2df36cae9539007ad9e9363890a421124ad45b28..d7519408d7280818d1e7f6e26e51affdeb5de65e 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -2981,19 +2981,27 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
@@ -381,18 +381,10 @@ index 0c02fcbf76506bf2fc1ca2a16f361947ff6365b7..56ee8c1c5794ae82579d638a71ac1043
                  // CraftBukkit end
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 4f377872ba132e3d45f939ffae9db1a45025907e..056104a0c15937dad4f63ee56ef288eac53eff8b 100644
+index 95eeb3c1415a08d62d6f98ee3b1b4a1ea2d97f55..b8fa934a516833dbdc483b50f671f51d723034f9 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -5,6 +5,7 @@ import com.google.common.base.Predicates;
- import com.google.common.collect.ImmutableList;
- import com.google.common.collect.ImmutableMap;
- import com.mojang.datafixers.util.Pair;
-+import io.papermc.paper.util.TickThread;
- import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
- import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
- import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-@@ -2537,7 +2538,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2542,7 +2542,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      // Paper start
      public java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
          warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
@@ -401,7 +393,7 @@ index 4f377872ba132e3d45f939ffae9db1a45025907e..056104a0c15937dad4f63ee56ef288ea
              net.minecraft.world.level.chunk.LevelChunk immediate = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
              if (immediate != null) {
                  return java.util.concurrent.CompletableFuture.completedFuture(new CraftChunk(immediate));
-@@ -2554,11 +2555,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2559,11 +2559,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
  
          io.papermc.paper.chunk.system.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {

@@ -5,7 +5,7 @@ Subject: [PATCH] Chunk unloading
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 5a1184d992a34a4ed11a9c5fb7711a6723ae976c..1ddc4ad7737cd7daaf415fa74f014f36c7eb21d7 100644
+index b1ab34bc73a56f15413208947673cdbd10964a73..bc18833892aab53c92973a821eb9d4767555a8d3 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,6 +1,7 @@
@@ -17,7 +17,7 @@ index 5a1184d992a34a4ed11a9c5fb7711a6723ae976c..1ddc4ad7737cd7daaf415fa74f014f36
  import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
  import net.minecraft.server.level.ServerLevel;
 @@ -23,6 +24,7 @@ public class LevelChunkRegion {
-     private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue();
+     private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
      private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
      private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
 +    public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();

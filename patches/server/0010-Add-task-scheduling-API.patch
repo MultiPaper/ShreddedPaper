@@ -87,7 +87,7 @@ index 0000000000000000000000000000000000000000..7f3344a89ceab9c362c48eabc8ec4b14
 +
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 42d281c3ebfbc94021dea2e786010ec33d4c4ea1..faa4be4f608a4f2b8bba24e231742c689399f5c5 100644
+index 42d281c3ebfbc94021dea2e786010ec33d4c4ea1..98cb5f9e31c11fc1d73cb6b65a39e5969998dc44 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,10 +1,12 @@
@@ -107,8 +107,8 @@ index 42d281c3ebfbc94021dea2e786010ec33d4c4ea1..faa4be4f608a4f2b8bba24e231742c68
      private final ServerLevel level;
      private final RegionPos regionPos;
      private final List<LevelChunk> levelChunks = new ArrayList<>(RegionPos.REGION_SIZE * RegionPos.REGION_SIZE);
-+    private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>();
-+    private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue();
++    private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
++    private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
@@ -153,10 +153,18 @@ index 42d281c3ebfbc94021dea2e786010ec33d4c4ea1..faa4be4f608a4f2b8bba24e231742c68
 +    }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..03f1dc4755b4e2c58c2e53aabf7bf8342cc26d70 100644
+index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..013b39ee4832743ef22e658550b2c63517f42b19 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -57,4 +57,25 @@ public class LevelChunkRegionMap {
+@@ -7,6 +7,7 @@ import io.multipaper.shreddedpaper.util.SimpleStampedLock;
+ 
+ import java.util.ArrayList;
+ import java.util.List;
++import java.util.concurrent.Executor;
+ import java.util.function.Consumer;
+ 
+ public class LevelChunkRegionMap {
+@@ -57,4 +58,36 @@ public class LevelChunkRegionMap {
          regionsCopy.forEach(consumer);
      }
  
@@ -175,10 +183,21 @@ index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..03f1dc4755b4e2c58c2e53aabf7bf834
 +    }
 +
 +    /**
-+     * Execute a task on the given region's thread at the next given opportunity
++     * Execute a task on the given region's thread at the next given opportunity.
++     * These tasks must <strong>NOT</strong> modify the chunk (blocks, entities, etc). These
++     * tasks must be read-only. Eg loading a chunk, saving data, sending packets, etc.
 +     */
 +    public void execute(RegionPos regionPos, Runnable task) {
 +        getOrCreate(regionPos).getInternalTaskQueue().queueRunnable(task);
++    }
++
++    /**
++     * Executor that executes a task on the given region's thread at the next given opportunity.
++     * These tasks must <strong>NOT</strong> modify the chunk (blocks, entities, etc). These
++     * tasks must be read-only. Eg loading a chunk, saving data, sending packets, etc.
++     */
++    public Executor executorFor(RegionPos regionPos) {
++        return runnable -> execute(regionPos, runnable);
 +    }
 +
  }
@@ -370,11 +389,11 @@ index b9cf7512d4be69b8162775126fa7ab7d03a35994..87fc320a30bc02c36159c4d6062e3f12
          int j = 1; // Inhabited time increment in ticks
          boolean flag = level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !level.players().isEmpty(); // Should run mob spawning code
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-index 5032e1a823a00f6a09066d63cc3095bb9885cd7e..37553f76d0f438793f613749e5b6141a948234bf 100644
+index d82795c57f15c6d96ad2e78dc5e715e194f467cc..cee763e641821090382ab1d20405d54052852bab 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-@@ -15,7 +15,7 @@ import java.util.function.Supplier;
- 
+@@ -24,7 +24,7 @@ import java.util.function.Supplier;
+  */
  public class ShreddedPaperRegionLocker {
  
 -    private static final int REGION_LOCK_RADIUS = 1;
@@ -382,6 +401,20 @@ index 5032e1a823a00f6a09066d63cc3095bb9885cd7e..37553f76d0f438793f613749e5b6141a
  
      private final ConcurrentHashMap<RegionPos, Thread> lockedRegions = new ConcurrentHashMap<>();
  
+@@ -57,6 +57,13 @@ public class ShreddedPaperRegionLocker {
+         return unmodifiableLocalLocks.get();
+     }
+ 
++    /**
++     * Returns whether any regions are currently locked.
++     */
++    public boolean areAnyLocked() {
++        return !lockedRegions.isEmpty();
++    }
++
+     /**
+      * Lock the region and run the runnable. If the region is already locked, wait until it is unlocked.
+      * Can be called recursively and will respect existing locks created by the same thread.
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
 index e1ffd62f4ebceecb9bc5471df3da406cffea0483..bb31681d91f54c7d4e242579081f64dfcf481340 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
@@ -607,19 +640,20 @@ index 3f11f17a85e24821a168ccd39a7298cd91438fbf..03a20945dd94c29f84f05e769866aeef
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          //this.profiler.push("commandFunctions"); // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..bf6158348ebb195753423df77fc4584314842df0 100644
+index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..9707f48c0803ac8d9ac4b061b303fedbe3191a4e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -13,6 +13,8 @@ import java.util.function.BooleanSupplier;
+@@ -13,6 +13,9 @@ import java.util.function.BooleanSupplier;
  import java.util.function.Consumer;
  import java.util.function.Supplier;
  import javax.annotation.Nullable;
 +
++import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.papermc.paper.util.TickThread;
  import net.minecraft.Util;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.SectionPos;
-@@ -43,6 +45,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
+@@ -43,6 +46,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import io.multipaper.shreddedpaper.region.LevelChunkRegionMap;
  import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
@@ -627,7 +661,41 @@ index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..bf6158348ebb195753423df77fc45843
  
  public class ServerChunkCache extends ChunkSource {
  
-@@ -735,7 +738,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -249,10 +253,12 @@ public class ServerChunkCache extends ChunkSource {
+     @Override
+     public ChunkAccess getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
+         final int x1 = x; final int z1 = z; // Paper - conflict on variable change
+-        if (!io.papermc.paper.util.TickThread.isTickThread()) { // Paper - rewrite chunk system
+-            return (ChunkAccess) CompletableFuture.supplyAsync(() -> {
++        if (!io.papermc.paper.util.TickThread.isTickThreadFor(this.level, x, z)) { // Paper - rewrite chunk system // ShreddedPaper - regions
++            CompletableFuture<ChunkAccess> future = CompletableFuture.supplyAsync(() -> { // ShreddedPaper - regions
+                 return this.getChunk(x, z, leastStatus, create);
+-            }, this.mainThreadProcessor).join();
++            }, this.tickingRegions.executorFor(RegionPos.forChunk(x, z))); // ShreddedPaper - regions
++            if (TickThread.isTickThread()) this.mainThreadProcessor.managedBlock(future::isDone); // ShreddedPaper - run tick thread tasks (this might be one tick thread accessing a chunk in another tick thread)
++            return future.join(); // ShreddedPaper - regions
+         } else {
+             // Paper start - Perf: Optimise getChunkAt calls for loaded chunks
+             LevelChunk ifLoaded = this.getChunkAtIfLoadedMainThread(x, z);
+@@ -309,7 +315,7 @@ public class ServerChunkCache extends ChunkSource {
+     }
+ 
+     public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
+-        boolean flag1 = io.papermc.paper.util.TickThread.isTickThread(); // Paper - rewrite chunk system
++        boolean flag1 = io.papermc.paper.util.TickThread.isTickThreadFor(this.level, chunkX, chunkZ); // Paper - rewrite chunk system // ShreddedPaper - regions
+         CompletableFuture completablefuture;
+ 
+         if (flag1) {
+@@ -321,7 +327,7 @@ public class ServerChunkCache extends ChunkSource {
+         } else {
+             completablefuture = CompletableFuture.supplyAsync(() -> {
+                 return this.getChunkFutureMainThread(chunkX, chunkZ, leastStatus, create);
+-            }, this.mainThreadProcessor).thenCompose((completablefuture1) -> {
++            }, this.tickingRegions.executorFor(RegionPos.forChunk(chunkX, chunkZ))).thenCompose((completablefuture1) -> { // ShreddedPaper - regions
+                 return completablefuture1;
+             });
+         }
+@@ -735,7 +741,7 @@ public class ServerChunkCache extends ChunkSource {
  
      @Override
      public void onLightUpdate(LightLayer type, SectionPos pos) {
@@ -636,14 +704,24 @@ index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..bf6158348ebb195753423df77fc45843
              ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos.chunk().toLong());
  
              if (playerchunk != null) {
-@@ -859,7 +862,12 @@ public class ServerChunkCache extends ChunkSource {
+@@ -859,7 +865,22 @@ public class ServerChunkCache extends ChunkSource {
              if (ServerChunkCache.this.runDistanceManagerUpdates()) {
                  return true;
              }
 -            return super.pollTask() | ServerChunkCache.this.level.chunkTaskScheduler.executeMainThreadTask(); // Paper - rewrite chunk system
-+            // ShreddedPaper start - run region tasks aswell when starting or shutting down
-+            if (level.getServer().forceTicks || TickThread.isShutdownThread()) {
-+                level.getChunkSource().tickingRegions.forEach(region -> region.getInternalTaskQueue().executeTask());
++            // ShreddedPaper start - run region tasks aswell if the worker threads aren't running
++            if ((!ShreddedPaperTickThread.isShreddedPaperTickThread() && TickThread.isTickThread()) || TickThread.isShutdownThread()) {
++                level.getChunkSource().tickingRegions.forEach(region -> {
++                    if (TickThread.isShutdownThread()) {
++                        // We're trying to shut down the server, just execute all the tasks
++                        region.getInternalTaskQueue().executeTask();
++                    } else if (!region.getInternalTaskQueue().haveAllTasksExecuted()) {
++                        // We're the main thread, try executing chunk tasks for regions not being ticked
++                        level.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(region.getRegionPos(), () -> {
++                            region.getInternalTaskQueue().executeTask();
++                        });
++                    }
++                });
 +            }
 +            // ShreddedPaper end
 +            return (!ShreddedPaperTickThread.isShreddedPaperTickThread() && super.pollTask()) | ServerChunkCache.this.level.chunkTaskScheduler.executeMainThreadTask(); // Paper - rewrite chunk system // ShreddedPaper - don't run main thread tasks on workers
@@ -679,7 +757,7 @@ index 713444b84fd910e9633f60d38ce759d69835cfcd..2555d09b1b44fb35f5a72f8d96d72116
                      if (optional.isEmpty() && this.getPoiManager().exists(blockposition1, poiType -> true)) {
                          this.getPoiManager().remove(blockposition1);
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 87ed749633aba04e6b86eb7ddf09f58884b552a4..e5e00c49965ceaddea205e0415fa5e13d48848ff 100644
+index 2787161170203e9bcbb88b96599ac7f12ae79570..8ff1f92bf02a510299c0332a9d01c54a387adb5a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 @@ -260,6 +260,7 @@ import org.yaml.snakeyaml.error.MarkedYAMLException;
@@ -699,3 +777,40 @@ index 87ed749633aba04e6b86eb7ddf09f58884b552a4..e5e00c49965ceaddea205e0415fa5e13
      private final io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler asyncScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaAsyncScheduler();
      private final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler globalRegionScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler();
  
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..90af83480224ae4534af3d0f86c33db6bc480636 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -5,6 +5,8 @@ import com.google.common.base.Predicates;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableMap;
+ import com.mojang.datafixers.util.Pair;
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+@@ -20,6 +22,7 @@ import java.util.Objects;
+ import java.util.Random;
+ import java.util.Set;
+ import java.util.UUID;
++import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.ExecutionException;
+ import java.util.function.Consumer;
+ import java.util.function.Predicate;
+@@ -392,10 +395,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+     @Override
+     public boolean isChunkGenerated(int x, int z) {
+         // Paper start - Fix this method
+-        if (!Bukkit.isPrimaryThread()) {
+-            return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
++        if (!TickThread.isTickThreadFor(this.world, x, z)) { // ShreddedPaper - regions
++            CompletableFuture<Boolean> future = java.util.concurrent.CompletableFuture.supplyAsync(() -> { // ShreddedPaper - regions
+                 return CraftWorld.this.isChunkGenerated(x, z);
+-            }, world.getChunkSource().mainThreadProcessor).join();
++            }, world.getChunkSource().tickingRegions.executorFor(RegionPos.forChunk(x, z))); // ShreddedPaper - regions
++            if (TickThread.isTickThread()) this.getHandle().chunkSource.mainThreadProcessor.managedBlock(future::isDone); // ShreddedPaper - run tick thread tasks (this might be one tick thread accessing a chunk in another tick thread)
++            return future.join(); // ShreddedPaper - regions
+         }
+         ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
+         if (chunk == null) {

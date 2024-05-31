@@ -261,36 +261,18 @@ index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..2e250604d22dde70fc1133d55b3730ff
                  Plugin plugin = registration.getPlugin();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 056104a0c15937dad4f63ee56ef288eac53eff8b..82899402344bb12e6fa11027156535885d89501c 100644
+index b8fa934a516833dbdc483b50f671f51d723034f9..50cee0735fc22d1ba6dd1bf18218cc5b24a392bc 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -5,8 +5,8 @@ import com.google.common.base.Predicates;
- import com.google.common.collect.ImmutableList;
+@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
  import com.google.common.collect.ImmutableMap;
  import com.mojang.datafixers.util.Pair;
+ import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
  import io.papermc.paper.util.TickThread;
--import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
- import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
- import java.io.File;
-@@ -21,7 +21,6 @@ import java.util.Objects;
- import java.util.Random;
- import java.util.Set;
- import java.util.UUID;
--import java.util.concurrent.ExecutionException;
- import java.util.function.Consumer;
- import java.util.function.Predicate;
- import java.util.stream.Collectors;
-@@ -125,7 +124,6 @@ import org.bukkit.entity.TippedArrow;
- import org.bukkit.entity.Trident;
- import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
- import org.bukkit.event.weather.LightningStrikeEvent;
--import org.bukkit.event.world.SpawnChangeEvent;
- import org.bukkit.event.world.TimeSkipEvent;
- import org.bukkit.generator.BiomeProvider;
- import org.bukkit.generator.BlockPopulator;
-@@ -2553,12 +2551,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2557,12 +2558,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          }
  
          java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();

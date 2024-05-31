@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe navigatingMobs
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index faa4be4f608a4f2b8bba24e231742c689399f5c5..b6e138a6e747715203571b0ccc180339852c5c22 100644
+index 98cb5f9e31c11fc1d73cb6b65a39e5969998dc44..56e5970735ddc3d5c5562adc31b2db4ae153c25a 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,10 +1,13 @@
@@ -24,8 +24,8 @@ index faa4be4f608a4f2b8bba24e231742c689399f5c5..b6e138a6e747715203571b0ccc180339
  import java.util.function.Consumer;
 @@ -16,6 +19,7 @@ public class LevelChunkRegion {
      private final List<LevelChunk> levelChunks = new ArrayList<>(RegionPos.REGION_SIZE * RegionPos.REGION_SIZE);
-     private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>();
-     private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue();
+     private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
+     private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
 +    private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
@@ -58,7 +58,7 @@ index faa4be4f608a4f2b8bba24e231742c689399f5c5..b6e138a6e747715203571b0ccc180339
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 03f1dc4755b4e2c58c2e53aabf7bf8342cc26d70..57c2059e7a579b5a192254c57fe55527b977f5e1 100644
+index 013b39ee4832743ef22e658550b2c63517f42b19..a9b6fdaaec268ea694e84e8467886777b49e1a6b 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 @@ -1,8 +1,11 @@
@@ -73,8 +73,8 @@ index 03f1dc4755b4e2c58c2e53aabf7bf8342cc26d70..57c2059e7a579b5a192254c57fe55527
  import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  
  import java.util.ArrayList;
-@@ -78,4 +81,36 @@ public class LevelChunkRegionMap {
-         getOrCreate(regionPos).getInternalTaskQueue().queueRunnable(task);
+@@ -90,4 +93,36 @@ public class LevelChunkRegionMap {
+         return runnable -> execute(regionPos, runnable);
      }
  
 +    public void addNavigationMob(Mob mob) {
@@ -112,10 +112,10 @@ index 03f1dc4755b4e2c58c2e53aabf7bf8342cc26d70..57c2059e7a579b5a192254c57fe55527
  }
 \ No newline at end of file
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index bf6158348ebb195753423df77fc4584314842df0..419742f225a63a14c987dcc926997953d605faf2 100644
+index 9707f48c0803ac8d9ac4b061b303fedbe3191a4e..d6ddb7379b2e1ea4ca2eccfc40aa512c49972c7a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -407,6 +407,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -410,6 +410,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public boolean pollTask() {
