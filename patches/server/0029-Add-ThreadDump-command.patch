@@ -1,0 +1,105 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ProdPreva1l <prod.preva1l@gmail.com>
+Date: Sat, 1 Jun 2024 02:27:14 +1000
+Subject: [PATCH] Add ThreadDump command
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java b/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java
+index 4dd39bce7ed93bf96cc893cc5e3cf539f44763fe..a231bd5b2e50302234ab6aaf9b2b76335439966e 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java
++++ b/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java
+@@ -11,7 +11,8 @@ public class ShreddedPaperCommands {
+     private static final Map<String, Command> COMMANDS = new HashMap<>();
+     static {
+         for (Command command : new Command[] {
+-                new MPMapCommand("mpmap")
++                new MPMapCommand("mpmap"),
++                new ThreadDumpCommand("thread-dump")
+         }) {
+             COMMANDS.put(command.getName(), command);
+         }
+diff --git a/src/main/java/io/multipaper/shreddedpaper/commands/ThreadDumpCommand.java b/src/main/java/io/multipaper/shreddedpaper/commands/ThreadDumpCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..23422d086a2c8fea8f14bccccd9738658a60f93d
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/commands/ThreadDumpCommand.java
+@@ -0,0 +1,67 @@
++package io.multipaper.shreddedpaper.commands;
++
++import com.google.common.collect.ImmutableSet;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
++import net.kyori.adventure.text.minimessage.MiniMessage;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.jetbrains.annotations.NotNull;
++
++import java.util.HashSet;
++import java.util.Set;
++import java.util.concurrent.CompletableFuture;
++
++public class ThreadDumpCommand extends Command {
++
++    protected ThreadDumpCommand(@NotNull String command) {
++        super(command);
++        setPermission("shreddedpaper.command.thread-dump");
++    }
++
++    @Override
++    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
++        getShredThreads().thenAccept((shredThreads) -> {
++            StringBuilder stringBuilder = new StringBuilder("<bold>ShreddedPaper <reset>Thread Dump\n<light_purple>Thread Name | State<reset>");
++
++            for (ShreddedPaperTickThread thread : shredThreads) {
++
++                stringBuilder.append("\n%s <gray><bold>|<reset> %s".formatted(thread.getName(), getThreadStateString(thread)));
++            }
++
++            sender.sendMessage(MiniMessage.miniMessage().deserialize(stringBuilder.toString()));
++        });
++        return true;
++    }
++
++    private static @NotNull String getThreadStateString(ShreddedPaperTickThread thread) {
++        String threadState = thread.getState().name();
++
++        if (thread.getState() == Thread.State.RUNNABLE || thread.getState() == Thread.State.NEW) {
++            threadState = "<green>" + threadState;
++        }
++        if (thread.getState() == Thread.State.WAITING || thread.getState() == Thread.State.TIMED_WAITING) {
++            threadState = "<yellow>" + threadState;
++        }
++        if (thread.getState() == Thread.State.BLOCKED || thread.getState() == Thread.State.TERMINATED) {
++            threadState = "<red>" + threadState;
++        }
++        return threadState;
++    }
++
++    /**
++     * Get all the shredded paper tick threads.
++     *
++     * @return completable future of an immutable set of {@link ShreddedPaperTickThread}
++     */
++    public static CompletableFuture<Set<ShreddedPaperTickThread>> getShredThreads() {
++        return CompletableFuture.supplyAsync(() -> {
++            Set<ShreddedPaperTickThread> shredThreads = new HashSet<>();
++            for (Thread thread : Thread.getAllStackTraces().keySet()) {
++                if (thread instanceof ShreddedPaperTickThread shredThread) {
++                    shredThreads.add(shredThread);
++                }
++            }
++            return ImmutableSet.copyOf(shredThreads);
++        });
++    }
++}
+diff --git a/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java b/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java
+index 89436f82a49d69f3bd21195bf44dfc4fa9bd4df7..f3bb6bedb6c0696ecf7e94fdddc39f3c9c77b3b6 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java
++++ b/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java
+@@ -13,6 +13,7 @@ public class ShreddedPaperCommandPermissions {
+         Permission commands = DefaultPermissions.registerPermission(ROOT, "Gives the user the ability to use all ShreddedPaper commands", parent);
+ 
+         DefaultPermissions.registerPermission(PREFIX + "mpmap", "MPMap command", PermissionDefault.TRUE, commands);
++        DefaultPermissions.registerPermission(PREFIX + "thread-dump", "thread-dump command", PermissionDefault.FALSE, commands);
+ 
+         commands.recalculatePermissibles();
+     }
