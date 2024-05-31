@@ -599,7 +599,7 @@ index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106
  
      public void executeTasksUntil(final BooleanSupplier exit) {
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 3f11f17a85e24821a168ccd39a7298cd91438fbf..03a20945dd94c29f84f05e769866aeef75677f0f 100644
+index 3f11f17a85e24821a168ccd39a7298cd91438fbf..4e14e052b0d474d87f7a32ff453e9e90a3fd5309 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,7 @@ import com.mojang.authlib.GameProfileRepository;
@@ -610,7 +610,31 @@ index 3f11f17a85e24821a168ccd39a7298cd91438fbf..03a20945dd94c29f84f05e769866aeef
  import it.unimi.dsi.fastutil.longs.LongIterator;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectArraySet;
-@@ -1737,17 +1738,17 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1480,6 +1481,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         return executed;
+     }
+ 
++    public final ThreadLocal<Boolean> executingMidTickTasks = ThreadLocal.withInitial(() -> false); // ShreddedPaper
+     public final void executeMidTickTasks() {
+         org.spigotmc.AsyncCatcher.catchOp("mid tick chunk task execution");
+         long startTime = System.nanoTime();
+@@ -1490,6 +1492,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         }
+ 
+         // co.aikar.timings.MinecraftTimings.midTickChunkTasks.startTiming(); // Purpur
++        executingMidTickTasks.set(true); // ShreddedPaper
+         try {
+             for (;;) {
+                 boolean moreTasks = this.tickMidTickTasks();
+@@ -1516,6 +1519,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+                 }
+             }
+         } finally {
++            executingMidTickTasks.set(false); // ShreddedPaper
+             // co.aikar.timings.MinecraftTimings.midTickChunkTasks.stopTiming(); // Purpur
+         }
+     }
+@@ -1737,17 +1741,17 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          //MinecraftTimings.bukkitSchedulerTimer.stopTiming(); // Spigot // Paper // Purpur
          // Paper start - Folia scheduler API
          ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
@@ -640,10 +664,10 @@ index 3f11f17a85e24821a168ccd39a7298cd91438fbf..03a20945dd94c29f84f05e769866aeef
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          //this.profiler.push("commandFunctions"); // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..9707f48c0803ac8d9ac4b061b303fedbe3191a4e 100644
+index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..720c7e4e7d637dcf61bc8da14cffc53b72501a7a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -13,6 +13,9 @@ import java.util.function.BooleanSupplier;
+@@ -13,10 +13,14 @@ import java.util.function.BooleanSupplier;
  import java.util.function.Consumer;
  import java.util.function.Supplier;
  import javax.annotation.Nullable;
@@ -653,7 +677,12 @@ index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..9707f48c0803ac8d9ac4b061b303fedb
  import net.minecraft.Util;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.SectionPos;
-@@ -43,6 +46,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
+ import net.minecraft.network.protocol.Packet;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.progress.ChunkProgressListener;
+ import net.minecraft.util.VisibleForDebug;
+ import net.minecraft.util.thread.BlockableEventLoop;
+@@ -43,6 +47,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import io.multipaper.shreddedpaper.region.LevelChunkRegionMap;
  import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
@@ -661,7 +690,7 @@ index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..9707f48c0803ac8d9ac4b061b303fedb
  
  public class ServerChunkCache extends ChunkSource {
  
-@@ -249,10 +253,12 @@ public class ServerChunkCache extends ChunkSource {
+@@ -249,10 +254,12 @@ public class ServerChunkCache extends ChunkSource {
      @Override
      public ChunkAccess getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
          final int x1 = x; final int z1 = z; // Paper - conflict on variable change
@@ -677,7 +706,7 @@ index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..9707f48c0803ac8d9ac4b061b303fedb
          } else {
              // Paper start - Perf: Optimise getChunkAt calls for loaded chunks
              LevelChunk ifLoaded = this.getChunkAtIfLoadedMainThread(x, z);
-@@ -309,7 +315,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -309,7 +316,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
@@ -686,7 +715,7 @@ index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..9707f48c0803ac8d9ac4b061b303fedb
          CompletableFuture completablefuture;
  
          if (flag1) {
-@@ -321,7 +327,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -321,7 +328,7 @@ public class ServerChunkCache extends ChunkSource {
          } else {
              completablefuture = CompletableFuture.supplyAsync(() -> {
                  return this.getChunkFutureMainThread(chunkX, chunkZ, leastStatus, create);
@@ -695,7 +724,7 @@ index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..9707f48c0803ac8d9ac4b061b303fedb
                  return completablefuture1;
              });
          }
-@@ -735,7 +741,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -735,7 +742,7 @@ public class ServerChunkCache extends ChunkSource {
  
      @Override
      public void onLightUpdate(LightLayer type, SectionPos pos) {
@@ -704,13 +733,13 @@ index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..9707f48c0803ac8d9ac4b061b303fedb
              ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos.chunk().toLong());
  
              if (playerchunk != null) {
-@@ -859,7 +865,22 @@ public class ServerChunkCache extends ChunkSource {
+@@ -859,7 +866,22 @@ public class ServerChunkCache extends ChunkSource {
              if (ServerChunkCache.this.runDistanceManagerUpdates()) {
                  return true;
              }
 -            return super.pollTask() | ServerChunkCache.this.level.chunkTaskScheduler.executeMainThreadTask(); // Paper - rewrite chunk system
-+            // ShreddedPaper start - run region tasks aswell if the worker threads aren't running
-+            if ((!ShreddedPaperTickThread.isShreddedPaperTickThread() && TickThread.isTickThread()) || TickThread.isShutdownThread()) {
++            // ShreddedPaper start - run all region tasks cause the worker threads might be deadlocked and not get to them
++            if ((!MinecraftServer.getServer().executingMidTickTasks.get() && TickThread.isTickThread()) || TickThread.isShutdownThread()) {
 +                level.getChunkSource().tickingRegions.forEach(region -> {
 +                    if (TickThread.isShutdownThread()) {
 +                        // We're trying to shut down the server, just execute all the tasks

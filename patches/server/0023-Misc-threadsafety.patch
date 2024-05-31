@@ -4,6 +4,33 @@ Date: Sat, 25 May 2024 13:58:42 +0900
 Subject: [PATCH] Misc threadsafety
 
 
+diff --git a/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java b/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java
+index a5f706d6f716b2a463ae58adcde69d9e665c7733..2f269fee6e9119db5b67934627d66e96672da892 100644
+--- a/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java
++++ b/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java
+@@ -154,11 +154,11 @@ public final class SingleThreadChunkRegionManager {
+         return section;
+     }
+ 
+-    public void addChunk(final int chunkX, final int chunkZ) {
++    public synchronized void addChunk(final int chunkX, final int chunkZ) { // ShreddedPaper - synchronized
+         this.getOrCreateAndMergeSection(chunkX >> this.regionChunkShift, chunkZ >> this.regionChunkShift, null).addChunk(chunkX, chunkZ);
+     }
+ 
+-    public void removeChunk(final int chunkX, final int chunkZ) {
++    public synchronized void removeChunk(final int chunkX, final int chunkZ) { // ShreddedPaper - synchronized
+         final RegionSection section = this.regionsBySection.get(
+                 MCUtil.getCoordinateKey(chunkX >> this.regionChunkShift, chunkZ >> this.regionChunkShift)
+         );
+@@ -169,7 +169,7 @@ public final class SingleThreadChunkRegionManager {
+         }
+     }
+ 
+-    public void recalculateRegions() {
++    public synchronized void recalculateRegions() { // ShreddedPaper - synchronized
+         for (int i = 0, len = this.needsRecalculation.size(); i < len; ++i) {
+             final Region region = this.needsRecalculation.removeFirst();
+ 
 diff --git a/src/main/java/net/minecraft/server/level/PlayerMap.java b/src/main/java/net/minecraft/server/level/PlayerMap.java
 index 12f1345ff70388fb217100bfc717ef861785381d..9c0f561a65ed5f5b45ce4c30754f71b310e614b0 100644
 --- a/src/main/java/net/minecraft/server/level/PlayerMap.java
@@ -139,7 +166,7 @@ index 031fc626d2075cbe0941fecc188406712ab9953f..b9b084b7e9d5c9b4613d45eed9612ad5
              world.removeBlockEntity(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-index 9060380754e5553b1628f17402bcb80ba9042fae..885000a84270642b436c9c20d643df070ad724cf 100644
+index 1284c941a4c863c287098a0a04efcc723e727bb3..51090b56d26645bfb0ff943c3efb849912d74ff6 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 @@ -9,6 +9,8 @@ import java.util.Iterator;
@@ -151,7 +178,7 @@ index 9060380754e5553b1628f17402bcb80ba9042fae..885000a84270642b436c9c20d643df07
  import net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.sounds.SoundEvent;
-@@ -516,7 +518,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
+@@ -523,7 +525,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
  
      @Override
      public boolean addPotionEffect(PotionEffect effect, boolean force) {
@@ -200,7 +227,7 @@ index d16b61e2c92e35e184270eb293c7717d15051e11..bc86def0f426f1b033599f83126130f5
      }
      // Paper end
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index 04e77b85044403b8c594cd419eaa3a153ba42150..42121b162526d5cb944d828b63617fd3c7c80901 100644
+index 5308dc55bcc334ad6bef927de6c2d9b9364d99ff..7e91d1ea6e144826e3d88e61a25fd533f2c9407d 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 @@ -951,7 +951,7 @@ public class CraftEventFactory {

@@ -229,7 +229,7 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..5b54633ff98dbb2cae86f5712201cf6c
              if (this.removed) {
                  throw new IllegalStateException("Updating removed player chunk loader");
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
-index 71b021513f30376c7b09d83059deea89cc92385f..89f875662d61d92da090da80fc2986f1ca3f8d4d 100644
+index 3b66ecc4f110d0f2dc0ef6c560801296d7e0be64..b6d8d471d045263f9455e8fd738c680891c0b1e5 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
 +++ b/src/main/java/net/minecraft/network/Connection.java
 @@ -42,6 +42,8 @@ import java.util.function.Consumer;
@@ -256,7 +256,7 @@ index 71b021513f30376c7b09d83059deea89cc92385f..89f875662d61d92da090da80fc2986f1
  
  public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
  
-@@ -610,6 +614,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -611,6 +615,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
      private static int currTick; // Paper - Buffer joins to world
      private static int tickSecond; // Purpur
      public void tick() {
@@ -324,10 +324,10 @@ index 8c134a642ccaf3530022f2e675a858d726e1dda4..f5154194df9e44f8bcf431029f4bbed6
              engine.executeIfPossible(() -> {
                  packetProcessing.push(listener); // Paper - detailed watchdog information
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 03a20945dd94c29f84f05e769866aeef75677f0f..75933f0cb23d7b26b262111376816a40a87c61fe 100644
+index 4e14e052b0d474d87f7a32ff453e9e90a3fd5309..cb10eedca75661ec400d4b1a187f2c71cd8bf62c 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1787,6 +1787,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1790,6 +1790,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
          // Paper end - Perf: Optimize time updates
          //MinecraftTimings.timeUpdateTimer.stopTiming(); // Spigot // Paper // Purpur
@@ -335,7 +335,7 @@ index 03a20945dd94c29f84f05e769866aeef75677f0f..75933f0cb23d7b26b262111376816a40
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
          Iterator iterator = this.getAllLevels().iterator(); // Paper - Throw exception on world create while being ticked; move down
-@@ -1837,7 +1838,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1840,7 +1841,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
          //this.profiler.popPush("connection"); // Purpur
          // MinecraftTimings.connectionTimer.startTiming(); // Spigot // Paper // Purpur
