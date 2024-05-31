@@ -4,6 +4,33 @@ Date: Sat, 25 May 2024 13:58:42 +0900
 Subject: [PATCH] Misc threadsafety
 
 
+diff --git a/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java b/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java
+index a5f706d6f716b2a463ae58adcde69d9e665c7733..2f269fee6e9119db5b67934627d66e96672da892 100644
+--- a/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java
++++ b/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java
+@@ -154,11 +154,11 @@ public final class SingleThreadChunkRegionManager {
+         return section;
+     }
+ 
+-    public void addChunk(final int chunkX, final int chunkZ) {
++    public synchronized void addChunk(final int chunkX, final int chunkZ) { // ShreddedPaper - synchronized
+         this.getOrCreateAndMergeSection(chunkX >> this.regionChunkShift, chunkZ >> this.regionChunkShift, null).addChunk(chunkX, chunkZ);
+     }
+ 
+-    public void removeChunk(final int chunkX, final int chunkZ) {
++    public synchronized void removeChunk(final int chunkX, final int chunkZ) { // ShreddedPaper - synchronized
+         final RegionSection section = this.regionsBySection.get(
+                 MCUtil.getCoordinateKey(chunkX >> this.regionChunkShift, chunkZ >> this.regionChunkShift)
+         );
+@@ -169,7 +169,7 @@ public final class SingleThreadChunkRegionManager {
+         }
+     }
+ 
+-    public void recalculateRegions() {
++    public synchronized void recalculateRegions() { // ShreddedPaper - synchronized
+         for (int i = 0, len = this.needsRecalculation.size(); i < len; ++i) {
+             final Region region = this.needsRecalculation.removeFirst();
+ 
 diff --git a/src/main/java/net/minecraft/server/level/PlayerMap.java b/src/main/java/net/minecraft/server/level/PlayerMap.java
 index 12f1345ff70388fb217100bfc717ef861785381d..9c0f561a65ed5f5b45ce4c30754f71b310e614b0 100644
 --- a/src/main/java/net/minecraft/server/level/PlayerMap.java
