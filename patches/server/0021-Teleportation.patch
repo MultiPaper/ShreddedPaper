@@ -345,7 +345,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f
  
      public void sendPlayerPermissionLevel(ServerPlayer player) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 0c02fcbf76506bf2fc1ca2a16f361947ff6365b7..56ee8c1c5794ae82579d638a71ac1043a78ffe19 100644
+index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..2e0967cdbc19887d89ae854261d49886fc494025 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
@@ -368,7 +368,7 @@ index 0c02fcbf76506bf2fc1ca2a16f361947ff6365b7..56ee8c1c5794ae82579d638a71ac1043
      }
  
      public void moveTo(double x, double y, double z, float yaw, float pitch) {
-+        if (levelCallback != EntityInLevelCallback.NULL) TickThread.ensureTickThread((ServerLevel) level(), position.x, position.z, "Can't move entity to async destination"); // ShreddedPaper - can't teleport into other regions
++        if (levelCallback != EntityInLevelCallback.NULL) TickThread.ensureTickThread((ServerLevel) level(), x, z, "Can't move entity to async destination"); // ShreddedPaper - can't teleport into other regions
          // Paper start - Fix Entity Teleportation and cancel velocity if teleported
          if (!preserveMotion) {
              this.deltaMovement = Vec3.ZERO;

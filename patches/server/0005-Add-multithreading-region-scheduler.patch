@@ -840,3 +840,15 @@ index 54cd046587c2f9dd26204bfa4eb65b8ad52b2d5e..cf28077748878476d7059828a04ea789
      public static ChunkPos minFromRegion(int x, int z) {
          return new ChunkPos(x << 5, z << 5);
      }
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..03ad7083316455abf9f06f5601e48fdd5ae7a8e2 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -928,6 +928,7 @@ public class LevelChunk extends ChunkAccess {
+     public boolean isPostProcessingDone; // Paper - replace chunk loader system
+     public void postProcessGeneration() {
+         try { // Paper - replace chunk loader system
++        isPostProcessingDone = false; // ShreddedPaper
+         ChunkPos chunkcoordintpair = this.getPos();
+ 
+         for (int i = 0; i < this.postProcessing.length; ++i) {
