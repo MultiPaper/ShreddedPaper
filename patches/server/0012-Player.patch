@@ -324,18 +324,38 @@ index 8c134a642ccaf3530022f2e675a858d726e1dda4..f5154194df9e44f8bcf431029f4bbed6
              engine.executeIfPossible(() -> {
                  packetProcessing.push(listener); // Paper - detailed watchdog information
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 4e14e052b0d474d87f7a32ff453e9e90a3fd5309..cb10eedca75661ec400d4b1a187f2c71cd8bf62c 100644
+index 4e14e052b0d474d87f7a32ff453e9e90a3fd5309..4aaa416aca8bc75495bacafbc14d9468648384d6 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1790,6 +1790,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -14,6 +14,8 @@ import com.mojang.authlib.GameProfileRepository;
+ import com.mojang.authlib.minecraft.MinecraftSessionService;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperPlayerTicker;
+ import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.longs.LongIterator;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+@@ -1790,6 +1792,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
          // Paper end - Perf: Optimize time updates
          //MinecraftTimings.timeUpdateTimer.stopTiming(); // Spigot // Paper // Purpur
 +        this.getConnection().tick(); // ShreddedPaper - moved up
++
++        // ShreddedPaper start - some players aren't registered in their level if they're dead, let's manually add a task for them to process them
++        for (ServerPlayer player : this.playerList.getPlayers()) {
++            if (player.isRemoved()) {
++                ShreddedPaper.runSync((ServerLevel) player.level(), player.chunkPosition(), () -> {
++                    player.getBukkitEntity().taskScheduler.executeTick();
++                    ShreddedPaperPlayerTicker.tickPlayer(player);
++                });
++            }
++        }
++        // ShreddedPaper end
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
          Iterator iterator = this.getAllLevels().iterator(); // Paper - Throw exception on world create while being ticked; move down
-@@ -1840,7 +1841,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1840,7 +1854,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
          //this.profiler.popPush("connection"); // Purpur
          // MinecraftTimings.connectionTimer.startTiming(); // Spigot // Paper // Purpur
