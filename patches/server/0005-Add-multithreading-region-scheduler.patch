@@ -728,7 +728,7 @@ index 330bae815c0a332e3dc9fa7b224c9f92098199b9..3f11f17a85e24821a168ccd39a7298cd
          if (upnp) {
              if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
 diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
-index 472b9494f8a34a8ba90d6a2936b0db7530a229ad..da627ca17aa738d0d812b1b557f6d824e41d0b44 100644
+index 472b9494f8a34a8ba90d6a2936b0db7530a229ad..e8dcc3942cd59ad6ed5b3430026908d6aad583ae 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
 @@ -1,6 +1,7 @@
@@ -743,7 +743,7 @@ index 472b9494f8a34a8ba90d6a2936b0db7530a229ad..da627ca17aa738d0d812b1b557f6d824
      // Paper - rewrite chunk system
  
      public void blockChanged(BlockPos pos) {
-+        if (this.getFullChunkNow().isPostProcessingDone && !this.chunkMap.level.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forBlockPos(pos))) { // ShreddedPaper
++        if (!LevelChunk.isProcessingPostGeneration.get() && !this.chunkMap.level.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forBlockPos(pos))) { // ShreddedPaper
 +            throw new IllegalStateException("Block change @ " + pos + " in chunk " + this.pos + " in world '" + this.chunkMap.level.getWorld().getName() + "' is not write locked"); // ShreddedPaper
 +        } // ShreddedPaper
          // Paper start - replace player chunk loader
@@ -841,14 +841,25 @@ index 54cd046587c2f9dd26204bfa4eb65b8ad52b2d5e..cf28077748878476d7059828a04ea789
          return new ChunkPos(x << 5, z << 5);
      }
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..03ad7083316455abf9f06f5601e48fdd5ae7a8e2 100644
+index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..1a40dded8042b1df0b29535c2db1a9f4d1a31740 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -928,6 +928,7 @@ public class LevelChunk extends ChunkAccess {
+@@ -926,8 +926,10 @@ public class LevelChunk extends ChunkAccess {
+     }
+ 
      public boolean isPostProcessingDone; // Paper - replace chunk loader system
++    public static ThreadLocal<Boolean> isProcessingPostGeneration = ThreadLocal.withInitial(() -> false); // ShreddedPaper
      public void postProcessGeneration() {
          try { // Paper - replace chunk loader system
-+        isPostProcessingDone = false; // ShreddedPaper
++        isProcessingPostGeneration.set(true); // ShreddedPaper
          ChunkPos chunkcoordintpair = this.getPos();
  
          for (int i = 0; i < this.postProcessing.length; ++i) {
+@@ -968,6 +970,7 @@ public class LevelChunk extends ChunkAccess {
+         this.upgradeData.upgrade(this);
+         } finally { // Paper start - replace chunk loader system
+             this.isPostProcessingDone = true;
++            isProcessingPostGeneration.set(false); // ShreddedPaper
+         }
+         // Paper end - replace chunk loader system
+     }
