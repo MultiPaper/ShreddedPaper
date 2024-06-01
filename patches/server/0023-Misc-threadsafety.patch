@@ -31,6 +31,111 @@ index a5f706d6f716b2a463ae58adcde69d9e665c7733..2f269fee6e9119db5b67934627d66e96
          for (int i = 0, len = this.needsRecalculation.size(); i < len; ++i) {
              final Region region = this.needsRecalculation.removeFirst();
  
+diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
+index 645e39222d81a5049888c86881ee381310fa7060..598c124deb67222e21e0b98e3c5c7f6b013f95c0 100644
+--- a/src/main/java/io/papermc/paper/util/TickThread.java
++++ b/src/main/java/io/papermc/paper/util/TickThread.java
+@@ -14,6 +14,9 @@ import net.minecraft.world.phys.Vec3;
+ import org.bukkit.Bukkit;
+ import io.multipaper.shreddedpaper.region.RegionPos;
+ 
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Set;
+ import java.util.concurrent.atomic.AtomicInteger;
+ 
+ public class TickThread extends Thread {
+@@ -37,56 +40,76 @@ public class TickThread extends Thread {
+         ensureTickThread(reason);
+     }
+ 
++    // ShreddedPaper start
++    public static void failedTickThreadCheck(final String reason, final String extraData) {
++        if (!isTickThread()) {
++            MinecraftServer.LOGGER.error(Thread.currentThread().getName() + " tried to run a task async: " + reason);
++        } else {
++            MinecraftServer.LOGGER.error(Thread.currentThread().getName() + " tried to run a task from the wrong thread: " + reason);
++        }
++        MinecraftServer.LOGGER.error("Extra data: " + extraData);
++        MinecraftServer.LOGGER.error("Region locks currently held (regionSize=" + RegionPos.REGION_SIZE + " chunks): " + getCurrentLocksHeld());
++        MinecraftServer.LOGGER.error("Stack trace:", new Throwable());
++        throw new IllegalStateException(reason);
++    }
++
++    private static List<String> getCurrentLocksHeld() {
++        List<String> strings = new ArrayList<>();
++
++        for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
++            Set<RegionPos> regions = level.chunkScheduler.getRegionLocker().getLockedRegions();
++            if (!regions.isEmpty()) {
++                strings.add(level.convertable.getLevelId() + "=" + regions.stream().map(region -> "[" + region.x + "," + region.z + "]").toList());
++            }
++        }
++
++        return strings;
++    }
++    // ShreddedPaper end
++
+     /**
+      * @deprecated
+      */
+     @Deprecated
+     public static void ensureTickThread(final String reason) {
+         if (!isTickThread()) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, null);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final BlockPos pos, final String reason) {
+         if (!isTickThreadFor(world, pos)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", pos=" + pos);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final ChunkPos pos, final String reason) {
+         if (!isTickThreadFor(world, pos)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", chunkpos=" + pos);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final int chunkX, final int chunkZ, final String reason) {
+         if (!isTickThreadFor(world, chunkX, chunkZ)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", chunkpos=[" + chunkX + "," + chunkZ + "]");
+         }
+     }
+ 
+     public static void ensureTickThread(final Entity entity, final String reason) {
+         if (!isTickThreadFor(entity)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "entity=" + entity);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final AABB aabb, final String reason) {
+         if (!isTickThreadFor(world, aabb)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", aabb=" + aabb);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final double blockX, final double blockZ, final String reason) {
+         if (!isTickThreadFor(world, blockX, blockZ)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", x=" + (int) blockX + " y=? z=" + (int) blockZ);
+         }
+     }
+ 
 diff --git a/src/main/java/net/minecraft/server/level/PlayerMap.java b/src/main/java/net/minecraft/server/level/PlayerMap.java
 index 12f1345ff70388fb217100bfc717ef861785381d..9c0f561a65ed5f5b45ce4c30754f71b310e614b0 100644
 --- a/src/main/java/net/minecraft/server/level/PlayerMap.java
@@ -122,6 +227,35 @@ index c6f193339fdcbcc938d4eafdcad0b112cf1698d5..256fbdc2a287a8232c8ecb9d0e06290a
 +    public synchronized void tick(BooleanSupplier shouldKeepTicking) {
          this.villageDistanceTracker.propagateUpdates(); // Paper - rewrite chunk system
      }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
+index cd0e43f4c53a746dd6183a8406269f9b11ad3571..5f810f8c11a10bd371127a08b4fd9df874373f90 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
+@@ -6,6 +6,8 @@ import java.util.HashSet;
+ import java.util.Objects;
+ import java.util.Set;
+ import javax.annotation.Nullable;
++
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.HolderLookup;
+@@ -21,6 +23,7 @@ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.game.ClientGamePacketListener;
+ import net.minecraft.resources.ResourceLocation;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.item.BlockItem;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.level.Level;
+@@ -233,6 +236,7 @@ public abstract class BlockEntity {
+     public void setChanged() {
+         if (this.level != null) {
+             if (ignoreTileUpdates) return; // Paper - Perf: Optimize Hoppers
++            TickThread.ensureTickThread((ServerLevel) this.level, this.worldPosition, "Block entity modification"); // ShreddedPaper
+             BlockEntity.setChanged(this.level, this.worldPosition, this.blockState);
+         }
  
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 index 81dd0aa6a90fd9dda9e7752f85b9cf4568e3b575..49d288e22911acd20c8935bfbed415a6f7374c4e 100644
@@ -248,3 +382,23 @@ index 5308dc55bcc334ad6bef927de6c2d9b9364d99ff..7e91d1ea6e144826e3d88e61a25fd533
          Bukkit.getPluginManager().callEvent(event);
  
          if (!event.isCancelled()) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
+index eafa54c870c3e2aef30c3f9f96f516607a7cae24..1ba11d3653790464bc9af174daecf351fac07d4e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
+@@ -1,6 +1,7 @@
+ package org.bukkit.craftbukkit.inventory;
+ 
+ import com.google.common.base.Preconditions;
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+ import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
+ import net.minecraft.server.level.ServerPlayer;
+@@ -70,6 +71,7 @@ public class CraftInventoryPlayer extends CraftInventory implements org.bukkit.i
+ 
+     @Override
+     public void setItem(int index, ItemStack item) {
++        TickThread.ensureTickThread(getInventory().player, "Player inventory modification"); // ShreddedPaper
+         super.setItem(index, item);
+         if (this.getHolder() == null) return;
+         ServerPlayer player = ((CraftPlayer) this.getHolder()).getHandle();
