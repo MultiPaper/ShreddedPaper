@@ -6,10 +6,10 @@ Subject: [PATCH] Run unsupported plugins in sync
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..cfe65dfbb6c3b6d2572fdda534a9f15ef5cf96ba
+index 0000000000000000000000000000000000000000..c135dc9347bb2d0dc1a657cbcaed84cfbaf50846
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,160 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
@@ -18,10 +18,13 @@ index 0000000000000000000000000000000000000000..cfe65dfbb6c3b6d2572fdda534a9f15e
 +import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
 +
 +import java.lang.ref.WeakReference;
++import java.util.ArrayList;
++import java.util.Collections;
 +import java.util.Comparator;
++import java.util.List;
 +import java.util.Map;
++import java.util.Set;
 +import java.util.TreeSet;
-+import java.util.concurrent.CompletableFuture;
 +import java.util.concurrent.ConcurrentHashMap;
 +import java.util.concurrent.locks.ReentrantLock;
 +
@@ -33,6 +36,7 @@ index 0000000000000000000000000000000000000000..cfe65dfbb6c3b6d2572fdda534a9f15e
 +    private static final Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 +
 +    private static final ThreadLocal<WeakReference<Plugin>> currentPlugin = new ThreadLocal<>();
++    private static final ThreadLocal<List<String>> heldPluginLocks = ThreadLocal.withInitial(ArrayList::new); // Use a list as the same plugin may be locked multiple times in a single thread due to recursion
 +
 +    public static Plugin getCurrentPlugin() {
 +        WeakReference<Plugin> pluginRef = currentPlugin.get();
@@ -63,19 +67,72 @@ index 0000000000000000000000000000000000000000..cfe65dfbb6c3b6d2572fdda534a9f15e
 +            return dependencyList;
 +        });
 +
-+        for (String pluginToLock : pluginsToLock) {
-+            locks.computeIfAbsent(pluginToLock, (name) -> new ReentrantLock()).lock();
-+        }
++        lock(pluginsToLock);
 +
++        WeakReference<Plugin> parentPlugin = currentPlugin.get();
 +        try {
 +            currentPlugin.set(new WeakReference<>(plugin));
 +            runnable.run();
-+            currentPlugin.remove();
 +        } finally {
++            currentPlugin.set(parentPlugin);
 +            for (String pluginToLock : pluginsToLock) {
-+                locks.get(pluginToLock).unlock();
++                getLock(pluginToLock).unlock();
++                heldPluginLocks.get().remove(pluginToLock);
 +            }
 +        }
++    }
++
++    private static ReentrantLock getLock(String plugin) {
++        return locks.computeIfAbsent(plugin, (name) -> new ReentrantLock());
++    }
++
++    private static void lock(Set<String> pluginsToLock) {
++        List<String> locksToAcquire = new ArrayList<>(pluginsToLock); // Must be a list as we can hold the same lock multiple times due to recursion
++
++        if (!heldPluginLocks.get().isEmpty()) {
++            // We already have some locks, take care to avoid a deadlock with another thread
++            if (tryLockNow(locksToAcquire)) {
++                heldPluginLocks.get().addAll(locksToAcquire);
++                return;
++            } else {
++                // We failed to instantly acquire the lock, back off from all locks and try again to avoid a deadlock
++                for (String plugin : heldPluginLocks.get()) {
++                    getLock(plugin).unlock();
++                    heldPluginLocks.get().remove(plugin);
++                    locksToAcquire.add(plugin);
++                }
++                Collections.sort(locksToAcquire); // Ensure we lock in a predictable order to avoid deadlocks
++            }
++        }
++
++        for (String plugin : locksToAcquire) {
++            getLock(plugin).lock();
++            heldPluginLocks.get().add(plugin);
++        }
++    }
++
++    private static boolean tryLockNow(List<String> locksToReacquire) {
++        boolean success = true;
++
++        List<ReentrantLock> locksAquired = new ArrayList<>();
++
++        for (String plugin : locksToReacquire) {
++            ReentrantLock lock = getLock(plugin);
++            if (lock.tryLock()) {
++                locksAquired.add(lock);
++            } else {
++                success = false;
++                break;
++            }
++        }
++
++        if (!success) {
++            for (ReentrantLock lock : locksAquired) {
++                lock.unlock();
++            }
++        }
++
++        return success;
 +    }
 +
 +    private static void fillPluginsToLock(Plugin plugin, TreeSet<String> pluginsToLock) {
