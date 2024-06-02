@@ -312,10 +312,10 @@ index bb31681d91f54c7d4e242579081f64dfcf481340..758c155c23d95c3cc952cb14f864c703
          final JsonArray holders = new JsonArray();
          ret.add("chunkholders", holders);
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
-index 604de7aed6db44c9c84d541765e57da48883cf00..c7e53d4f3182d08ffb0c0fc714dcff4d6900062d 100644
+index 21d068a04de5705820a6d3a7d498060a5b68c790..2a77020c61ced8a5196e73f801c20a2fce84fabf 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
-@@ -36,12 +36,15 @@ import net.minecraft.world.level.chunk.LevelChunk;
+@@ -39,12 +39,15 @@ import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.chunk.storage.ChunkSerializer;
  import net.minecraft.world.level.chunk.storage.EntityStorage;
  import org.slf4j.Logger;
@@ -331,7 +331,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..c7e53d4f3182d08ffb0c0fc714dcff4d
  import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.Consumer;
  
-@@ -732,10 +735,10 @@ public final class NewChunkHolder {
+@@ -735,10 +738,10 @@ public final class NewChunkHolder {
          }
          if (this.isSafeToUnload() == null) {
              // ensure in unload queue

@@ -138,7 +138,7 @@ index 645e39222d81a5049888c86881ee381310fa7060..8fe50092e5e99127c937cf50990c3ad8
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
-index e8dcc3942cd59ad6ed5b3430026908d6aad583ae..e3436dc97c1bbc1c65b81888acf59a007fbfe029 100644
+index 22151e99264bb2de80da90c7df200990f9cf8b9d..d338349a809d5cd575f16a701476528752a7588e 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
 @@ -2,6 +2,7 @@ package net.minecraft.server.level;
@@ -152,7 +152,7 @@ index e8dcc3942cd59ad6ed5b3430026908d6aad583ae..e3436dc97c1bbc1c65b81888acf59a00
 @@ -214,7 +215,7 @@ public class ChunkHolder {
  
      public void blockChanged(BlockPos pos) {
-         if (!LevelChunk.isProcessingPostGeneration.get() && !this.chunkMap.level.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forBlockPos(pos))) { // ShreddedPaper
+         if (!this.chunkMap.level.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forBlockPos(pos))) { // ShreddedPaper
 -            throw new IllegalStateException("Block change @ " + pos + " in chunk " + this.pos + " in world '" + this.chunkMap.level.getWorld().getName() + "' is not write locked"); // ShreddedPaper
 +            TickThread.failedTickThreadCheck("Block change is not write locked", "world=" + this.chunkMap.level.convertable.getLevelId() + ", pos=" + pos + ", newstate=" + this.getFullChunkNow().getBlockState(pos)); // ShreddedPaper
          } // ShreddedPaper

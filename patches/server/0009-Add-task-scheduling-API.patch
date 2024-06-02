@@ -598,6 +598,66 @@ index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106
      }
  
      public void executeTasksUntil(final BooleanSupplier exit) {
+diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
+index 604de7aed6db44c9c84d541765e57da48883cf00..21d068a04de5705820a6d3a7d498060a5b68c790 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
++++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
+@@ -11,6 +11,8 @@ import com.google.gson.JsonElement;
+ import com.google.gson.JsonObject;
+ import com.google.gson.JsonPrimitive;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import io.papermc.paper.chunk.system.io.RegionFileIOThread;
+ import io.papermc.paper.chunk.system.poi.PoiChunk;
+ import io.papermc.paper.util.CoordinateUtils;
+@@ -22,6 +24,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
+ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.objects.ReferenceLinkedOpenHashSet;
+ import net.minecraft.nbt.CompoundTag;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ChunkHolder;
+ import net.minecraft.server.level.ChunkLevel;
+ import net.minecraft.server.level.FullChunkStatus;
+@@ -1265,6 +1268,22 @@ public final class NewChunkHolder {
+ 
+     private boolean processingFullStatus = false;
+ 
++    // ShreddedPaper start - ensure write lock
++    public boolean ensureFullStatusChangeWithWriteLock() {
++        // Upgrading to a full loaded chunk is just a chunk load task, which does not require the write lock
++        // However, upgrading to block ticking or entity ticking is more than just loading a chunk, and requires us to have the write lock
++        if (!MinecraftServer.getServer().forceTicks && !world.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forChunk(vanillaChunkHolder.pos))) {
++            ShreddedPaper.runSync(world, vanillaChunkHolder.pos, () -> {
++                List<NewChunkHolder> changedFullStatus2 = new ArrayList<>();
++                handleFullStatusChange(changedFullStatus2);
++                this.scheduler.chunkHolderManager.addChangedStatuses(changedFullStatus2);
++            });
++            return false;
++        }
++        return true;
++    }
++    // ShreddedPaper end - ensure write lock
++
+     // only to be called on the main thread, no locks need to be held
+     public boolean handleFullStatusChange(final List<NewChunkHolder> changedFullStatus) {
+         TickThread.ensureTickThread(this.world, this.chunkX, this.chunkZ, "Cannot update full status thread off-main");
+@@ -1342,6 +1361,7 @@ public final class NewChunkHolder {
+                     }
+ 
+                     if (!currState.isOrAfter(FullChunkStatus.BLOCK_TICKING) && nextState.isOrAfter(FullChunkStatus.BLOCK_TICKING)) {
++                        if (!ensureFullStatusChangeWithWriteLock()) return ret; // ShreddedPaper
+                         nextState = this.updateCurrentState(FullChunkStatus.BLOCK_TICKING);
+                         this.changeEntityChunkStatus(FullChunkStatus.BLOCK_TICKING);
+                         chunk.onChunkTicking(this);
+@@ -1349,6 +1369,7 @@ public final class NewChunkHolder {
+                     }
+ 
+                     if (!currState.isOrAfter(FullChunkStatus.ENTITY_TICKING) && nextState.isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
++                        if (!ensureFullStatusChangeWithWriteLock()) return ret; // ShreddedPaper
+                         nextState = this.updateCurrentState(FullChunkStatus.ENTITY_TICKING);
+                         this.changeEntityChunkStatus(FullChunkStatus.ENTITY_TICKING);
+                         chunk.onChunkEntityTicking(this);
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
 index c192e3719474c5aefe6e4f8926c0d5c7766c48ad..53f1fb8a72772ae7c222b9732d11bacf33ac6dff 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
