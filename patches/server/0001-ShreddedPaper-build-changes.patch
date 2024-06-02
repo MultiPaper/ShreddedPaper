@@ -60,7 +60,7 @@ index 8cde30544e14f8fc2dac32966ae3c21f8cf3a551..430f462955f599907b5300809d312c79
                  metrics.addCustomChart(new Metrics.DrilldownPie("java_version", () -> {
                      Map<String, Map<String, Integer>> map = new HashMap<>();
 diff --git a/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java b/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
-index 6d36fc6d8e22d9b68dea3830f6ecc8763184c343..52bc4609227b7927f0dc262c660138bac8779ea7 100644
+index 6d36fc6d8e22d9b68dea3830f6ecc8763184c343..9fb833a04c902a54118d99284076ec4401f8799b 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
 @@ -36,7 +36,7 @@ public class PaperVersionFetcher implements VersionFetcher {
@@ -68,7 +68,7 @@ index 6d36fc6d8e22d9b68dea3830f6ecc8763184c343..52bc4609227b7927f0dc262c660138ba
      private static final int DISTANCE_UNKNOWN = -2;
      // Purpur start
 -    private static final String DOWNLOAD_PAGE = "https://purpurmc.org/downloads";
-+    private static final String DOWNLOAD_PAGE = "https://multipaper.io/shreddedpaper/downloads.html";
++    private static final String DOWNLOAD_PAGE = "https://multipaper.io/shreddedpaper/download.html";
      private static int distance = DISTANCE_UNKNOWN; public int distance() { return distance; }
      // Purpur end
  
