@@ -84,10 +84,10 @@ index 7424246750d6ceca1acd5d9ebfd48f0d66504c5d..fcfd4fb1e3d7e17a6039dc6bc85414dc
                      org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, state, this.player, itemsToDrop); // Paper - capture all item additions to the world
                  }
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index 4934e912653361dc4af8306d3747850c0c0f4554..1fd3ebf7527ce2b94155f049040180f771b1f863 100644
+index 4934e912653361dc4af8306d3747850c0c0f4554..c7835254acbe4932842809e660f8bb5a77d2faff 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
-@@ -402,29 +402,29 @@ public final class ItemStack implements DataComponentHolder {
+@@ -402,29 +402,31 @@ public final class ItemStack implements DataComponentHolder {
              ServerLevel world = (ServerLevel) context.getLevel();
  
              if (!(item instanceof BucketItem/* || item instanceof SolidBucketItem*/)) { // if not bucket // Paper - Fix cancelled powdered snow bucket placement
@@ -101,6 +101,8 @@ index 4934e912653361dc4af8306d3747850c0c0f4554..1fd3ebf7527ce2b94155f049040180f7
              }
              InteractionResult enuminteractionresult;
              try {
++                world.capturedTileEntities.get().clear(); // ShreddedPaper - clear beforehand
++                world.capturedBlockStates.get().clear(); // ShreddedPaper - clear beforehand
                  enuminteractionresult = item.useOn(context);
              } finally {
 -                world.captureBlockStates = false;
@@ -124,7 +126,7 @@ index 4934e912653361dc4af8306d3747850c0c0f4554..1fd3ebf7527ce2b94155f049040180f7
                  StructureGrowEvent structureEvent = null;
                  if (treeType != null) {
                      boolean isBonemeal = this.getItem() == Items.BONE_MEAL;
-@@ -453,13 +453,13 @@ public final class ItemStack implements DataComponentHolder {
+@@ -453,13 +455,13 @@ public final class ItemStack implements DataComponentHolder {
                  SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
                  return enuminteractionresult;
              }
@@ -141,7 +143,7 @@ index 4934e912653361dc4af8306d3747850c0c0f4554..1fd3ebf7527ce2b94155f049040180f7
                  if (blocks.size() > 1) {
                      placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(world, entityhuman, enumhand, blocks, blockposition.getX(), blockposition.getY(), blockposition.getZ());
                  } else if (blocks.size() == 1 && item != Items.POWDER_SNOW_BUCKET) { // Paper - Fix cancelled powdered snow bucket placement
-@@ -470,16 +470,16 @@ public final class ItemStack implements DataComponentHolder {
+@@ -470,16 +472,16 @@ public final class ItemStack implements DataComponentHolder {
                      enuminteractionresult = InteractionResult.FAIL; // cancel placement
                      // PAIL: Remove this when MC-99075 fixed
                      placeEvent.getPlayer().updateInventory();
@@ -163,7 +165,7 @@ index 4934e912653361dc4af8306d3747850c0c0f4554..1fd3ebf7527ce2b94155f049040180f7
  
                      // Brute force all possible updates
                      // Paper start - Don't resync blocks
-@@ -496,7 +496,7 @@ public final class ItemStack implements DataComponentHolder {
+@@ -496,7 +498,7 @@ public final class ItemStack implements DataComponentHolder {
                          this.setCount(newCount);
                      }
  
@@ -172,7 +174,7 @@ index 4934e912653361dc4af8306d3747850c0c0f4554..1fd3ebf7527ce2b94155f049040180f7
                          world.setBlockEntity(e.getValue());
                      }
  
-@@ -584,8 +584,8 @@ public final class ItemStack implements DataComponentHolder {
+@@ -584,8 +586,8 @@ public final class ItemStack implements DataComponentHolder {
                      entityhuman.awardStat(Stats.ITEM_USED.get(item));
                  }
              }
@@ -392,7 +394,7 @@ index 5cb06959aeaceeb98cfee34b1df804e6642f305f..7fa724b10f89856f99956047290a08b6
              BlockState iblockdata = blockEntity.getBlockState();
              boolean flag = iblockdata.is(Blocks.WITHER_SKELETON_SKULL) || iblockdata.is(Blocks.WITHER_SKELETON_WALL_SKULL);
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 1a40dded8042b1df0b29535c2db1a9f4d1a31740..f36eb1a979abd8e72444313a1a369a1604ec0c24 100644
+index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..fe771ae4fe21dc0d9753552be1081d9f427a56a5 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -452,7 +452,7 @@ public class LevelChunk extends ChunkAccess {
@@ -423,10 +425,10 @@ index 1a40dded8042b1df0b29535c2db1a9f4d1a31740..f36eb1a979abd8e72444313a1a369a16
              tileentity = (BlockEntity) this.blockEntities.get(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 50cee0735fc22d1ba6dd1bf18218cc5b24a392bc..1d0ccc1b3fdcfd399a4a9b5783e2321c2b25ac87 100644
+index 50cee0735fc22d1ba6dd1bf18218cc5b24a392bc..56f78d0400a236ee612acb87ac25a2c931af0668 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -849,13 +849,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -849,13 +849,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
@@ -434,6 +436,8 @@ index 50cee0735fc22d1ba6dd1bf18218cc5b24a392bc..1d0ccc1b3fdcfd399a4a9b5783e2321c
 -        this.world.captureBlockStates = true;
 +        this.world.captureTreeGeneration.set(true); // ShreddedPaper - thread local
 +        this.world.captureBlockStates.set(true); // ShreddedPaper - thread local
++        world.capturedTileEntities.get().clear(); // ShreddedPaper - clear beforehand
++        world.capturedBlockStates.get().clear(); // ShreddedPaper - clear beforehand
          boolean grownTree = this.generateTree(loc, type);
 -        this.world.captureBlockStates = false;
 -        this.world.captureTreeGeneration = false;
@@ -445,7 +449,7 @@ index 50cee0735fc22d1ba6dd1bf18218cc5b24a392bc..1d0ccc1b3fdcfd399a4a9b5783e2321c
                  BlockPos position = ((CraftBlockState) blockstate).getPosition();
                  net.minecraft.world.level.block.state.BlockState oldBlock = this.world.getBlockState(position);
                  int flag = ((CraftBlockState) blockstate).getFlag();
-@@ -863,10 +863,10 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -863,10 +865,10 @@ public class CraftWorld extends CraftRegionAccessor implements World {
                  net.minecraft.world.level.block.state.BlockState newBlock = this.world.getBlockState(position);
                  this.world.notifyAndUpdatePhysics(position, null, oldBlock, newBlock, newBlock, flag, 512);
              }
