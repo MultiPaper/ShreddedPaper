@@ -424,3 +424,19 @@ index eafa54c870c3e2aef30c3f9f96f516607a7cae24..1ba11d3653790464bc9af174daecf351
          super.setItem(index, item);
          if (this.getHolder() == null) return;
          ServerPlayer player = ((CraftPlayer) this.getHolder()).getHandle();
+diff --git a/src/main/java/org/purpurmc/purpur/task/BossBarTask.java b/src/main/java/org/purpurmc/purpur/task/BossBarTask.java
+index 114f273dd7f8b8a3c02f0651f6944859b33a65d4..bc501ce058f001a4c87bf2d513a855f1f35ff138 100644
+--- a/src/main/java/org/purpurmc/purpur/task/BossBarTask.java
++++ b/src/main/java/org/purpurmc/purpur/task/BossBarTask.java
+@@ -12,9 +12,10 @@ import java.util.HashSet;
+ import java.util.Iterator;
+ import java.util.Map;
+ import java.util.UUID;
++import java.util.concurrent.ConcurrentHashMap;
+ 
+ public abstract class BossBarTask extends BukkitRunnable {
+-    private final Map<UUID, BossBar> bossbars = new HashMap<>();
++    private final Map<UUID, BossBar> bossbars = new ConcurrentHashMap<>(); // ShreddedPaper
+     private boolean started;
+ 
+     abstract BossBar createBossBar();
