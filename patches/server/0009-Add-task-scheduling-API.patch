@@ -599,7 +599,7 @@ index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106
  
      public void executeTasksUntil(final BooleanSupplier exit) {
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 3f11f17a85e24821a168ccd39a7298cd91438fbf..4e14e052b0d474d87f7a32ff453e9e90a3fd5309 100644
+index c192e3719474c5aefe6e4f8926c0d5c7766c48ad..53f1fb8a72772ae7c222b9732d11bacf33ac6dff 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,7 @@ import com.mojang.authlib.GameProfileRepository;

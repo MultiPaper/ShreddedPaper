@@ -324,7 +324,7 @@ index b75fc4424cb138a79c1e86cd3bb8e6393be7cfe0..c2d410580629a7a2ca43daa954e191ff
                  });
              });
 diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
-index ca8ae8e1c51b937dac916e0b0dc94b5e2e61efeb..56467e8fb390c3d45de0525a4953e3d9d090c7d0 100644
+index 57f0342513205e4fc536f31d47623b6564efc8b7..e8437d039af0457fc6fc877def12f973ab263735 100644
 --- a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
 +++ b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
 @@ -24,6 +24,7 @@ import org.bukkit.scheduler.BukkitRunnable;

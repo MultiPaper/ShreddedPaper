@@ -32,7 +32,7 @@ index a5f706d6f716b2a463ae58adcde69d9e665c7733..2f269fee6e9119db5b67934627d66e96
              final Region region = this.needsRecalculation.removeFirst();
  
 diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
-index 645e39222d81a5049888c86881ee381310fa7060..598c124deb67222e21e0b98e3c5c7f6b013f95c0 100644
+index 645e39222d81a5049888c86881ee381310fa7060..8fe50092e5e99127c937cf50990c3ad80f9a750e 100644
 --- a/src/main/java/io/papermc/paper/util/TickThread.java
 +++ b/src/main/java/io/papermc/paper/util/TickThread.java
 @@ -14,6 +14,9 @@ import net.minecraft.world.phys.Vec3;
@@ -45,7 +45,7 @@ index 645e39222d81a5049888c86881ee381310fa7060..598c124deb67222e21e0b98e3c5c7f6b
  import java.util.concurrent.atomic.AtomicInteger;
  
  public class TickThread extends Thread {
-@@ -37,56 +40,76 @@ public class TickThread extends Thread {
+@@ -37,56 +40,77 @@ public class TickThread extends Thread {
          ensureTickThread(reason);
      }
  
@@ -57,6 +57,7 @@ index 645e39222d81a5049888c86881ee381310fa7060..598c124deb67222e21e0b98e3c5c7f6b
 +            MinecraftServer.LOGGER.error(Thread.currentThread().getName() + " tried to run a task from the wrong thread: " + reason);
 +        }
 +        MinecraftServer.LOGGER.error("Extra data: " + extraData);
++        MinecraftServer.LOGGER.error("Server Version: " + Bukkit.getVersion());
 +        MinecraftServer.LOGGER.error("Region locks currently held (regionSize=" + RegionPos.REGION_SIZE + " chunks): " + getCurrentLocksHeld());
 +        MinecraftServer.LOGGER.error("Stack trace:", new Throwable());
 +        throw new IllegalStateException(reason);
@@ -136,6 +137,27 @@ index 645e39222d81a5049888c86881ee381310fa7060..598c124deb67222e21e0b98e3c5c7f6b
          }
      }
  
+diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+index e8dcc3942cd59ad6ed5b3430026908d6aad583ae..e3436dc97c1bbc1c65b81888acf59a007fbfe029 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
++++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+@@ -2,6 +2,7 @@ package net.minecraft.server.level;
+ 
+ import com.mojang.datafixers.util.Pair;
+ import io.multipaper.shreddedpaper.region.RegionPos;
++import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
+ import it.unimi.dsi.fastutil.shorts.ShortSet;
+ import java.util.ArrayList;
+@@ -214,7 +215,7 @@ public class ChunkHolder {
+ 
+     public void blockChanged(BlockPos pos) {
+         if (!LevelChunk.isProcessingPostGeneration.get() && !this.chunkMap.level.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forBlockPos(pos))) { // ShreddedPaper
+-            throw new IllegalStateException("Block change @ " + pos + " in chunk " + this.pos + " in world '" + this.chunkMap.level.getWorld().getName() + "' is not write locked"); // ShreddedPaper
++            TickThread.failedTickThreadCheck("Block change is not write locked", "world=" + this.chunkMap.level.convertable.getLevelId() + ", pos=" + pos + ", newstate=" + this.getFullChunkNow().getBlockState(pos)); // ShreddedPaper
+         } // ShreddedPaper
+         // Paper start - replace player chunk loader
+         if (this.playersSentChunkTo.size() == 0) {
 diff --git a/src/main/java/net/minecraft/server/level/PlayerMap.java b/src/main/java/net/minecraft/server/level/PlayerMap.java
 index 12f1345ff70388fb217100bfc717ef861785381d..9c0f561a65ed5f5b45ce4c30754f71b310e614b0 100644
 --- a/src/main/java/net/minecraft/server/level/PlayerMap.java

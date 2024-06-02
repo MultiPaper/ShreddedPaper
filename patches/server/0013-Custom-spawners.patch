@@ -6,7 +6,7 @@ Subject: [PATCH] Custom spawners
 S
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 2c4aa7a10f073227fbb98fa419e224a4caab4693..8534e378cc9edf232cb58ff8d2a3723c85033b74 100644
+index 123ad0385d5de867abfbec293730d8277ec99e4d..26af30fc335a84d5733c4892aefb59908dcc6ec3 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1008,7 +1008,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -19,7 +19,7 @@ index 2c4aa7a10f073227fbb98fa419e224a4caab4693..8534e378cc9edf232cb58ff8d2a3723c
  
      }
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/VillageSiege.java b/src/main/java/net/minecraft/world/entity/ai/village/VillageSiege.java
-index 36dec6cd78a0990ba3c09a4a748c259ef5c0a2ff..421f3d789c08fba9116055c97019f58d74c8809f 100644
+index 36dec6cd78a0990ba3c09a4a748c259ef5c0a2ff..f787d3d1b4a70a5041e06ed8acc9af8abbc83490 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/VillageSiege.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/village/VillageSiege.java
 @@ -17,6 +17,7 @@ import net.minecraft.world.level.CustomSpawner;
@@ -47,7 +47,7 @@ index 36dec6cd78a0990ba3c09a4a748c259ef5c0a2ff..421f3d789c08fba9116055c97019f58d
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/npc/CatSpawner.java b/src/main/java/net/minecraft/world/entity/npc/CatSpawner.java
-index d503d7a5837dbeb98e58dbe8f7e5de45f6d88990..14c1c9ff80fad6dd9a547db12b60f933f45c2262 100644
+index d503d7a5837dbeb98e58dbe8f7e5de45f6d88990..eb006f592e63576bc54ca0d7773c26294636074a 100644
 --- a/src/main/java/net/minecraft/world/entity/npc/CatSpawner.java
 +++ b/src/main/java/net/minecraft/world/entity/npc/CatSpawner.java
 @@ -32,6 +32,7 @@ public class CatSpawner implements CustomSpawner {
@@ -68,7 +68,7 @@ index d503d7a5837dbeb98e58dbe8f7e5de45f6d88990..14c1c9ff80fad6dd9a547db12b60f933
              }
          } else {
 diff --git a/src/main/java/net/minecraft/world/entity/npc/WanderingTraderSpawner.java b/src/main/java/net/minecraft/world/entity/npc/WanderingTraderSpawner.java
-index 96e9fce5f9084737d2fcf4deb83305733b480179..67c0aa6ffbd8e91dd78f9f8f6adf8ee2bdb28123 100644
+index 96e9fce5f9084737d2fcf4deb83305733b480179..1db6ff8e4d03395da0c2a013ff597bea2a5e55dd 100644
 --- a/src/main/java/net/minecraft/world/entity/npc/WanderingTraderSpawner.java
 +++ b/src/main/java/net/minecraft/world/entity/npc/WanderingTraderSpawner.java
 @@ -104,6 +104,7 @@ public class WanderingTraderSpawner implements CustomSpawner {
@@ -89,7 +89,7 @@ index 96e9fce5f9084737d2fcf4deb83305733b480179..67c0aa6ffbd8e91dd78f9f8f6adf8ee2
      }
  
 diff --git a/src/main/java/net/minecraft/world/level/CustomSpawner.java b/src/main/java/net/minecraft/world/level/CustomSpawner.java
-index 537efd59aedc42b88d24662d5018f7103fd6dc25..87efb0e52797c24a87da00c3db996cd582ab03a5 100644
+index 537efd59aedc42b88d24662d5018f7103fd6dc25..d5104713889911e7543d013774ba371f23d2a454 100644
 --- a/src/main/java/net/minecraft/world/level/CustomSpawner.java
 +++ b/src/main/java/net/minecraft/world/level/CustomSpawner.java
 @@ -2,6 +2,14 @@ package net.minecraft.world.level;
@@ -108,7 +108,7 @@ index 537efd59aedc42b88d24662d5018f7103fd6dc25..87efb0e52797c24a87da00c3db996cd5
 +    // ShreddedPaper end
  }
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/PatrolSpawner.java b/src/main/java/net/minecraft/world/level/levelgen/PatrolSpawner.java
-index 1741360aa3f2409b1a8ddf1d4602ffe57651a586..00094e25edc956b2c182c60d67824704104f6a27 100644
+index 1741360aa3f2409b1a8ddf1d4602ffe57651a586..c9618646e9412dcb8d1d40ae451a9599c875bd37 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/PatrolSpawner.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/PatrolSpawner.java
 @@ -56,6 +56,7 @@ public class PatrolSpawner implements CustomSpawner {
@@ -129,7 +129,7 @@ index 1741360aa3f2409b1a8ddf1d4602ffe57651a586..00094e25edc956b2c182c60d67824704
          }
      }
 diff --git a/src/main/java/net/minecraft/world/level/levelgen/PhantomSpawner.java b/src/main/java/net/minecraft/world/level/levelgen/PhantomSpawner.java
-index 04f67f7b43d2f461c776c76614dc3e5f060aea63..c201fb25898e819e70868a7d7b6aa6de588aebcd 100644
+index 04f67f7b43d2f461c776c76614dc3e5f060aea63..21104075c85efa41b2f56d6426ec20547b393ca8 100644
 --- a/src/main/java/net/minecraft/world/level/levelgen/PhantomSpawner.java
 +++ b/src/main/java/net/minecraft/world/level/levelgen/PhantomSpawner.java
 @@ -57,6 +57,7 @@ public class PhantomSpawner implements CustomSpawner {

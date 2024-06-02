@@ -6,7 +6,7 @@ Subject: [PATCH] Add SimpleStampedLock
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/util/SimpleStampedLock.java b/src/main/java/io/multipaper/shreddedpaper/util/SimpleStampedLock.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..585a09fcc1dea59df53dda132917ac2f19c200d4
+index 0000000000000000000000000000000000000000..99dca3671643f471223ed8ec4080d73c57fb3eb1
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/util/SimpleStampedLock.java
 @@ -0,0 +1,71 @@

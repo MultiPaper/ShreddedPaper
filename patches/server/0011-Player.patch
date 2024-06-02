@@ -324,7 +324,7 @@ index 8c134a642ccaf3530022f2e675a858d726e1dda4..f5154194df9e44f8bcf431029f4bbed6
              engine.executeIfPossible(() -> {
                  packetProcessing.push(listener); // Paper - detailed watchdog information
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 4e14e052b0d474d87f7a32ff453e9e90a3fd5309..4aaa416aca8bc75495bacafbc14d9468648384d6 100644
+index 53f1fb8a72772ae7c222b9732d11bacf33ac6dff..b6d5954ae9fbbcc52d9bd0bfb7b46d78f907b436 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,8 @@ import com.mojang.authlib.GameProfileRepository;
