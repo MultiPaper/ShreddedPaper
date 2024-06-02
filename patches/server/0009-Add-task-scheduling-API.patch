@@ -87,7 +87,7 @@ index 0000000000000000000000000000000000000000..7f3344a89ceab9c362c48eabc8ec4b14
 +
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 42d281c3ebfbc94021dea2e786010ec33d4c4ea1..98cb5f9e31c11fc1d73cb6b65a39e5969998dc44 100644
+index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..9b1b7cf31e2ded1b1b672f4e7514c4a77730c55e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,10 +1,12 @@
@@ -112,8 +112,8 @@ index 42d281c3ebfbc94021dea2e786010ec33d4c4ea1..98cb5f9e31c11fc1d73cb6b65a39e596
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -28,6 +32,14 @@ public class LevelChunkRegion {
-         }
+@@ -32,6 +36,14 @@ public class LevelChunkRegion {
+         return level;
      }
  
 +    public void scheduleTask(Runnable task, long delay) {
@@ -127,7 +127,7 @@ index 42d281c3ebfbc94021dea2e786010ec33d4c4ea1..98cb5f9e31c11fc1d73cb6b65a39e596
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -46,8 +58,22 @@ public class LevelChunkRegion {
+@@ -50,8 +62,22 @@ public class LevelChunkRegion {
          }
      }
  
@@ -351,10 +351,10 @@ index 0000000000000000000000000000000000000000..692dee8b14e70b2a1e9af885a7f75860
 +}
 +
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index b9cf7512d4be69b8162775126fa7ab7d03a35994..87fc320a30bc02c36159c4d6062e3f120356cf1e 100644
+index de1eaf59a94c2586a1049a623a193af0687691a9..e35d1b5c4756e31a718ddff59ea9d38851f03867 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -15,6 +15,7 @@ import io.multipaper.shreddedpaper.region.LevelChunkRegion;
+@@ -17,6 +17,7 @@ import io.multipaper.shreddedpaper.region.LevelChunkRegion;
  
  import java.util.ArrayList;
  import java.util.List;
@@ -362,24 +362,25 @@ index b9cf7512d4be69b8162775126fa7ab7d03a35994..87fc320a30bc02c36159c4d6062e3f12
  import java.util.concurrent.CompletableFuture;
  
  public class ShreddedPaperChunkTicker {
-@@ -46,14 +47,25 @@ public class ShreddedPaperChunkTicker {
-     }
+@@ -58,8 +59,17 @@ public class ShreddedPaperChunkTicker {
+         try {
+             currentlyTickingRegion.set(region);
  
-     private static void _tickRegion(ServerLevel level, LevelChunkRegion region, NaturalSpawner.SpawnState spawnercreature_d) {
-+        if (!(ShreddedPaperTickThread.isShreddedPaperTickThread())) {
-+            throw new IllegalStateException("Ticking region " + level.convertable.getLevelId() + " " + region.getRegionPos() + " outside of ShreddedPaperTickThread!");
-+        }
++            if (!(ShreddedPaperTickThread.isShreddedPaperTickThread())) {
++                throw new IllegalStateException("Ticking region " + level.convertable.getLevelId() + " " + region.getRegionPos() + " outside of ShreddedPaperTickThread!");
++            }
 +
-+        while (region.getInternalTaskQueue().executeTask());
++            while (region.getInternalTaskQueue().executeTask()) ;
 +
-+        region.tickTasks();
-         region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
++            region.tickTasks();
+             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  
-+        while (region.getInternalTaskQueue().executeTask());
++            while (region.getInternalTaskQueue().executeTask()) ;
 +
-         if (region.isEmpty()) {
-             level.chunkSource.tickingRegions.remove(region.getRegionPos());
-         }
+             if (region.isEmpty()) {
+                 level.chunkSource.tickingRegions.remove(region.getRegionPos());
+             }
+@@ -69,6 +79,8 @@ public class ShreddedPaperChunkTicker {
      }
  
      private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
@@ -599,19 +600,20 @@ index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106
  
      public void executeTasksUntil(final BooleanSupplier exit) {
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
-index 604de7aed6db44c9c84d541765e57da48883cf00..21d068a04de5705820a6d3a7d498060a5b68c790 100644
+index 604de7aed6db44c9c84d541765e57da48883cf00..47e9d18a4c4981e0b561eeaf52bf6e5bec102680 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
-@@ -11,6 +11,8 @@ import com.google.gson.JsonElement;
+@@ -11,6 +11,9 @@ import com.google.gson.JsonElement;
  import com.google.gson.JsonObject;
  import com.google.gson.JsonPrimitive;
  import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
 +import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
  import io.papermc.paper.chunk.system.io.RegionFileIOThread;
  import io.papermc.paper.chunk.system.poi.PoiChunk;
  import io.papermc.paper.util.CoordinateUtils;
-@@ -22,6 +24,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
+@@ -22,6 +25,7 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
  import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.objects.ReferenceLinkedOpenHashSet;
  import net.minecraft.nbt.CompoundTag;
@@ -619,7 +621,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..21d068a04de5705820a6d3a7d498060a
  import net.minecraft.server.level.ChunkHolder;
  import net.minecraft.server.level.ChunkLevel;
  import net.minecraft.server.level.FullChunkStatus;
-@@ -1265,6 +1268,22 @@ public final class NewChunkHolder {
+@@ -1265,6 +1269,22 @@ public final class NewChunkHolder {
  
      private boolean processingFullStatus = false;
  
@@ -627,7 +629,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..21d068a04de5705820a6d3a7d498060a
 +    public boolean ensureFullStatusChangeWithWriteLock() {
 +        // Upgrading to a full loaded chunk is just a chunk load task, which does not require the write lock
 +        // However, upgrading to block ticking or entity ticking is more than just loading a chunk, and requires us to have the write lock
-+        if (!MinecraftServer.getServer().forceTicks && !world.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forChunk(vanillaChunkHolder.pos))) {
++        if (!MinecraftServer.getServer().forceTicks && !ShreddedPaperChunkTicker.isCurrentlyTickingRegion(this.world, RegionPos.forChunk(this.vanillaChunkHolder.pos))) {
 +            ShreddedPaper.runSync(world, vanillaChunkHolder.pos, () -> {
 +                List<NewChunkHolder> changedFullStatus2 = new ArrayList<>();
 +                handleFullStatusChange(changedFullStatus2);
@@ -642,7 +644,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..21d068a04de5705820a6d3a7d498060a
      // only to be called on the main thread, no locks need to be held
      public boolean handleFullStatusChange(final List<NewChunkHolder> changedFullStatus) {
          TickThread.ensureTickThread(this.world, this.chunkX, this.chunkZ, "Cannot update full status thread off-main");
-@@ -1342,6 +1361,7 @@ public final class NewChunkHolder {
+@@ -1342,6 +1362,7 @@ public final class NewChunkHolder {
                      }
  
                      if (!currState.isOrAfter(FullChunkStatus.BLOCK_TICKING) && nextState.isOrAfter(FullChunkStatus.BLOCK_TICKING)) {
@@ -650,7 +652,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..21d068a04de5705820a6d3a7d498060a
                          nextState = this.updateCurrentState(FullChunkStatus.BLOCK_TICKING);
                          this.changeEntityChunkStatus(FullChunkStatus.BLOCK_TICKING);
                          chunk.onChunkTicking(this);
-@@ -1349,6 +1369,7 @@ public final class NewChunkHolder {
+@@ -1349,6 +1370,7 @@ public final class NewChunkHolder {
                      }
  
                      if (!currState.isOrAfter(FullChunkStatus.ENTITY_TICKING) && nextState.isOrAfter(FullChunkStatus.ENTITY_TICKING)) {

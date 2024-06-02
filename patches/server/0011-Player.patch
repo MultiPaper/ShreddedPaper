@@ -28,7 +28,7 @@ index 9c02586147e22a9a09c67d28dd47e0496a475fa1..ab5c9563615faa09871d8870f7a31042
          runSync(serverLevel, new ChunkPos(blockPos), runnable);
      }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 56e5970735ddc3d5c5562adc31b2db4ae153c25a..b1ab34bc73a56f15413208947673cdbd10964a73 100644
+index 12ec698d2abd4cd0afe83bb8663dd8e2658eba9e..1ea6c7d88c6122451b3faffe1828b900a3085d8e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,8 +1,10 @@
@@ -50,7 +50,7 @@ index 56e5970735ddc3d5c5562adc31b2db4ae153c25a..b1ab34bc73a56f15413208947673cdbd
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -56,6 +59,22 @@ public class LevelChunkRegion {
+@@ -60,6 +63,22 @@ public class LevelChunkRegion {
          collection.addAll(this.navigatingMobs);
      }
  
@@ -73,7 +73,7 @@ index 56e5970735ddc3d5c5562adc31b2db4ae153c25a..b1ab34bc73a56f15413208947673cdbd
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -90,6 +109,7 @@ public class LevelChunkRegion {
+@@ -94,6 +113,7 @@ public class LevelChunkRegion {
      }
  
      public boolean isEmpty() {
@@ -123,18 +123,18 @@ index a9b6fdaaec268ea694e84e8467886777b49e1a6b..9b4c50b2d677b15e9dd1f923114496f5
  }
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 87fc320a30bc02c36159c4d6062e3f120356cf1e..3c90d3b3dc48814a2b9ce03e35d0c562bbbaa761 100644
+index e35d1b5c4756e31a718ddff59ea9d38851f03867..29c45c301f027a39dcb75a18b3158025d6ff0fae 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -56,6 +56,8 @@ public class ShreddedPaperChunkTicker {
-         region.tickTasks();
-         region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+@@ -68,6 +68,8 @@ public class ShreddedPaperChunkTicker {
+             region.tickTasks();
+             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  
-+        region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
++            region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
 +
-         while (region.getInternalTaskQueue().executeTask());
+             while (region.getInternalTaskQueue().executeTask()) ;
  
-         if (region.isEmpty()) {
+             if (region.isEmpty()) {
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperPlayerTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperPlayerTicker.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..5c514aa0e9bb89aa58359752dc15c8b452202d52
@@ -161,18 +161,19 @@ index 0000000000000000000000000000000000000000..5c514aa0e9bb89aa58359752dc15c8b4
 +
 +}
 diff --git a/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java b/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
-index 149cfb0587299f72fcfddf395fb71b70438986c1..8ca6f6a0aa2294d0eccb248e5b65c49c66e49b06 100644
+index 149cfb0587299f72fcfddf395fb71b70438986c1..7dbfb606375d16b93e4e446c3639e33137bf70e3 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
-@@ -3,6 +3,7 @@ package io.papermc.paper.chunk.system;
+@@ -3,6 +3,8 @@ package io.papermc.paper.chunk.system;
  import ca.spottedleaf.concurrentutil.collection.SRSWLinkedQueue;
  import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor;
  import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
  import io.papermc.paper.chunk.system.scheduling.ChunkHolderManager;
  import io.papermc.paper.configuration.GlobalConfiguration;
  import io.papermc.paper.util.CoordinateUtils;
-@@ -32,6 +33,8 @@ import net.minecraft.world.level.chunk.LevelChunk;
+@@ -32,6 +34,8 @@ import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.levelgen.BelowZeroRetrogen;
  import org.bukkit.craftbukkit.entity.CraftPlayer;
  import org.bukkit.entity.Player;
@@ -181,7 +182,7 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..8ca6f6a0aa2294d0eccb248e5b65c49c
  import java.lang.invoke.VarHandle;
  import java.util.ArrayDeque;
  import java.util.Arrays;
-@@ -312,6 +315,7 @@ public class RegionizedPlayerChunkLoader {
+@@ -312,6 +316,7 @@ public class RegionizedPlayerChunkLoader {
  
      public void tick() {
          TickThread.ensureTickThread("Cannot tick player chunk loader async");
@@ -189,7 +190,7 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..8ca6f6a0aa2294d0eccb248e5b65c49c
          long currTime = System.nanoTime();
          for (final ServerPlayer player : new java.util.ArrayList<>(this.world.players())) {
              final PlayerChunkLoaderData loader = player.chunkLoader;
-@@ -609,7 +613,7 @@ public class RegionizedPlayerChunkLoader {
+@@ -609,7 +614,7 @@ public class RegionizedPlayerChunkLoader {
              return Math.max(Math.abs(dx), Math.abs(dz)) <= this.lastTickDistance;
          }
  
@@ -198,7 +199,7 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..8ca6f6a0aa2294d0eccb248e5b65c49c
              TickThread.ensureTickThread(this.player, "Cannot tick player chunk loader async");
              if (this.removed) {
                  throw new IllegalStateException("Ticking removed player chunk loader");
-@@ -801,22 +805,47 @@ public class RegionizedPlayerChunkLoader {
+@@ -801,22 +806,47 @@ public class RegionizedPlayerChunkLoader {
                  final int pendingSendX = CoordinateUtils.getChunkX(pendingSend);
                  final int pendingSendZ = CoordinateUtils.getChunkZ(pendingSend);
                  final LevelChunk chunk = this.world.chunkSource.getChunkAtIfLoadedMainThreadNoCache(pendingSendX, pendingSendZ);
@@ -223,7 +224,7 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..8ca6f6a0aa2294d0eccb248e5b65c49c
 +                        } // else: good to dequeue and send, fall through
 +                    };
 +
-+                    if (TickThread.isTickThreadFor(this.world, chunk.getPos()) && this.world.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forChunk(chunk.getPos()))) {
++                    if (ShreddedPaperChunkTicker.isCurrentlyTickingRegion(this.world, RegionPos.forChunk(chunk.getPos()))) {
 +                        postProcessingRunOnThread.run();
 +                    } else {
 +                        ShreddedPaper.runSync(this.world, chunk.getPos(), postProcessingRunOnThread);
@@ -254,7 +255,7 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..8ca6f6a0aa2294d0eccb248e5b65c49c
                  if (this.removed) {
                      // sendChunk may invoke plugin logic
                      return;
-@@ -873,7 +902,7 @@ public class RegionizedPlayerChunkLoader {
+@@ -873,7 +903,7 @@ public class RegionizedPlayerChunkLoader {
              );
          }
  

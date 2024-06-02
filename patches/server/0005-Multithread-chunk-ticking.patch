@@ -6,10 +6,10 @@ Subject: [PATCH] Multithread chunk ticking
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..42d281c3ebfbc94021dea2e786010ec33d4c4ea1
+index 0000000000000000000000000000000000000000..51ce3a1324793f3560cd718d5aa37b33ebbaafa0
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -0,0 +1,53 @@
+@@ -0,0 +1,57 @@
 +package io.multipaper.shreddedpaper.region;
 +
 +import net.minecraft.server.level.ServerLevel;
@@ -38,6 +38,10 @@ index 0000000000000000000000000000000000000000..42d281c3ebfbc94021dea2e786010ec3
 +        if (!levelChunks.remove(levelChunk)) {
 +            throw new IllegalStateException("Tried to remove a chunk that wasn't in the region: " + levelChunk.getPos());
 +        }
++    }
++
++    public ServerLevel getLevel() {
++        return level;
 +    }
 +
 +    public RegionPos getRegionPos() {
@@ -132,13 +136,14 @@ index 0000000000000000000000000000000000000000..89724b9d82813cc5d42eb1a0a3d4bf50
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..933a531e441f1a2bfc1f4a6ef9cd1146b62b3db5
+index 0000000000000000000000000000000000000000..7146b604808c0d60706b14c097ef41001384a1ab
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,116 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.papermc.paper.util.player.NearbyPlayers;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ChunkMap;
@@ -146,6 +151,7 @@ index 0000000000000000000000000000000000000000..933a531e441f1a2bfc1f4a6ef9cd1146
 +import net.minecraft.server.level.ServerPlayer;
 +import net.minecraft.world.level.ChunkPos;
 +import net.minecraft.world.level.GameRules;
++import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.NaturalSpawner;
 +import net.minecraft.world.level.chunk.LevelChunk;
 +import io.multipaper.shreddedpaper.region.LevelChunkRegion;
@@ -182,11 +188,24 @@ index 0000000000000000000000000000000000000000..933a531e441f1a2bfc1f4a6ef9cd1146
 +        });
 +    }
 +
-+    private static void _tickRegion(ServerLevel level, LevelChunkRegion region, NaturalSpawner.SpawnState spawnercreature_d) {
-+        region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
++    public static boolean isCurrentlyTickingRegion(Level level, RegionPos regionPos) {
++        LevelChunkRegion region = currentlyTickingRegion.get();
++        return region != null && level.equals(region.getLevel()) && regionPos.equals(region.getRegionPos());
++    }
 +
-+        if (region.isEmpty()) {
-+            level.chunkSource.tickingRegions.remove(region.getRegionPos());
++    private static final ThreadLocal<LevelChunkRegion> currentlyTickingRegion = new ThreadLocal<>();
++
++    private static void _tickRegion(ServerLevel level, LevelChunkRegion region, NaturalSpawner.SpawnState spawnercreature_d) {
++        try {
++            currentlyTickingRegion.set(region);
++
++            region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
++
++            if (region.isEmpty()) {
++                level.chunkSource.tickingRegions.remove(region.getRegionPos());
++            }
++        } finally {
++            currentlyTickingRegion.remove();
 +        }
 +    }
 +

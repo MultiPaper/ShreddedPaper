@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe navigatingMobs
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 98cb5f9e31c11fc1d73cb6b65a39e5969998dc44..56e5970735ddc3d5c5562adc31b2db4ae153c25a 100644
+index 9b1b7cf31e2ded1b1b672f4e7514c4a77730c55e..12ec698d2abd4cd0afe83bb8663dd8e2658eba9e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,10 +1,13 @@
@@ -30,7 +30,7 @@ index 98cb5f9e31c11fc1d73cb6b65a39e5969998dc44..56e5970735ddc3d5c5562adc31b2db4a
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -40,6 +44,18 @@ public class LevelChunkRegion {
+@@ -44,6 +48,18 @@ public class LevelChunkRegion {
          return internalTasks;
      }
  
@@ -49,7 +49,7 @@ index 98cb5f9e31c11fc1d73cb6b65a39e5969998dc44..56e5970735ddc3d5c5562adc31b2db4a
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -74,6 +90,6 @@ public class LevelChunkRegion {
+@@ -78,6 +94,6 @@ public class LevelChunkRegion {
      }
  
      public boolean isEmpty() {

@@ -5,10 +5,10 @@ Subject: [PATCH] Multithread entity ticking
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 933a531e441f1a2bfc1f4a6ef9cd1146b62b3db5..b9cf7512d4be69b8162775126fa7ab7d03a35994 100644
+index 7146b604808c0d60706b14c097ef41001384a1ab..de1eaf59a94c2586a1049a623a193af0687691a9 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
+@@ -5,6 +5,7 @@ import io.multipaper.shreddedpaper.region.RegionPos;
  import io.papermc.paper.util.player.NearbyPlayers;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ChunkMap;
@@ -16,7 +16,7 @@ index 933a531e441f1a2bfc1f4a6ef9cd1146b62b3db5..b9cf7512d4be69b8162775126fa7ab7d
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.world.level.ChunkPos;
-@@ -96,6 +97,10 @@ public class ShreddedPaperChunkTicker {
+@@ -111,6 +112,10 @@ public class ShreddedPaperChunkTicker {
                  // if ((chunksTicked++ & 1) == 0) net.minecraft.server.MinecraftServer.getServer().executeMidTickTasks(); // Paper // ShreddedPaper - does this need to be implemented??
              }
          }

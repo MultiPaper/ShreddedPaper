@@ -5,7 +5,7 @@ Subject: [PATCH] Block entities
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index bc18833892aab53c92973a821eb9d4767555a8d3..3c069b801b60efe68a7c1594a188515bc727144f 100644
+index 35e6420103b899b3cbbd6465fffce542cf036f6a..536d3bec3aeaf60812ae1767cca4db3a76ca36cd 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -4,9 +4,11 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
@@ -30,17 +30,17 @@ index bc18833892aab53c92973a821eb9d4767555a8d3..3c069b801b60efe68a7c1594a188515b
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 2d01d065b13f23a59ec8609e53f9919c802d3601..0ce56810ba00461b16d945165be798cc3589a516 100644
+index d0c018689f06ddd41c72581e0e6678312f8a4d53..d7401861e1ee1e92a548672e324fd527992d5cd2 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -58,6 +58,8 @@ public class ShreddedPaperChunkTicker {
-         region.tickTasks();
-         region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+@@ -70,6 +70,8 @@ public class ShreddedPaperChunkTicker {
+             region.tickTasks();
+             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  
-+        level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
++            level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
 +
-         level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
-         level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
+             level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
+             level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index 26af30fc335a84d5733c4892aefb59908dcc6ec3..7142c6e43b84cd253f85c59bb268c3dbbd88f1f2 100644
