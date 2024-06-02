@@ -545,20 +545,21 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..d03e9227859d1432bea814407f88de14
      private int getCoprime(int horizontalSpawnArea) {
          return horizontalSpawnArea <= 16 ? horizontalSpawnArea - 1 : 17;
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index b82a72775f9de5ad65ae46a8b97f93a7ef852265..88b9b8345b6e7b9523c7f0c48481c523ce4a8b8b 100644
+index b82a72775f9de5ad65ae46a8b97f93a7ef852265..9199bf80d372d83e0ad049505f2b90aa0efd3e40 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -4,6 +4,9 @@ import com.mojang.authlib.GameProfile;
+@@ -4,6 +4,10 @@ import com.mojang.authlib.GameProfile;
  import com.mojang.logging.LogUtils;
  import java.util.Objects;
  import javax.annotation.Nullable;
 +
 +import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.papermc.paper.util.TickThread;
  import net.minecraft.ChatFormatting;
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
-@@ -143,7 +146,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -143,7 +147,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
              this.keepAlivePending = false;
          } else if (!this.isSingleplayerOwner()) {
              // Paper start - This needs to be handled on the main thread for plugins
@@ -567,7 +568,7 @@ index b82a72775f9de5ad65ae46a8b97f93a7ef852265..88b9b8345b6e7b9523c7f0c48481c523
                  this.disconnect(ServerCommonPacketListenerImpl.TIMEOUT_DISCONNECTION_MESSAGE, org.bukkit.event.player.PlayerKickEvent.Cause.TIMEOUT); // Paper - kick event cause
              });
              // Paper end - This needs to be handled on the main thread for plugins
-@@ -382,7 +385,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -382,7 +386,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
          if (this.processedDisconnect) {
              return;
          }
@@ -576,12 +577,18 @@ index b82a72775f9de5ad65ae46a8b97f93a7ef852265..88b9b8345b6e7b9523c7f0c48481c523
              Waitable waitable = new Waitable() {
                  @Override
                  protected Object evaluate() {
-@@ -391,7 +394,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -391,7 +395,13 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
                  }
              };
  
 -            this.server.processQueue.add(waitable);
-+            ShreddedPaper.runSync(this.player, waitable); // this.server.processQueue.add(waitable); // ShreddedPaper - run on player's thread
++            // ShreddedPaper start - run on player's thread
++            if (MinecraftServer.getServer().serverThread == Thread.currentThread() || TickThread.isShutdownThread()) {
++                this.player.serverLevel().chunkScheduler.schedule(RegionPos.forChunk(this.player.chunkPosition()), waitable);
++            } else {
++                ShreddedPaper.runSync(this.player, waitable); // this.server.processQueue.add(waitable);
++            }
++            // ShreddedPaper end - run on player's thread
  
              try {
                  waitable.get();
