@@ -727,28 +727,6 @@ index 05b790e0d4dc82475bb42d5f2160ab6a4fea49d4..c192e3719474c5aefe6e4f8926c0d5c7
          // Purpur start
          if (upnp) {
              if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
-diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
-index 472b9494f8a34a8ba90d6a2936b0db7530a229ad..22151e99264bb2de80da90c7df200990f9cf8b9d 100644
---- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
-+++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
-@@ -1,6 +1,7 @@
- package net.minecraft.server.level;
- 
- import com.mojang.datafixers.util.Pair;
-+import io.multipaper.shreddedpaper.region.RegionPos;
- import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
- import it.unimi.dsi.fastutil.shorts.ShortSet;
- import java.util.ArrayList;
-@@ -212,6 +213,9 @@ public class ChunkHolder {
-     // Paper - rewrite chunk system
- 
-     public void blockChanged(BlockPos pos) {
-+        if (!this.chunkMap.level.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forBlockPos(pos))) { // ShreddedPaper
-+            throw new IllegalStateException("Block change @ " + pos + " in chunk " + this.pos + " in world '" + this.chunkMap.level.getWorld().getName() + "' is not write locked"); // ShreddedPaper
-+        } // ShreddedPaper
-         // Paper start - replace player chunk loader
-         if (this.playersSentChunkTo.size() == 0) {
-             return;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index 7924e3c597164f71056cd58dd167ee8b1d41b9c3..f2bb2ee3c0efe21fae1fac39333cc6742ea75559 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
