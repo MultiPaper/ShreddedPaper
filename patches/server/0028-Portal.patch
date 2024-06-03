@@ -5,7 +5,7 @@ Subject: [PATCH] Portal
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 2e0967cdbc19887d89ae854261d49886fc494025..b06ffaba73bc690e493130daf75df4bb51ccac9b 100644
+index 2e0967cdbc19887d89ae854261d49886fc494025..c618f8ede5de74ca90d21ef22b3c262d1a8978db 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -6,6 +6,8 @@ import com.google.common.collect.Lists;
@@ -17,7 +17,27 @@ index 2e0967cdbc19887d89ae854261d49886fc494025..b06ffaba73bc690e493130daf75df4bb
  import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
  import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-@@ -3289,11 +3291,22 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -468,11 +470,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+         org.bukkit.event.entity.EntityPortalEnterEvent event = new org.bukkit.event.entity.EntityPortalEnterEvent(this.getBukkitEntity(), new org.bukkit.Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
+         event.callEvent();
+ 
++        // ShreddedPaper start - lock the relevant area in the other dimension
++        BlockPos destinationPos = resourcekey == Level.END ? ServerLevel.END_SPAWN_POINT : worldserver.getSharedSpawnPos();
++        ShreddedPaperRegionScheduler.scheduleAcrossLevels(
++                (ServerLevel) this.level(), RegionPos.forChunk(this.chunkPosition()),
++                worldserver, RegionPos.forBlockPos(destinationPos),
++                () -> {
++        // ShreddedPaper end - lock the relevant area in the other dimension
+         if (this instanceof ServerPlayer) {
+             ((ServerPlayer) this).changeDimension(worldserver, PlayerTeleportEvent.TeleportCause.END_PORTAL);
+             return;
+         }
+         this.teleportTo(worldserver, null);
++        }); // ShreddedPaper - lock the relevant area in the other dimension
+     }
+     // Paper end - make end portalling safe
+     // Paper start - optimise entity tracking
+@@ -3289,11 +3299,22 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                      // Paper end - Add EntityPortalReadyEvent
                      this.setPortalCooldown();
                      // CraftBukkit start
