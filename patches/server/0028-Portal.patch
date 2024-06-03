@@ -5,7 +5,7 @@ Subject: [PATCH] Portal
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 2e0967cdbc19887d89ae854261d49886fc494025..c618f8ede5de74ca90d21ef22b3c262d1a8978db 100644
+index 2e0967cdbc19887d89ae854261d49886fc494025..cad612dccae637690693182ed02005cc3ebc18f4 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -6,6 +6,8 @@ import com.google.common.collect.Lists;
@@ -17,11 +17,12 @@ index 2e0967cdbc19887d89ae854261d49886fc494025..c618f8ede5de74ca90d21ef22b3c262d
  import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap;
  import it.unimi.dsi.fastutil.objects.Object2DoubleMap;
-@@ -468,11 +470,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -468,11 +470,20 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
          org.bukkit.event.entity.EntityPortalEnterEvent event = new org.bukkit.event.entity.EntityPortalEnterEvent(this.getBukkitEntity(), new org.bukkit.Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
          event.callEvent();
  
 +        // ShreddedPaper start - lock the relevant area in the other dimension
++        if (worldserver == null) return; // End is disabled
 +        BlockPos destinationPos = resourcekey == Level.END ? ServerLevel.END_SPAWN_POINT : worldserver.getSharedSpawnPos();
 +        ShreddedPaperRegionScheduler.scheduleAcrossLevels(
 +                (ServerLevel) this.level(), RegionPos.forChunk(this.chunkPosition()),
@@ -37,19 +38,20 @@ index 2e0967cdbc19887d89ae854261d49886fc494025..c618f8ede5de74ca90d21ef22b3c262d
      }
      // Paper end - make end portalling safe
      // Paper start - optimise entity tracking
-@@ -3289,11 +3299,22 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3289,11 +3300,24 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                      // Paper end - Add EntityPortalReadyEvent
                      this.setPortalCooldown();
                      // CraftBukkit start
 +                    // ShreddedPaper start - lock the relevant area in the other dimension
 +                    ServerLevel destinationWorld = worldserver1; // Make final
-+                    WorldBorder worldborder = destinationWorld.getWorldBorder();
-+                    double coordinateScale = DimensionType.getTeleportationScale(worldserver.dimensionType(), destinationWorld.dimensionType());
-+                    BlockPos probablePortalPosition = worldborder.clampToBounds(this.getX() * coordinateScale, this.getY(), this.getZ() * coordinateScale);
-+                    ShreddedPaperRegionScheduler.scheduleAcrossLevels(
-+                            worldserver, RegionPos.forChunk(this.chunkPosition()),
-+                            destinationWorld, RegionPos.forBlockPos(probablePortalPosition),
-+                            () -> {
++                    if (destinationWorld != null) { // Nether is disabled
++                        WorldBorder worldborder = destinationWorld.getWorldBorder();
++                        double coordinateScale = DimensionType.getTeleportationScale(worldserver.dimensionType(), destinationWorld.dimensionType());
++                        BlockPos probablePortalPosition = worldborder.clampToBounds(this.getX() * coordinateScale, this.getY(), this.getZ() * coordinateScale);
++                        ShreddedPaperRegionScheduler.scheduleAcrossLevels(
++                                worldserver, RegionPos.forChunk(this.chunkPosition()),
++                                destinationWorld, RegionPos.forBlockPos(probablePortalPosition),
++                                () -> {
 +                    // ShreddedPaper end - lock the relevant area in the other dimension
                      if (this instanceof ServerPlayer) {
 -                        ((ServerPlayer) this).changeDimension(worldserver1, PlayerTeleportEvent.TeleportCause.NETHER_PORTAL);
@@ -58,7 +60,8 @@ index 2e0967cdbc19887d89ae854261d49886fc494025..c618f8ede5de74ca90d21ef22b3c262d
 -                        this.changeDimension(worldserver1);
 +                        this.changeDimension(destinationWorld); // ShreddedPaper - final variable
                      }
-+                    }); // ShreddedPaper - lock the relevant area in the other dimension
++                        }); // ShreddedPaper - lock the relevant area in the other dimension
++                    } // ShreddedPaper
                      } // Paper - Add EntityPortalReadyEvent
                      // CraftBukkit end
                      //this.level().getProfiler().pop(); // Purpur
