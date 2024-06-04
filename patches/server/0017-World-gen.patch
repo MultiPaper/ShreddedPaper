@@ -5,7 +5,7 @@ Subject: [PATCH] World gen
 
 
 diff --git a/src/main/java/net/minecraft/server/level/PlayerRespawnLogic.java b/src/main/java/net/minecraft/server/level/PlayerRespawnLogic.java
-index 5bfdd772f2e8933acca69ed62c04755a5655fa94..d1ab812685ecef25ace31eca34b74c4c3dec8ed5 100644
+index 5bfdd772f2e8933acca69ed62c04755a5655fa94..e1ee330b6fdd43114a1330677b1597bf437c1ed5 100644
 --- a/src/main/java/net/minecraft/server/level/PlayerRespawnLogic.java
 +++ b/src/main/java/net/minecraft/server/level/PlayerRespawnLogic.java
 @@ -10,6 +10,7 @@ import net.minecraft.world.level.block.Block;

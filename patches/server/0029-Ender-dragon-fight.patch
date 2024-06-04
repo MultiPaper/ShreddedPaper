@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Tue, 4 Jun 2024 00:58:04 +0900
+Subject: [PATCH] Ender dragon fight
+
+
+diff --git a/src/main/java/net/minecraft/world/level/dimension/end/EndDragonFight.java b/src/main/java/net/minecraft/world/level/dimension/end/EndDragonFight.java
+index 18a1b4325cac81b040596071dab99ef9bf6f3142..40df5dbe88419e81e36998120381387eff4f1921 100644
+--- a/src/main/java/net/minecraft/world/level/dimension/end/EndDragonFight.java
++++ b/src/main/java/net/minecraft/world/level/dimension/end/EndDragonFight.java
+@@ -9,6 +9,7 @@ import com.google.common.collect.Sets;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import java.util.Collection;
+ import java.util.Iterator;
+@@ -151,6 +152,7 @@ public class EndDragonFight {
+         }
+ 
+         if (!this.dragonEvent.getPlayers().isEmpty()) {
++            Runnable r = () -> { // ShreddedPaper - run on end island thread
+             this.level.getChunkSource().addRegionTicket(TicketType.DRAGON, new ChunkPos(0, 0), 9, Unit.INSTANCE);
+             boolean flag = this.isArenaLoaded();
+ 
+@@ -179,6 +181,13 @@ public class EndDragonFight {
+                     this.ticksSinceCrystalsScanned = 0;
+                 }
+             }
++            // ShreddedPaper start - run on end island thread
++            };
++            while (!this.level.chunkScheduler.getRegionLocker().tryLockNow(RegionPos.forChunk(0, 0), r)) {
++                long startBlockingTime = System.nanoTime();
++                this.level.chunkSource.mainThreadProcessor.managedBlock(() -> System.nanoTime() - startBlockingTime < 1_000_000); // Wait for 1ms
++            }
++            // ShreddedPaper end - run on end island thread
+         } else {
+             this.level.getChunkSource().removeRegionTicket(TicketType.DRAGON, new ChunkPos(0, 0), 9, Unit.INSTANCE);
+         }

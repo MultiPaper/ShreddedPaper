@@ -37,8 +37,30 @@ index d23ecfabf6bf1e355fb2efe5abd80236259ce3c4..bd224e1d9bfc49feca9f0291df839bed
              "Build-Number" to (build ?: ""),
              "Build-Time" to Instant.now().toString(),
              "Git-Branch" to gitBranch, // Paper
+diff --git a/src/main/java/com/destroystokyo/paper/Metrics.java b/src/main/java/com/destroystokyo/paper/Metrics.java
+index 8cde30544e14f8fc2dac32966ae3c21f8cf3a551..430f462955f599907b5300809d312c79e2e24b33 100644
+--- a/src/main/java/com/destroystokyo/paper/Metrics.java
++++ b/src/main/java/com/destroystokyo/paper/Metrics.java
+@@ -593,7 +593,7 @@ public class Metrics {
+             boolean logFailedRequests = config.getBoolean("logFailedRequests", false);
+             // Only start Metrics, if it's enabled in the config
+             if (config.getBoolean("enabled", true)) {
+-                Metrics metrics = new Metrics("Purpur", serverUUID, logFailedRequests, Bukkit.getLogger()); // Pufferfish // Purpur
++                Metrics metrics = new Metrics("ShreddedPaper", serverUUID, logFailedRequests, Bukkit.getLogger()); // Pufferfish // Purpur // ShreddedPaper
+ 
+                 metrics.addCustomChart(new Metrics.SimplePie("minecraft_version", () -> {
+                     String minecraftVersion = Bukkit.getVersion();
+@@ -603,7 +603,7 @@ public class Metrics {
+ 
+                 metrics.addCustomChart(new Metrics.SingleLineChart("players", () -> Bukkit.getOnlinePlayers().size()));
+                 metrics.addCustomChart(new Metrics.SimplePie("online_mode", () -> Bukkit.getOnlineMode() ? "online" : (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode() ? "bungee" : "offline"))); // Purpur
+-                metrics.addCustomChart(new Metrics.SimplePie("purpur_version", () -> (org.bukkit.craftbukkit.Main.class.getPackage().getImplementationVersion() != null) ? org.bukkit.craftbukkit.Main.class.getPackage().getImplementationVersion() : "unknown")); // Purpur
++                metrics.addCustomChart(new Metrics.SimplePie("shreddedpaper_version", () -> (org.bukkit.craftbukkit.Main.class.getPackage().getImplementationVersion() != null) ? org.bukkit.craftbukkit.Main.class.getPackage().getImplementationVersion() : "unknown")); // Purpur // ShreddedPaper
+ 
+                 metrics.addCustomChart(new Metrics.DrilldownPie("java_version", () -> {
+                     Map<String, Map<String, Integer>> map = new HashMap<>();
 diff --git a/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java b/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
-index 6d36fc6d8e22d9b68dea3830f6ecc8763184c343..f895c401991b2f6730d64b5a58eebca63d719729 100644
+index 6d36fc6d8e22d9b68dea3830f6ecc8763184c343..9fb833a04c902a54118d99284076ec4401f8799b 100644
 --- a/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
 +++ b/src/main/java/com/destroystokyo/paper/PaperVersionFetcher.java
 @@ -36,7 +36,7 @@ public class PaperVersionFetcher implements VersionFetcher {
@@ -46,7 +68,7 @@ index 6d36fc6d8e22d9b68dea3830f6ecc8763184c343..f895c401991b2f6730d64b5a58eebca6
      private static final int DISTANCE_UNKNOWN = -2;
      // Purpur start
 -    private static final String DOWNLOAD_PAGE = "https://purpurmc.org/downloads";
-+    private static final String DOWNLOAD_PAGE = "https://multipaper.io/shreddedpaper/downloads.html";
++    private static final String DOWNLOAD_PAGE = "https://multipaper.io/shreddedpaper/download.html";
      private static int distance = DISTANCE_UNKNOWN; public int distance() { return distance; }
      // Purpur end
  
@@ -59,6 +81,125 @@ index 6d36fc6d8e22d9b68dea3830f6ecc8763184c343..f895c401991b2f6730d64b5a58eebca6
          }
          final @Nullable Component history = this.getHistory();
  
+@@ -89,15 +89,18 @@ public class PaperVersionFetcher implements VersionFetcher {
+     private static int fetchDistanceFromSiteApi(final ServerBuildInfo build, final int jenkinsBuild) {
+         try {
+             try (final BufferedReader reader = Resources.asCharSource(
+-                URI.create("https://api.purpurmc.org/v2/purpur/" + build.minecraftVersionId()).toURL(), // Purpur
++                    URI.create("https://api.multipaper.io/v2/projects/shreddedpaper/versions/" + build.minecraftVersionId()).toURL(), // Purpur // ShreddedPaper
+                 Charsets.UTF_8
+             ).openBufferedStream()) {
+                 final JsonObject json = new Gson().fromJson(reader, JsonObject.class);
+-                //final JsonArray builds = json.getAsJsonArray("builds"); // Purpur
+-                final int latest = json.getAsJsonObject("builds").getAsJsonPrimitive("latest").getAsInt(); // Purpur
++                final JsonArray builds = json.getAsJsonArray("builds"); // Purpur // ShreddedPaper
++                final int latest = StreamSupport.stream(builds.spliterator(), false)
++                        .mapToInt(JsonElement::getAsInt)
++                        .max()
++                        .orElseThrow(); // ShreddedPaper
+                 return latest - jenkinsBuild;
+             } catch (final JsonSyntaxException ex) {
+-                LOGGER.error("Error parsing json from Purpur's downloads API", ex); // Purpur
++                LOGGER.error("Error parsing json from ShreddedPaper's downloads API", ex); // Purpur // ShreddedPaper
+                 return DISTANCE_ERROR;
+             }
+         } catch (final IOException e) {
+diff --git a/src/main/java/com/destroystokyo/paper/console/PaperConsole.java b/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
+index 3cb56595822799926a8141e60a42f5d1edfc6de5..9f512c6dd970d013a8dc5d8f4e37c5dce3f38bef 100644
+--- a/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
++++ b/src/main/java/com/destroystokyo/paper/console/PaperConsole.java
+@@ -17,7 +17,7 @@ public final class PaperConsole extends SimpleTerminalConsole {
+     @Override
+     protected LineReader buildReader(LineReaderBuilder builder) {
+         builder
+-                .appName("Purpur") // Purpur
++                .appName("ShreddedPaper") // Purpur // ShreddedPaper
+                 .variable(LineReader.HISTORY_FILE, java.nio.file.Paths.get(".console_history"))
+                 .completer(new ConsoleCommandCompleter(this.server))
+                 .option(LineReader.Option.COMPLETE_IN_WORD, true);
+diff --git a/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java b/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
+index a6e5950b5875cafd734300cdfbf58f5d3736f3c8..fc73d25bbe14f6ac0bf5d370159447ebb9479011 100644
+--- a/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
++++ b/src/main/java/io/papermc/paper/ServerBuildInfoImpl.java
+@@ -31,7 +31,7 @@ public record ServerBuildInfoImpl(
+     private static final String ATTRIBUTE_GIT_COMMIT = "Git-Commit";
+ 
+     private static final String BRAND_PAPER_NAME = "Paper";
+-    private static final String BRAND_PURPUR_NAME = "Purpur"; // Purpur
++    private static final String BRAND_PURPUR_NAME = "ShreddedPaper"; // Purpur // ShreddedPaper
+ 
+     private static final String BUILD_DEV = "DEV";
+ 
+diff --git a/src/main/java/net/minecraft/CrashReport.java b/src/main/java/net/minecraft/CrashReport.java
+index c366d84518979e842a6f10f969a5951539ecac93..63f9c70666eaa90c68fa342e435bcfbd31ef73ae 100644
+--- a/src/main/java/net/minecraft/CrashReport.java
++++ b/src/main/java/net/minecraft/CrashReport.java
+@@ -127,7 +127,7 @@ public class CrashReport {
+         stringbuilder.append("---- Minecraft Crash Report ----\n");
+         // Purpur start
+         stringbuilder.append("// ");
+-        stringbuilder.append("// DO NOT REPORT THIS TO PAPER! REPORT TO PURPUR INSTEAD!");
++        stringbuilder.append("// DO NOT REPORT THIS TO PAPER! REPORT TO SHREDDEDPAPER INSTEAD!"); // ShreddedPaper
+         // Purpur end
+         stringbuilder.append("// ");
+         stringbuilder.append(CrashReport.getErrorComment());
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 330bae815c0a332e3dc9fa7b224c9f92098199b9..05b790e0d4dc82475bb42d5f2160ab6a4fea49d4 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -959,7 +959,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         shutdownThread = Thread.currentThread();
+         org.spigotmc.WatchdogThread.doStop(); // Paper
+         if (!isSameThread()) {
+-            MinecraftServer.LOGGER.info("Stopping main thread (Ignore any thread death message you see! - DO NOT REPORT THREAD DEATH TO PURPUR)"); // Purpur
++            MinecraftServer.LOGGER.info("Stopping main thread (Ignore any thread death message you see! - DO NOT REPORT THREAD DEATH TO SHREDDEDPAPER)"); // Purpur // ShreddedPaper
+             while (this.getRunningThread().isAlive()) {
+                 this.getRunningThread().stop();
+                 try {
+diff --git a/src/main/java/net/minecraft/server/gui/MinecraftServerGui.java b/src/main/java/net/minecraft/server/gui/MinecraftServerGui.java
+index 8f74c2ec5252b6265549589310d742337c91cb2c..727a4e4d5f93bad6f9539e2d742baf77819fafd6 100644
+--- a/src/main/java/net/minecraft/server/gui/MinecraftServerGui.java
++++ b/src/main/java/net/minecraft/server/gui/MinecraftServerGui.java
+@@ -56,7 +56,7 @@ public class MinecraftServerGui extends JComponent {
+             ;
+         }
+ 
+-        final JFrame jframe = new JFrame("Purpur Minecraft server"); // Purpur
++        final JFrame jframe = new JFrame("ShreddedPaper Minecraft server"); // Purpur // ShreddedPaper
+         final MinecraftServerGui servergui = new MinecraftServerGui(server);
+ 
+         jframe.setDefaultCloseOperation(2);
+@@ -64,7 +64,7 @@ public class MinecraftServerGui extends JComponent {
+         jframe.pack();
+         jframe.setLocationRelativeTo((Component) null);
+         jframe.setVisible(true);
+-        jframe.setName("Purpur Minecraft server"); // Paper - Improve ServerGUI // Purpur
++        jframe.setName("ShreddedPaper Minecraft server"); // Paper - Improve ServerGUI // Purpur // ShreddedPaper
+ 
+         // Paper start - Improve ServerGUI
+         try {
+@@ -76,7 +76,7 @@ public class MinecraftServerGui extends JComponent {
+         jframe.addWindowListener(new WindowAdapter() {
+             public void windowClosing(WindowEvent windowevent) {
+                 if (!servergui.isClosing.getAndSet(true)) {
+-                    jframe.setTitle("Purpur Minecraft server - shutting down!"); // Purpur
++                    jframe.setTitle("ShreddedPaper Minecraft server - shutting down!"); // Purpur // ShreddedPaper
+                     server.halt(true);
+                     servergui.runFinalizers();
+                 }
+diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
+index ca8ae8e1c51b937dac916e0b0dc94b5e2e61efeb..57f0342513205e4fc536f31d47623b6564efc8b7 100644
+--- a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
++++ b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
+@@ -503,7 +503,7 @@ public class CraftScheduler implements BukkitScheduler {
+                 this.parsePending();
+             } else {
+                 // this.debugTail = this.debugTail.setNext(new CraftAsyncDebugger(currentTick + CraftScheduler.RECENT_TICKS, task.getOwner(), task.getTaskClass())); // Paper
+-                task.getOwner().getLogger().log(Level.SEVERE, "Unexpected Async Task in the Sync Scheduler. Report this to Purpur"); // Paper // Purpur
++                task.getOwner().getLogger().log(Level.SEVERE, "Unexpected Async Task in the Sync Scheduler. Report this to ShreddedPaper"); // Paper // Purpur // ShreddedPaper
+                 // We don't need to parse pending
+                 // (async tasks must live with race-conditions if they attempt to cancel between these few lines of code)
+             }
 diff --git a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java b/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
 index 99597258e8e88cd9e2c901c4ac3ff7faeeabee2b..ed2f3845afed661a5f620efc071cd71c2bc7d613 100644
 --- a/src/main/java/org/bukkit/craftbukkit/util/Versioning.java
@@ -73,7 +214,7 @@ index 99597258e8e88cd9e2c901c4ac3ff7faeeabee2b..ed2f3845afed661a5f620efc071cd71c
  
          if (stream != null) {
 diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index a353eb9f45af7b7f9bfd92a4a89403335b841840..a3029da5b80d87158119141608e963196d943db4 100644
+index a353eb9f45af7b7f9bfd92a4a89403335b841840..6505f4bc7000de7b53f4f8fae2393d2c0a315c72 100644
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
 @@ -155,14 +155,14 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa

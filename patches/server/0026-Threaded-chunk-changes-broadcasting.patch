@@ -5,7 +5,7 @@ Subject: [PATCH] Threaded chunk changes broadcasting
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 3c069b801b60efe68a7c1594a188515bc727144f..3276d5f8cdcd9fce69388ae963bed86a9af5bf0e 100644
+index 536d3bec3aeaf60812ae1767cca4db3a76ca36cd..7d870c30cc5bb2e1da5f06622d49571323fd23c7 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
@@ -70,28 +70,28 @@ index 0000000000000000000000000000000000000000..4ca4532c53c5b28833dcd9b6a1c4b593
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 6c684c701cdae2c87a553fdf01291800d5918279..4165c75e109bb83f974328dfa4a9763655151303 100644
+index ced8fe01cfea254dd40d8424d58b8763bfd17691..40e4e8cab80393f8562ea795405933ca5e830b93 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -51,6 +51,8 @@ public class ShreddedPaperChunkTicker {
-             throw new IllegalStateException("Ticking region " + level.convertable.getLevelId() + " " + region.getRegionPos() + " outside of ShreddedPaperTickThread!");
-         }
+@@ -63,6 +63,8 @@ public class ShreddedPaperChunkTicker {
+                 throw new IllegalStateException("Ticking region " + level.convertable.getLevelId() + " " + region.getRegionPos() + " outside of ShreddedPaperTickThread!");
+             }
  
-+        ShreddedPaperChangesBroadcaster.setAsWorkerThread();
++            ShreddedPaperChangesBroadcaster.setAsWorkerThread();
 +
-         while (region.getInternalTaskQueue().executeTask());
+             while (region.getInternalTaskQueue().executeTask()) ;
  
-         level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
-@@ -67,6 +69,8 @@ public class ShreddedPaperChunkTicker {
+             level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
+@@ -79,6 +81,8 @@ public class ShreddedPaperChunkTicker {
  
-         while (region.getInternalTaskQueue().executeTask());
+             while (region.getInternalTaskQueue().executeTask()) ;
  
-+        ShreddedPaperChangesBroadcaster.broadcastChanges();
++            ShreddedPaperChangesBroadcaster.broadcastChanges();
 +
-         if (region.isEmpty()) {
-             level.chunkSource.tickingRegions.remove(region.getRegionPos());
-         }
-@@ -75,6 +79,8 @@ public class ShreddedPaperChunkTicker {
+             if (region.isEmpty()) {
+                 level.chunkSource.tickingRegions.remove(region.getRegionPos());
+             }
+@@ -90,6 +94,8 @@ public class ShreddedPaperChunkTicker {
      private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
          chunk1.getChunkHolder().getEntityChunk().forEach(entity -> Optional.ofNullable(entity.getBukkitEntityRaw()).ifPresent(bukkit -> bukkit.taskScheduler.executeTick()));
  
@@ -101,7 +101,7 @@ index 6c684c701cdae2c87a553fdf01291800d5918279..4165c75e109bb83f974328dfa4a97636
          int j = 1; // Inhabited time increment in ticks
          boolean flag = level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !level.players().isEmpty(); // Should run mob spawning code
 diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
-index da627ca17aa738d0d812b1b557f6d824e41d0b44..192e55925ebee7f8ca37dcef0cec75ed594594d0 100644
+index d338349a809d5cd575f16a701476528752a7588e..5b890ae3cf9cf7c2e19af2ff8b9ecee156072873 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
 @@ -2,6 +2,7 @@ package net.minecraft.server.level;
@@ -109,10 +109,10 @@ index da627ca17aa738d0d812b1b557f6d824e41d0b44..192e55925ebee7f8ca37dcef0cec75ed
  import com.mojang.datafixers.util.Pair;
  import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperChangesBroadcaster;
+ import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
  import it.unimi.dsi.fastutil.shorts.ShortSet;
- import java.util.ArrayList;
-@@ -80,7 +81,7 @@ public class ChunkHolder {
+@@ -81,7 +82,7 @@ public class ChunkHolder {
      public void onChunkAdd() {
          // Paper start - optimise chunk tick iteration
          if (this.needsBroadcastChanges()) {
@@ -121,7 +121,7 @@ index da627ca17aa738d0d812b1b557f6d824e41d0b44..192e55925ebee7f8ca37dcef0cec75ed
          }
          // Paper end - optimise chunk tick iteration
      }
-@@ -88,7 +89,7 @@ public class ChunkHolder {
+@@ -89,7 +90,7 @@ public class ChunkHolder {
      public void onChunkRemove() {
          // Paper start - optimise chunk tick iteration
          if (this.needsBroadcastChanges()) {
@@ -130,7 +130,7 @@ index da627ca17aa738d0d812b1b557f6d824e41d0b44..192e55925ebee7f8ca37dcef0cec75ed
          }
          // Paper end - optimise chunk tick iteration
      }
-@@ -274,7 +275,7 @@ public class ChunkHolder {
+@@ -275,7 +276,7 @@ public class ChunkHolder {
  
      private void addToBroadcastMap() {
          io.papermc.paper.util.TickThread.ensureTickThread(this.chunkMap.level, this.pos, "Asynchronous ChunkHolder update is not allowed");

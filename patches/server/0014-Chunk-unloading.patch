@@ -5,7 +5,7 @@ Subject: [PATCH] Chunk unloading
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index b1ab34bc73a56f15413208947673cdbd10964a73..bc18833892aab53c92973a821eb9d4767555a8d3 100644
+index 1ea6c7d88c6122451b3faffe1828b900a3085d8e..35e6420103b899b3cbbd6465fffce542cf036f6a 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,6 +1,7 @@
@@ -24,7 +24,7 @@ index b1ab34bc73a56f15413208947673cdbd10964a73..bc18833892aab53c92973a821eb9d476
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -110,6 +112,7 @@ public class LevelChunkRegion {
+@@ -114,6 +116,7 @@ public class LevelChunkRegion {
  
      public boolean isEmpty() {
          return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty()
@@ -34,17 +34,17 @@ index b1ab34bc73a56f15413208947673cdbd10964a73..bc18833892aab53c92973a821eb9d476
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 0aedc67c7447242d7d3fa65a983d70911da9f2e0..2d01d065b13f23a59ec8609e53f9919c802d3601 100644
+index 909d49b45e369470f43bc2826ec8c7fecb46023d..d0c018689f06ddd41c72581e0e6678312f8a4d53 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -53,6 +53,8 @@ public class ShreddedPaperChunkTicker {
+@@ -65,6 +65,8 @@ public class ShreddedPaperChunkTicker {
  
-         while (region.getInternalTaskQueue().executeTask());
+             while (region.getInternalTaskQueue().executeTask()) ;
  
-+        level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
++            level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
 +
-         region.tickTasks();
-         region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+             region.tickTasks();
+             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
 index bb31681d91f54c7d4e242579081f64dfcf481340..758c155c23d95c3cc952cb14f864c703f9b45127 100644
@@ -312,10 +312,10 @@ index bb31681d91f54c7d4e242579081f64dfcf481340..758c155c23d95c3cc952cb14f864c703
          final JsonArray holders = new JsonArray();
          ret.add("chunkholders", holders);
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
-index 604de7aed6db44c9c84d541765e57da48883cf00..c7e53d4f3182d08ffb0c0fc714dcff4d6900062d 100644
+index 47e9d18a4c4981e0b561eeaf52bf6e5bec102680..e6d0b0250d058e60a7ae7a22770f8a18cc4ed52a 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/NewChunkHolder.java
-@@ -36,12 +36,15 @@ import net.minecraft.world.level.chunk.LevelChunk;
+@@ -40,12 +40,15 @@ import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.chunk.storage.ChunkSerializer;
  import net.minecraft.world.level.chunk.storage.EntityStorage;
  import org.slf4j.Logger;
@@ -331,7 +331,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..c7e53d4f3182d08ffb0c0fc714dcff4d
  import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.Consumer;
  
-@@ -732,10 +735,10 @@ public final class NewChunkHolder {
+@@ -736,10 +739,10 @@ public final class NewChunkHolder {
          }
          if (this.isSafeToUnload() == null) {
              // ensure in unload queue

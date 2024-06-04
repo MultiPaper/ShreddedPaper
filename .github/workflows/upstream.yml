@@ -12,9 +12,9 @@ jobs:
 
     steps:
       - name: Checkout Git Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up JDK
-        uses: actions/setup-java@v2.5.0
+        uses: actions/setup-java@v4
         with:
           java-version: '21'
           cache: 'gradle'
@@ -30,12 +30,12 @@ jobs:
       - name: Rebuild Patches
         run: ./gradlew rebuildPatches --stacktrace
       - name: Upload Paperclip jar
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: shreddedpaper.jar
           path: build/libs/shreddedpaper-paperclip-*-reobf.jar
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v6
         with:
           commit-message: Update Upstream
           branch: update-upstream

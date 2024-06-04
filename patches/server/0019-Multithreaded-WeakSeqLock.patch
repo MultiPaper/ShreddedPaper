@@ -5,7 +5,7 @@ Subject: [PATCH] Multithreaded WeakSeqLock
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/util/concurrent/WeakSeqLock.java b/src/main/java/com/destroystokyo/paper/util/concurrent/WeakSeqLock.java
-index 4029dc68cf35d63aa70c4a76c35bf65a7fc6358f..2889d03e082427436e348e6e39d6ba8fdb19911b 100644
+index 4029dc68cf35d63aa70c4a76c35bf65a7fc6358f..7d0cd938c9ce83845657a21a120d4a2a74376fc4 100644
 --- a/src/main/java/com/destroystokyo/paper/util/concurrent/WeakSeqLock.java
 +++ b/src/main/java/com/destroystokyo/paper/util/concurrent/WeakSeqLock.java
 @@ -16,8 +16,21 @@ public final class WeakSeqLock {

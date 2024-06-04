@@ -708,7 +708,7 @@ index bdaf062f9b66ceab303a0807eca301342886a8ea..645e39222d81a5049888c86881ee3813
      }
  }
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 330bae815c0a332e3dc9fa7b224c9f92098199b9..3f11f17a85e24821a168ccd39a7298cd91438fbf 100644
+index 05b790e0d4dc82475bb42d5f2160ab6a4fea49d4..c192e3719474c5aefe6e4f8926c0d5c7766c48ad 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -191,6 +191,7 @@ import org.bukkit.event.server.ServerLoadEvent;
@@ -727,28 +727,6 @@ index 330bae815c0a332e3dc9fa7b224c9f92098199b9..3f11f17a85e24821a168ccd39a7298cd
          // Purpur start
          if (upnp) {
              if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
-diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
-index 472b9494f8a34a8ba90d6a2936b0db7530a229ad..da627ca17aa738d0d812b1b557f6d824e41d0b44 100644
---- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
-+++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
-@@ -1,6 +1,7 @@
- package net.minecraft.server.level;
- 
- import com.mojang.datafixers.util.Pair;
-+import io.multipaper.shreddedpaper.region.RegionPos;
- import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
- import it.unimi.dsi.fastutil.shorts.ShortSet;
- import java.util.ArrayList;
-@@ -212,6 +213,9 @@ public class ChunkHolder {
-     // Paper - rewrite chunk system
- 
-     public void blockChanged(BlockPos pos) {
-+        if (this.getFullChunkNow().isPostProcessingDone && !this.chunkMap.level.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forBlockPos(pos))) { // ShreddedPaper
-+            throw new IllegalStateException("Block change @ " + pos + " in chunk " + this.pos + " in world '" + this.chunkMap.level.getWorld().getName() + "' is not write locked"); // ShreddedPaper
-+        } // ShreddedPaper
-         // Paper start - replace player chunk loader
-         if (this.playersSentChunkTo.size() == 0) {
-             return;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index 7924e3c597164f71056cd58dd167ee8b1d41b9c3..f2bb2ee3c0efe21fae1fac39333cc6742ea75559 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
@@ -840,15 +818,3 @@ index 54cd046587c2f9dd26204bfa4eb65b8ad52b2d5e..cf28077748878476d7059828a04ea789
      public static ChunkPos minFromRegion(int x, int z) {
          return new ChunkPos(x << 5, z << 5);
      }
-diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..03ad7083316455abf9f06f5601e48fdd5ae7a8e2 100644
---- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-+++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -928,6 +928,7 @@ public class LevelChunk extends ChunkAccess {
-     public boolean isPostProcessingDone; // Paper - replace chunk loader system
-     public void postProcessGeneration() {
-         try { // Paper - replace chunk loader system
-+        isPostProcessingDone = false; // ShreddedPaper
-         ChunkPos chunkcoordintpair = this.getPos();
- 
-         for (int i = 0; i < this.postProcessing.length; ++i) {

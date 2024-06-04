@@ -6,7 +6,7 @@ Subject: [PATCH] EntityLookup accessibleEntities
 Use a synchronized block as data is only read rarely for debug reports
 
 diff --git a/src/main/java/io/papermc/paper/chunk/system/entity/EntityLookup.java b/src/main/java/io/papermc/paper/chunk/system/entity/EntityLookup.java
-index 15ee41452992714108efe53b708b5a4e1da7c1ff..1020fdfe10a27dbb43f272d32b1366cf1e56fd8a 100644
+index 15ee41452992714108efe53b708b5a4e1da7c1ff..e22012b5854c9e7725780cf8f3173949202c1472 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/entity/EntityLookup.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/entity/EntityLookup.java
 @@ -191,11 +191,15 @@ public final class EntityLookup implements LevelEntityGetter<Entity> {
