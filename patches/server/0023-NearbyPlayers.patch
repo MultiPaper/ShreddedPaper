@@ -5,10 +5,10 @@ Subject: [PATCH] NearbyPlayers
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index d7401861e1ee1e92a548672e324fd527992d5cd2..ced8fe01cfea254dd40d8424d58b8763bfd17691 100644
+index 762e632ddfde46c57f5a60e061cee13e6765769c..ff598ed149e403d71c4d2930837d46a6dc629a6c 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -109,7 +109,9 @@ public class ShreddedPaperChunkTicker {
+@@ -110,7 +110,9 @@ public class ShreddedPaperChunkTicker {
          boolean spawn = false;
          boolean tick = false;
          for (int itr = 0, len = playersNearby.size(); itr < len; ++itr) {
@@ -18,7 +18,7 @@ index d7401861e1ee1e92a548672e324fd527992d5cd2..ced8fe01cfea254dd40d8424d58b8763
              if (player.isSpectator()) {
                  continue;
              }
-@@ -120,6 +122,7 @@ public class ShreddedPaperChunkTicker {
+@@ -121,6 +123,7 @@ public class ShreddedPaperChunkTicker {
              if (spawn & tick) {
                  break;
              }
@@ -273,10 +273,10 @@ index 65cd42ce9f553e0aa5bf248bdbf902f9d1f55460..00bd56773a857e207ddf6b0488057105
          }
          players.sort(Comparator.comparingDouble(entity::distanceToSqr));
 diff --git a/src/main/java/net/minecraft/world/level/NaturalSpawner.java b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
-index 0f90a6803851eba51e164772c984b1cd1193d882..bf2e3885226dfe2ae6dd9340bd4371ad5c072e75 100644
+index d483c94b8afd624af4c0c165a809d3a5853ad02e..65ce2734dee4b0e9dd27688d660aff430b6c5e5b 100644
 --- a/src/main/java/net/minecraft/world/level/NaturalSpawner.java
 +++ b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
-@@ -161,7 +161,9 @@ public final class NaturalSpawner {
+@@ -163,7 +163,9 @@ public final class NaturalSpawner {
                  if (inRange != null) {
                      final Object[] backingSet = inRange.getRawData();
                      for (int k = 0, len = inRange.size(); k < len; k++) {

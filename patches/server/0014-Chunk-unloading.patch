@@ -34,7 +34,7 @@ index 1ea6c7d88c6122451b3faffe1828b900a3085d8e..35e6420103b899b3cbbd6465fffce542
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 909d49b45e369470f43bc2826ec8c7fecb46023d..d0c018689f06ddd41c72581e0e6678312f8a4d53 100644
+index d8620035f66ef7ec353cd72e451d5bd3b0a18bc4..3aba79c8e1fdf3a906dfb5238dc62853adc17e33 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -65,6 +65,8 @@ public class ShreddedPaperChunkTicker {
@@ -44,8 +44,8 @@ index 909d49b45e369470f43bc2826ec8c7fecb46023d..d0c018689f06ddd41c72581e0e667831
 +            level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
 +
              region.tickTasks();
-             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  
+             level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
 index bb31681d91f54c7d4e242579081f64dfcf481340..758c155c23d95c3cc952cb14f864c703f9b45127 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java

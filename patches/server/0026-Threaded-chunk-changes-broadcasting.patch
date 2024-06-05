@@ -70,7 +70,7 @@ index 0000000000000000000000000000000000000000..4ca4532c53c5b28833dcd9b6a1c4b593
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index ced8fe01cfea254dd40d8424d58b8763bfd17691..40e4e8cab80393f8562ea795405933ca5e830b93 100644
+index ff598ed149e403d71c4d2930837d46a6dc629a6c..fc9e4fd75ff4b076ccff75b84684107473403a08 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -63,6 +63,8 @@ public class ShreddedPaperChunkTicker {
@@ -82,7 +82,7 @@ index ced8fe01cfea254dd40d8424d58b8763bfd17691..40e4e8cab80393f8562ea795405933ca
              while (region.getInternalTaskQueue().executeTask()) ;
  
              level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
-@@ -79,6 +81,8 @@ public class ShreddedPaperChunkTicker {
+@@ -80,6 +82,8 @@ public class ShreddedPaperChunkTicker {
  
              while (region.getInternalTaskQueue().executeTask()) ;
  
@@ -91,7 +91,7 @@ index ced8fe01cfea254dd40d8424d58b8763bfd17691..40e4e8cab80393f8562ea795405933ca
              if (region.isEmpty()) {
                  level.chunkSource.tickingRegions.remove(region.getRegionPos());
              }
-@@ -90,6 +94,8 @@ public class ShreddedPaperChunkTicker {
+@@ -91,6 +95,8 @@ public class ShreddedPaperChunkTicker {
      private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
          chunk1.getChunkHolder().getEntityChunk().forEach(entity -> Optional.ofNullable(entity.getBukkitEntityRaw()).ifPresent(bukkit -> bukkit.taskScheduler.executeTick()));
  
@@ -101,7 +101,7 @@ index ced8fe01cfea254dd40d8424d58b8763bfd17691..40e4e8cab80393f8562ea795405933ca
          int j = 1; // Inhabited time increment in ticks
          boolean flag = level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !level.players().isEmpty(); // Should run mob spawning code
 diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
-index d338349a809d5cd575f16a701476528752a7588e..5b890ae3cf9cf7c2e19af2ff8b9ecee156072873 100644
+index 0e0c3a010d5cfaa0c15bcb38c4e3b1a8d7ad39a1..8da6278f841e0ac032ae74ed75b7689d43e2cdfb 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
 @@ -2,6 +2,7 @@ package net.minecraft.server.level;

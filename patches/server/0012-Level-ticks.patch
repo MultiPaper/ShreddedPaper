@@ -125,19 +125,20 @@ index 0000000000000000000000000000000000000000..051e74363aea1aff0a9d3da4300fca90
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 29c45c301f027a39dcb75a18b3158025d6ff0fae..909d49b45e369470f43bc2826ec8c7fecb46023d 100644
+index 29c45c301f027a39dcb75a18b3158025d6ff0fae..d8620035f66ef7ec353cd72e451d5bd3b0a18bc4 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -68,6 +68,9 @@ public class ShreddedPaperChunkTicker {
-             region.tickTasks();
-             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+@@ -66,6 +66,10 @@ public class ShreddedPaperChunkTicker {
+             while (region.getInternalTaskQueue().executeTask()) ;
  
+             region.tickTasks();
++
 +            level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
 +            level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
 +
-             region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
+             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  
-             while (region.getInternalTaskQueue().executeTask()) ;
+             region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index 7c7823b7cd733a02c1dfef24de28b8010c7dbe52..123ad0385d5de867abfbec293730d8277ec99e4d 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
