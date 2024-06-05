@@ -381,10 +381,10 @@ index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..2e0967cdbc19887d89ae854261d49886
                  // CraftBukkit end
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 95eeb3c1415a08d62d6f98ee3b1b4a1ea2d97f55..b8fa934a516833dbdc483b50f671f51d723034f9 100644
+index a87bc013292b6d29125d12ba96f1d08a94f7a42e..a284dd9dc9e165a1b45dddfea3c287b9dd9ef6cf 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -2542,7 +2542,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2543,7 +2543,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      // Paper start
      public java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
          warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
@@ -393,20 +393,6 @@ index 95eeb3c1415a08d62d6f98ee3b1b4a1ea2d97f55..b8fa934a516833dbdc483b50f671f51d
              net.minecraft.world.level.chunk.LevelChunk immediate = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
              if (immediate != null) {
                  return java.util.concurrent.CompletableFuture.completedFuture(new CraftChunk(immediate));
-@@ -2559,11 +2559,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
-         java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
- 
-         io.papermc.paper.chunk.system.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
--            net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
-+            // net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> { // ShreddedPaper - this is already on the main thread
-                 net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
-                 if (chunk != null) this.addTicket(x, z); // Paper
-                 ret.complete(chunk == null ? null : new CraftChunk(chunk));
--            });
-+            // }); // ShreddedPaper - this is already on the main thread
-         });
- 
-         return ret;
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..b75fc4424cb138a79c1e86cd3bb8e6393be7cfe0 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java

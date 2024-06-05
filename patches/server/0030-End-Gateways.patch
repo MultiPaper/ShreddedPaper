@@ -4,19 +4,6 @@ Date: Wed, 5 Jun 2024 00:49:15 +0900
 Subject: [PATCH] End Gateways
 
 
-diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-index ab5c9563615faa09871d8870f7a31042c4f10d04..5be292a9daeb63550817d5cd018497095296a8ff 100644
---- a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-@@ -36,7 +36,7 @@ public class ShreddedPaper {
-     }
- 
-     public static void ensureSync(ServerLevel serverLevel, ChunkPos chunkPos, Runnable runnable) {
--        if (!TickThread.isTickThreadFor(serverLevel, chunkPos)) {
-+        if (!serverLevel.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forChunk(chunkPos))) {
-             runSync(serverLevel, chunkPos, runnable);
-         } else {
-             runnable.run();
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/TheEndGatewayBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/TheEndGatewayBlockEntity.java
 index fb9611866671880fc7a1a969da928b8f2ad15269..e7ced465076195f1c774a2f5ddd690162f5d50e3 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/TheEndGatewayBlockEntity.java
@@ -89,29 +76,3 @@ index fb9611866671880fc7a1a969da928b8f2ad15269..e7ced465076195f1c774a2f5ddd69016
      }
  
      private static Vec3 findExitPortalXZPosTentative(ServerLevel world, BlockPos pos) {
-diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 56f78d0400a236ee612acb87ac25a2c931af0668..0521f6d5d2bd40110000514f1f4ed1e55cd44634 100644
---- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-+++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -5,6 +5,7 @@ import com.google.common.base.Predicates;
- import com.google.common.collect.ImmutableList;
- import com.google.common.collect.ImmutableMap;
- import com.mojang.datafixers.util.Pair;
-+import io.multipaper.shreddedpaper.ShreddedPaper;
- import io.multipaper.shreddedpaper.region.RegionPos;
- import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
- import io.papermc.paper.util.TickThread;
-@@ -2563,11 +2564,11 @@ public class CraftWorld extends CraftRegionAccessor implements World {
-         Plugin plugin = SynchronousPluginExecution.getCurrentPlugin(); // ShreddedPaper - synchronous plugin execution
- 
-         io.papermc.paper.chunk.system.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
--            // net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> { // ShreddedPaper - this is already on the main thread
-+             ShreddedPaper.ensureSync(this.getHandle(), c.getPos(), () -> { // ShreddedPaper - ensure on correct thread
-                 net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
-                 if (chunk != null) this.addTicket(x, z); // Paper
-                 SynchronousPluginExecution.executeNoException(plugin, () -> ret.complete(chunk == null ? null : new CraftChunk(chunk))); // ShreddedPaper - synchronous plugin execution
--            // }); // ShreddedPaper - this is already on the main thread
-+             });
-         });
- 
-         return ret;
