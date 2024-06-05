@@ -352,7 +352,7 @@ index 5ae3decf100d21f7d4a471c155eaf5e00e996580..23706d591cc1c1c4b5c3225878e62cae
                  world.addFreshEntity(entityitem);
              }
 diff --git a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
-index d262a5a6da57ef9ba9a6fe0dfbc88f577105e74f..875abf8e998b660ad84f6c22a1b9d257f0049b52 100644
+index d262a5a6da57ef9ba9a6fe0dfbc88f577105e74f..c87a30862b86b6fa94cd5df06a8df6fbe95686ba 100644
 --- a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
 @@ -66,18 +66,18 @@ public class SaplingBlock extends BushBlock implements BonemealableBlock {
@@ -368,7 +368,7 @@ index d262a5a6da57ef9ba9a6fe0dfbc88f577105e74f..875abf8e998b660ad84f6c22a1b9d257
                  this.treeGrower.growTree(world, world.getChunkSource().getGenerator(), pos, state, random);
 -                world.captureTreeGeneration = false;
 -                if (world.capturedBlockStates.size() > 0) {
-+                world.captureTreeGeneration.set(true); // ShreddedPaper - thread local
++                world.captureTreeGeneration.set(false); // ShreddedPaper - thread local
 +                if (world.capturedBlockStates.get().size() > 0) { // ShreddedPaper - thread local
                      TreeType treeType = SaplingBlock.treeType;
                      SaplingBlock.treeType = null;
