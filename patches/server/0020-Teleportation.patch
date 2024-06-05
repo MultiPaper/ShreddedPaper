@@ -161,7 +161,7 @@ index 2df36cae9539007ad9e9363890a421124ad45b28..d7519408d7280818d1e7f6e26e51affd
                  break;
              case REQUEST_STATS:
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
-index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f61f37f19 100644
+index 900891527ca401858d9c2678ae154928e5f64b08..ab96dcb873758f9d92eecb62b473b84dc9e295a2 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
 @@ -22,9 +22,13 @@ import java.util.Objects;
@@ -195,7 +195,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f
  // CraftBukkit end
  
  public abstract class PlayerList {
-@@ -837,12 +844,52 @@ public abstract class PlayerList {
+@@ -837,12 +844,48 @@ public abstract class PlayerList {
      }
  
      public ServerPlayer respawn(ServerPlayer entityplayer, ServerLevel worldserver, boolean flag, Location location, boolean avoidSuffocation, RespawnReason reason, org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag...respawnFlags) {
@@ -207,12 +207,8 @@ index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f
 +        return this.respawnAsync(entityplayer, this.server.getLevel(entityplayer.getRespawnDimension()), flag, null, true, reason);
 +    }
 +
-+    @Nullable private CompletableFuture<ServerPlayer> currentRespawnFuture = null;
 +    public CompletableFuture<ServerPlayer> respawnAsync(ServerPlayer entityplayer, ServerLevel worldserver, boolean flag, Location location, boolean avoidSuffocation, RespawnReason reason, org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag...respawnFlags) {
-+        if (currentRespawnFuture != null && !currentRespawnFuture.isDone()) {
-+            throw new IllegalStateException("An async respawn is already in progress!");
-+        }
-+        CompletableFuture<ServerPlayer> future = currentRespawnFuture = new CompletableFuture<>();
++        CompletableFuture<ServerPlayer> future = new CompletableFuture<>();
 +        // ShreddedPaper end - async respawn
          // Paper end - Expand PlayerRespawnEvent
          entityplayer.stopRiding(); // CraftBukkit
@@ -229,8 +225,8 @@ index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f
 +
 +        ServerLevel fromLevel = entityplayer.serverLevel();
 +        ChunkPos fromPos = entityplayer.chunkPosition();
-+        ServerLevel toLevel = this.server.getLevel(entityplayer.getRespawnDimension());
-+        BlockPos toPos = blockposition;
++        ServerLevel toLevel = location == null ? this.server.getLevel(entityplayer.getRespawnDimension()) : worldserver;
++        BlockPos toPos = location == null ? blockposition : CraftLocation.toBlockPosition(location);
 +
 +        if (toLevel == null || toPos == null) {
 +            toLevel = this.server.getLevel(Level.OVERWORLD);
@@ -251,7 +247,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f
          float f = entityplayer.getRespawnAngle();
          boolean flag1 = entityplayer.isRespawnForced();
          /* CraftBukkit start
-@@ -863,17 +910,19 @@ public abstract class PlayerList {
+@@ -863,17 +906,19 @@ public abstract class PlayerList {
          entityplayer.wonGame = false;
          // CraftBukkit end
  
@@ -280,7 +276,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f
  
          boolean flag2 = false;
  
-@@ -933,7 +982,7 @@ public abstract class PlayerList {
+@@ -933,7 +978,7 @@ public abstract class PlayerList {
              this.cserver.getPluginManager().callEvent(respawnEvent);
              // Spigot Start
              if (entityplayer.connection.isDisconnected()) {
@@ -289,7 +285,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f
              }
              // Spigot End
  
-@@ -948,6 +997,32 @@ public abstract class PlayerList {
+@@ -948,6 +993,32 @@ public abstract class PlayerList {
          } else {
              location.setWorld(worldserver.getWorld());
          }
@@ -322,7 +318,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f
          ServerLevel worldserver1 = ((CraftWorld) location.getWorld()).getHandle();
          entityplayer1.spawnIn(worldserver1);
          entityplayer1.unsetRemoved();
-@@ -975,9 +1050,9 @@ public abstract class PlayerList {
+@@ -975,9 +1046,9 @@ public abstract class PlayerList {
          this.sendPlayerPermissionLevel(entityplayer1);
          if (!entityplayer.connection.isDisconnected()) {
              worldserver1.addRespawnedPlayer(entityplayer1);
@@ -335,7 +331,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..2146ec05145c354f3b9e2a546a48581f
          }
          // entityplayer1.initInventoryMenu();
          entityplayer1.setHealth(entityplayer1.getHealth());
-@@ -1018,7 +1093,7 @@ public abstract class PlayerList {
+@@ -1018,7 +1089,7 @@ public abstract class PlayerList {
          // Paper end - Add PlayerPostRespawnEvent
  
          // CraftBukkit end
@@ -437,10 +433,28 @@ index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..b75fc4424cb138a79c1e86cd3bb8e639
                          ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
                      } catch (Throwable throwable) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 241340a6d66f17f2a31fb03ff0dfab121b856368..d16b61e2c92e35e184270eb293c7717d15051e11 100644
+index 241340a6d66f17f2a31fb03ff0dfab121b856368..a4babdf77ca53994a397ea3636797f16837f8157 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -3355,7 +3355,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -6,6 +6,7 @@ import com.google.common.io.BaseEncoding;
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.datafixers.util.Pair;
+ import io.netty.buffer.Unpooled;
++import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.shorts.ShortArraySet;
+ import it.unimi.dsi.fastutil.shorts.ShortSet;
+ import java.io.ByteArrayOutputStream;
+@@ -1495,7 +1496,8 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+             // Paper end - Teleport API
+         } else {
+             // The respawn reason should never be used if the passed location is non null.
+-            this.server.getHandle().respawn(entity, toWorld, true, to, !toWorld.paperConfig().environment.disableTeleportationSuffocationCheck, null); // Paper
++            if (!TickThread.isTickThreadFor(entity.serverLevel(), entity.position()) || !TickThread.isTickThreadFor(toWorld, CraftLocation.toBlockPosition(to))) throw new UnsupportedOperationException("Cannot respawn player synchronously"); // ShreddedPaper - make sure following will be run on this thread
++            this.server.getHandle().respawnAsync(entity, toWorld, true, to, !toWorld.paperConfig().environment.disableTeleportationSuffocationCheck, null).join(); // Paper // ShreddedPaper - will be run on this thread
+         }
+         return true;
+     }
+@@ -3355,7 +3357,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
          {
              if ( CraftPlayer.this.getHealth() <= 0 && CraftPlayer.this.isOnline() )
              {
