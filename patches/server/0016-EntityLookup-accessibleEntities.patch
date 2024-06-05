@@ -45,3 +45,16 @@ index 15ee41452992714108efe53b708b5a4e1da7c1ff..e22012b5854c9e7725780cf8f3173949
                              EntityLookup.this.worldCallback.onTrackingEnd(entity);
                          }
                      }
+diff --git a/src/main/java/net/minecraft/world/level/NaturalSpawner.java b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
+index 0f90a6803851eba51e164772c984b1cd1193d882..d483c94b8afd624af4c0c165a809d3a5853ad02e 100644
+--- a/src/main/java/net/minecraft/world/level/NaturalSpawner.java
++++ b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
+@@ -80,6 +80,8 @@ public final class NaturalSpawner {
+         while (iterator.hasNext()) {
+             Entity entity = (Entity) iterator.next();
+ 
++            if (entity == null) continue; // ShreddedPaper - concurrent modification
++
+             if (entity instanceof Mob entityinsentient) {
+                 if (entityinsentient.isPersistenceRequired() || entityinsentient.requiresCustomPersistence()) {
+                     continue;

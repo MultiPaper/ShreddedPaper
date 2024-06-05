@@ -434,3 +434,47 @@ index 114f273dd7f8b8a3c02f0651f6944859b33a65d4..bc501ce058f001a4c87bf2d513a855f1
      private boolean started;
  
      abstract BossBar createBossBar();
+diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
+index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..6aabcb7899e104ef9602c348cc4dfe537fb2a326 100644
+--- a/src/main/java/org/spigotmc/WatchdogThread.java
++++ b/src/main/java/org/spigotmc/WatchdogThread.java
+@@ -3,8 +3,12 @@ package org.spigotmc;
+ import java.lang.management.ManagementFactory;
+ import java.lang.management.MonitorInfo;
+ import java.lang.management.ThreadInfo;
++import java.util.Arrays;
++import java.util.List;
+ import java.util.logging.Level;
+ import java.util.logging.Logger;
++
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
+ import net.minecraft.server.MinecraftServer;
+ import org.bukkit.Bukkit;
+ 
+@@ -193,6 +197,11 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
+                 io.papermc.paper.chunk.system.scheduling.ChunkTaskScheduler.dumpAllChunkLoadInfo(isLongTimeout); // Paper - rewrite chunk system
+                 this.dumpTickingInfo(); // Paper - log detailed tick information
+                 WatchdogThread.dumpThread( ManagementFactory.getThreadMXBean().getThreadInfo( MinecraftServer.getServer().serverThread.getId(), Integer.MAX_VALUE ), log );
++                // ShreddedPaper start - Dump stuck worker threads
++                for (ThreadInfo worker : getStuckTickWorkerThreads()) {
++                    WatchdogThread.dumpThread( worker, log );
++                }
++                // ShreddedPaper end - Dump stuck worker threads
+                 log.log( Level.SEVERE, "------------------------------" );
+                 //
+                 // Paper start - Only print full dump on long timeouts
+@@ -245,6 +254,14 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
+         }
+     }
+ 
++    private List<ThreadInfo> getStuckTickWorkerThreads() {
++        ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads( true, true );
++        return Arrays.stream(threads)
++                .filter(thread -> thread.getThreadName().startsWith("ShreddedPaperTickThread"))
++                .filter(thread -> Arrays.stream(thread.getStackTrace()).anyMatch(stack -> !stack.getClassName().startsWith("java")))
++                .toList();
++    }
++
+     private static void dumpThread(ThreadInfo thread, Logger log)
+     {
+         log.log( Level.SEVERE, "------------------------------" );

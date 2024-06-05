@@ -273,10 +273,10 @@ index 65cd42ce9f553e0aa5bf248bdbf902f9d1f55460..00bd56773a857e207ddf6b0488057105
          }
          players.sort(Comparator.comparingDouble(entity::distanceToSqr));
 diff --git a/src/main/java/net/minecraft/world/level/NaturalSpawner.java b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
-index 0f90a6803851eba51e164772c984b1cd1193d882..bf2e3885226dfe2ae6dd9340bd4371ad5c072e75 100644
+index d483c94b8afd624af4c0c165a809d3a5853ad02e..65ce2734dee4b0e9dd27688d660aff430b6c5e5b 100644
 --- a/src/main/java/net/minecraft/world/level/NaturalSpawner.java
 +++ b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
-@@ -161,7 +161,9 @@ public final class NaturalSpawner {
+@@ -163,7 +163,9 @@ public final class NaturalSpawner {
                  if (inRange != null) {
                      final Object[] backingSet = inRange.getRawData();
                      for (int k = 0, len = inRange.size(); k < len; k++) {
