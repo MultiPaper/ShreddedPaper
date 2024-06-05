@@ -212,10 +212,10 @@ index 28f4e0f7ee069f891b8ff1124902d4154ab15138..97742d2286468c55daf2076f6da1f31a
          this.spigotConfig.currentPrimedTnt = 0; // Spigot
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 90af83480224ae4534af3d0f86c33db6bc480636..95eeb3c1415a08d62d6f98ee3b1b4a1ea2d97f55 100644
+index 4697e5aa538ac930b6b496eb815f4b57f8425f7e..a87bc013292b6d29125d12ba96f1d08a94f7a42e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -196,7 +196,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -197,7 +197,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public int getTickableTileEntityCount() {

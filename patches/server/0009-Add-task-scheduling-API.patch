@@ -6,10 +6,10 @@ Subject: [PATCH] Add task scheduling API
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9c02586147e22a9a09c67d28dd47e0496a475fa1
+index 0000000000000000000000000000000000000000..5563cf9bd79df0e9972f6db37c9c1ca24064fdec
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,45 @@
 +package io.multipaper.shreddedpaper;
 +
 +import io.papermc.paper.util.TickThread;
@@ -43,11 +43,15 @@ index 0000000000000000000000000000000000000000..9c02586147e22a9a09c67d28dd47e049
 +    }
 +
 +    public static void ensureSync(ServerLevel serverLevel, ChunkPos chunkPos, Runnable runnable) {
-+        if (!TickThread.isTickThreadFor(serverLevel, chunkPos)) {
++        if (!isSync(serverLevel, chunkPos)) {
 +            runSync(serverLevel, chunkPos, runnable);
 +        } else {
 +            runnable.run();
 +        }
++    }
++
++    public static boolean isSync(ServerLevel serverLevel, ChunkPos chunkPos) {
++        return serverLevel.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forChunk(chunkPos));
 +    }
 +
 +}
@@ -869,19 +873,20 @@ index 2787161170203e9bcbb88b96599ac7f12ae79570..8ff1f92bf02a510299c0332a9d01c54a
      private final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler globalRegionScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..90af83480224ae4534af3d0f86c33db6bc480636 100644
+index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..4697e5aa538ac930b6b496eb815f4b57f8425f7e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -5,6 +5,8 @@ import com.google.common.base.Predicates;
+@@ -5,6 +5,9 @@ import com.google.common.base.Predicates;
  import com.google.common.collect.ImmutableList;
  import com.google.common.collect.ImmutableMap;
  import com.mojang.datafixers.util.Pair;
++import io.multipaper.shreddedpaper.ShreddedPaper;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-@@ -20,6 +22,7 @@ import java.util.Objects;
+@@ -20,6 +23,7 @@ import java.util.Objects;
  import java.util.Random;
  import java.util.Set;
  import java.util.UUID;
@@ -889,7 +894,7 @@ index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..90af83480224ae4534af3d0f86c33db6
  import java.util.concurrent.ExecutionException;
  import java.util.function.Consumer;
  import java.util.function.Predicate;
-@@ -392,10 +395,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -392,10 +396,12 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      @Override
      public boolean isChunkGenerated(int x, int z) {
          // Paper start - Fix this method
@@ -905,3 +910,12 @@ index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..90af83480224ae4534af3d0f86c33db6
          }
          ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
          if (chunk == null) {
+@@ -2554,7 +2560,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+         java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
+ 
+         io.papermc.paper.chunk.system.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
+-            net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
++            ShreddedPaper.ensureSync(this.getHandle(), c.getPos(), () -> { // ShreddedPaper - ensure on correct thread
+                 net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
+                 if (chunk != null) this.addTicket(x, z); // Paper
+                 ret.complete(chunk == null ? null : new CraftChunk(chunk));

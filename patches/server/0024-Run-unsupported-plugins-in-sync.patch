@@ -6,13 +6,14 @@ Subject: [PATCH] Run unsupported plugins in sync
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..c135dc9347bb2d0dc1a657cbcaed84cfbaf50846
+index 0000000000000000000000000000000000000000..3964721dfbfe071010d90426df09d802ddce67d3
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
-@@ -0,0 +1,160 @@
+@@ -0,0 +1,161 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
++import io.papermc.paper.util.TickThread;
 +import org.bukkit.plugin.Plugin;
 +import org.slf4j.Logger;
 +import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
@@ -54,7 +55,7 @@ index 0000000000000000000000000000000000000000..c135dc9347bb2d0dc1a657cbcaed84cf
 +    }
 +
 +    public static void execute(Plugin plugin, RunnableWithException runnable) throws Exception {
-+        if (plugin == null || !ShreddedPaperConfiguration.get().multithreading.runUnsupportedPluginsInSync || plugin.getDescription().isFoliaSupported()) {
++        if (plugin == null || !ShreddedPaperConfiguration.get().multithreading.runUnsupportedPluginsInSync || plugin.getDescription().isFoliaSupported() || TickThread.isShutdownThread()) {
 +            // Multi-thread safe plugin, run it straight away
 +            runnable.run();
 +            return;
@@ -318,30 +319,30 @@ index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..2e250604d22dde70fc1133d55b3730ff
                  Plugin plugin = registration.getPlugin();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index b8fa934a516833dbdc483b50f671f51d723034f9..50cee0735fc22d1ba6dd1bf18218cc5b24a392bc 100644
+index a284dd9dc9e165a1b45dddfea3c287b9dd9ef6cf..306ff2a80f470444748e09acd0e580db07f4dfd0 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
- import com.google.common.collect.ImmutableMap;
+@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
  import com.mojang.datafixers.util.Pair;
+ import io.multipaper.shreddedpaper.ShreddedPaper;
  import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
  import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-@@ -2557,12 +2558,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2558,12 +2559,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          }
  
          java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
 +        Plugin plugin = SynchronousPluginExecution.getCurrentPlugin(); // ShreddedPaper - synchronous plugin execution
  
          io.papermc.paper.chunk.system.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
-             // net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> { // ShreddedPaper - this is already on the main thread
+             ShreddedPaper.ensureSync(this.getHandle(), c.getPos(), () -> { // ShreddedPaper - ensure on correct thread
                  net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
                  if (chunk != null) this.addTicket(x, z); // Paper
 -                ret.complete(chunk == null ? null : new CraftChunk(chunk));
 +                SynchronousPluginExecution.executeNoException(plugin, () -> ret.complete(chunk == null ? null : new CraftChunk(chunk))); // ShreddedPaper - synchronous plugin execution
-             // }); // ShreddedPaper - this is already on the main thread
+             });
          });
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
