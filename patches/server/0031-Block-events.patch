@@ -1,0 +1,150 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Wed, 5 Jun 2024 20:01:02 +0900
+Subject: [PATCH] Block events
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
+index 7d870c30cc5bb2e1da5f06622d49571323fd23c7..124032e8f768821a7a2b7c9064f9d9343e920751 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
++++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
+@@ -3,12 +3,15 @@ package io.multipaper.shreddedpaper.region;
+ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQueue;
+ import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
++import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
+ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
++import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ChunkHolder;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Mob;
++import net.minecraft.world.level.BlockEventData;
+ import net.minecraft.world.level.block.entity.TickingBlockEntity;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ 
+@@ -30,6 +33,7 @@ public class LevelChunkRegion {
+     public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
+     public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
+     public final List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
++    private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
+ 
+     public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
+         this.level = level;
+@@ -119,9 +123,21 @@ public class LevelChunkRegion {
+         toRun.forEach(DelayedTask::run);
+     }
+ 
++    public synchronized void addBlockEvent(BlockEventData blockEvent) {
++        blockEvents.add(blockEvent);
++    }
++
++    public synchronized List<BlockEventData> takeBlockEvents() {
++        List<BlockEventData> retValue = blockEvents.isEmpty() ? List.of() : new ArrayList<>(blockEvents);
++        blockEvents.clear();
++        return retValue;
++    }
++
+     public boolean isEmpty() {
+         return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty()
+                 && players.isEmpty()
+-                && unloadQueue.isEmpty();
++                && unloadQueue.isEmpty()
++                && blockEvents.isEmpty()
++                ;
+     }
+ }
+diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
+index 9b4c50b2d677b15e9dd1f923114496f597b2e4cf..40e1726a17644c2eca78e8964bcd3d62baef49e3 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
++++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
+@@ -2,9 +2,11 @@ package io.multipaper.shreddedpaper.region;
+ 
+ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
++import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Mob;
++import net.minecraft.world.level.BlockEventData;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
+@@ -147,4 +149,8 @@ public class LevelChunkRegionMap {
+             getOrCreate(toRegion).addPlayer(player);
+         }
+     }
++
++    public void addBlockEvent(BlockEventData blockEvent) {
++        getOrCreate(RegionPos.forBlockPos(blockEvent.pos())).addBlockEvent(blockEvent);
++    }
+ }
+\ No newline at end of file
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+index 40e4e8cab80393f8562ea795405933ca5e830b93..812eabac9d41f0767c9e9f7755c5e4ca22ee12c3 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+@@ -77,6 +77,8 @@ public class ShreddedPaperChunkTicker {
+             level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
+             level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
+ 
++            level.runBlockEvents(region.takeBlockEvents());
++
+             region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
+ 
+             while (region.getInternalTaskQueue().executeTask()) ;
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 809681dd4e758c46e41e41f19ce29dbf7835f876..b76fe41a3607d4315cf791d20fcf9d897468bf09 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -23,6 +23,7 @@ import java.io.Writer;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+ import java.util.ArrayList;
++import java.util.Collection;
+ import java.util.Comparator;
+ import java.util.Iterator;
+ import java.util.List;
+@@ -903,7 +904,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+         //gameprofilerfiller.popPush("blockEvents"); // Purpur
+         if (flag) {
+             // this.timings.doSounds.startTiming(); // Spigot // Purpur
+-            this.runBlockEvents();
++            // this.runBlockEvents(); // ShreddedPaper - handled locally in the region
+             // this.timings.doSounds.stopTiming(); // Spigot // Purpur
+         }
+ 
+@@ -2044,25 +2045,25 @@ public class ServerLevel extends Level implements WorldGenLevel {
+ 
+     @Override
+     public void blockEvent(BlockPos pos, Block block, int type, int data) {
+-        this.blockEvents.add(new BlockEventData(pos, block, type, data));
++        this.chunkSource.tickingRegions.addBlockEvent(new BlockEventData(pos, block, type, data)); // ShreddedPaper
+     }
+ 
+-    private void runBlockEvents() {
+-        this.blockEventsToReschedule.clear();
++    public void runBlockEvents(List<BlockEventData> blockEvents) { // ShreddedPaper
++        // this.blockEventsToReschedule.clear(); // ShreddedPaper
+ 
+-        while (!this.blockEvents.isEmpty()) {
+-            BlockEventData blockactiondata = (BlockEventData) this.blockEvents.removeFirst();
++        for (int i = 0; i < blockEvents.size(); i++) { // ShreddedPaper
++            BlockEventData blockactiondata = (BlockEventData) blockEvents.get(i); // ShreddedPaper
+ 
+             if (this.shouldTickBlocksAt(blockactiondata.pos())) {
+                 if (this.doBlockEvent(blockactiondata)) {
+                     this.server.getPlayerList().broadcast((Player) null, (double) blockactiondata.pos().getX(), (double) blockactiondata.pos().getY(), (double) blockactiondata.pos().getZ(), 64.0D, this.dimension(), new ClientboundBlockEventPacket(blockactiondata.pos(), blockactiondata.block(), blockactiondata.paramA(), blockactiondata.paramB()));
+                 }
+             } else {
+-                this.blockEventsToReschedule.add(blockactiondata);
++                this.chunkSource.tickingRegions.addBlockEvent(blockactiondata); // ShreddedPaper
+             }
+         }
+ 
+-        this.blockEvents.addAll(this.blockEventsToReschedule);
++        // this.blockEvents.addAll(this.blockEventsToReschedule); // ShreddedPaper
+     }
+ 
+     private boolean doBlockEvent(BlockEventData event) {
