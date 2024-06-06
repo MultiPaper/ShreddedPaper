@@ -217,7 +217,7 @@ index e94224ed280247ee69dfdff8dc960f2b8729be33..9025b44a3ef50e95dcbb4351763f550c
          Component pluginName = Component.text(name, fromStatus(provider))
          // Purpur start
 diff --git a/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java b/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
-index 24121a43aeb5e9bce013f30c92dddd15f99736c6..8d7af084b8682c1032f911995c6837536d0770c1 100644
+index 24121a43aeb5e9bce013f30c92dddd15f99736c6..c234deec92e155336078cbbce1f726d87c35b753 100644
 --- a/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
 +++ b/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
 @@ -19,6 +19,9 @@ import org.bukkit.Location;
@@ -246,7 +246,7 @@ index 24121a43aeb5e9bce013f30c92dddd15f99736c6..8d7af084b8682c1032f911995c683753
              //} // Purpur
  
              // return true as command was handled
-@@ -112,10 +122,23 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
+@@ -112,32 +122,45 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
              org.bukkit.command.CommandSender sender = context.getSource().getSender();
              String[] args = builder.getRemaining().split(" ", -1); // We need the command included -- Set limit to -1, allow for trailing spaces
  
@@ -272,7 +272,17 @@ index 24121a43aeb5e9bce013f30c92dddd15f99736c6..8d7af084b8682c1032f911995c683753
              } catch (CommandException ex) {
                  sender.sendMessage(ChatColor.RED + "An internal error occurred while attempting to tab-complete this command");
                  Bukkit.getServer().getLogger().log(Level.SEVERE, "Exception when " + sender.getName() + " attempted to tab complete " + builder.getRemaining(), ex);
-@@ -130,14 +153,14 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
+             }
+ 
+             if (sender instanceof final Player player) {
+-                TabCompleteEvent tabEvent = new org.bukkit.event.server.TabCompleteEvent(player, builder.getInput(), results != null ? results : new ArrayList<>(), true, pos); // Paper - AsyncTabCompleteEvent
++                TabCompleteEvent tabEvent = new org.bukkit.event.server.TabCompleteEvent(player, builder.getInput(), results.value() != null ? results.value() : new ArrayList<>(), true, pos); // Paper - AsyncTabCompleteEvent // ShreddedPaper
+                 if (!tabEvent.callEvent()) {
+-                    results = null;
++                    results.value(null); // ShreddedPaper
+                 } else {
+-                    results = tabEvent.getCompletions();
++                    results.value(tabEvent.getCompletions()); // ShreddedPaper
                  }
              }
              // Paper end
