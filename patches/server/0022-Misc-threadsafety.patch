@@ -31,6 +31,59 @@ index a5f706d6f716b2a463ae58adcde69d9e665c7733..2f269fee6e9119db5b67934627d66e96
          for (int i = 0, len = this.needsRecalculation.size(); i < len; ++i) {
              final Region region = this.needsRecalculation.removeFirst();
  
+diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
+index 758c155c23d95c3cc952cb14f864c703f9b45127..6b83f09f9862e298cad009b3e3a384478f616030 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
++++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
+@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
+ import com.google.gson.JsonArray;
+ import com.google.gson.JsonObject;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader;
+ import io.papermc.paper.chunk.system.io.RegionFileIOThread;
+ import io.papermc.paper.chunk.system.poi.PoiChunk;
+@@ -50,6 +51,7 @@ import java.util.Collection;
+ import java.util.Collections;
+ import java.util.Iterator;
+ import java.util.List;
++import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.TimeUnit;
+ import java.util.concurrent.atomic.AtomicBoolean;
+@@ -57,6 +59,7 @@ import java.util.concurrent.atomic.AtomicLong;
+ import java.util.concurrent.atomic.AtomicReference;
+ import java.util.concurrent.locks.LockSupport;
+ import java.util.function.Predicate;
++import java.util.function.Supplier;
+ 
+ public final class ChunkHolderManager {
+ 
+@@ -279,7 +282,23 @@ public final class ChunkHolderManager {
+         for (int i = 0, len = holders.size(); i < len; ++i) {
+             final NewChunkHolder holder = holders.get(i);
+             try {
+-                final NewChunkHolder.SaveStat saveStat = holder.save(shutdown, false);
++                // ShreddedPaper start - save on chunk's thread
++                CompletableFuture<NewChunkHolder.SaveStat> future;
++                Supplier<NewChunkHolder.SaveStat> supplier = () -> holder.save(shutdown, false);
++                do {
++                    if (TickThread.isShutdownThread()) {
++                        // We're shutting down, no need to worry about chunk threads
++                        future = CompletableFuture.completedFuture(supplier.get());
++                    } else {
++                        future = CompletableFuture.supplyAsync(supplier, r -> world.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(RegionPos.forChunk(holder.vanillaChunkHolder.pos), r));
++                        if (!future.isDone()) {
++                            // Poll task while we wait for region to become unlocked
++                            world.chunkSource.mainThreadProcessor.pollTask();
++                        }
++                    }
++                } while (!future.isDone());
++                final NewChunkHolder.SaveStat saveStat = future.join();
++                // ShreddedPaper end - save on chunk's thread
+                 if (saveStat != null) {
+                     ++saved;
+                     needsFlush = flush;
 diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
 index 645e39222d81a5049888c86881ee381310fa7060..8fe50092e5e99127c937cf50990c3ad80f9a750e 100644
 --- a/src/main/java/io/papermc/paper/util/TickThread.java
