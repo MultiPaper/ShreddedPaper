@@ -435,7 +435,7 @@ index 114f273dd7f8b8a3c02f0651f6944859b33a65d4..bc501ce058f001a4c87bf2d513a855f1
  
      abstract BossBar createBossBar();
 diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..6aabcb7899e104ef9602c348cc4dfe537fb2a326 100644
+index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..3862ddfdb2581c3517d2ee174d56afa5ee1d6d97 100644
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
 @@ -3,8 +3,12 @@ package org.spigotmc;
@@ -471,7 +471,7 @@ index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..6aabcb7899e104ef9602c348cc4dfe53
 +        ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads( true, true );
 +        return Arrays.stream(threads)
 +                .filter(thread -> thread.getThreadName().startsWith("ShreddedPaperTickThread"))
-+                .filter(thread -> Arrays.stream(thread.getStackTrace()).anyMatch(stack -> !stack.getClassName().startsWith("java")))
++                .filter(thread -> Arrays.stream(thread.getStackTrace()).anyMatch(stack -> !stack.getClassName().startsWith("java") && !stack.getClassName().startsWith("jdk")))
 +                .toList();
 +    }
 +

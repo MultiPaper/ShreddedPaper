@@ -4,8 +4,86 @@ Date: Sat, 1 Jun 2024 10:44:19 +0900
 Subject: [PATCH] Portal
 
 
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index 01904ed991aecab3a399d62c562195b84c713750..99b32964e4d99e87e2b671bdd49f6c6592affcce 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -20,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
+ 
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
+ import io.papermc.paper.util.TickThread;
+ import net.minecraft.BlockUtil;
+ import net.minecraft.ChatFormatting;
+@@ -1303,14 +1305,14 @@ public class ServerPlayer extends Player {
+     }
+ 
+     @Nullable
+-    public Entity changeDimension(ServerLevel worldserver, PlayerTeleportEvent.TeleportCause cause) {
++    public Entity changeDimension(ServerLevel worldserver2, PlayerTeleportEvent.TeleportCause cause) { // ShreddedPaper - rename worldserver -> worldserver2
+         // CraftBukkit end
+         if (this.isSleeping()) return this; // CraftBukkit - SPIGOT-3154
+         // this.isChangingDimension = true; // CraftBukkit - Moved down and into PlayerList#changeDimension
+         ServerLevel worldserver1 = this.serverLevel();
+         ResourceKey<LevelStem> resourcekey = worldserver1.getTypeKey(); // CraftBukkit
+ 
+-        if (resourcekey == LevelStem.END && worldserver != null && worldserver.getTypeKey() == LevelStem.OVERWORLD) { // CraftBukkit
++        if (resourcekey == LevelStem.END && worldserver2 != null && worldserver2.getTypeKey() == LevelStem.OVERWORLD) { // CraftBukkit // ShreddedPaper - rename worldserver -> worldserver2
+             this.isChangingDimension = true; // CraftBukkit - Moved down from above
+             this.unRide();
+             this.serverLevel().removePlayerImmediately(this, Entity.RemovalReason.CHANGED_DIMENSION);
+@@ -1336,7 +1338,11 @@ public class ServerPlayer extends Player {
+             this.unsetRemoved();
+             */
+             // CraftBukkit end
+-            PortalInfo shapedetectorshape = this.findDimensionEntryPoint(worldserver);
++            PortalInfo shapedetectorshape = this.findDimensionEntryPoint(worldserver2); // ShreddedPaper - rename worldserver -> worldserver2
++
++            if (shapedetectorshape == null) return null; // ShreddedPaper
++            Runnable task = () -> { // ShreddedPaper - run on right thread
++            ServerLevel worldserver; // ShreddedPaper
+ 
+             if (shapedetectorshape != null) {
+                 //worldserver1.getProfiler().push("moving"); // Purpur
+@@ -1349,14 +1355,14 @@ public class ServerPlayer extends Player {
+                 }
+                 // CraftBukkit start
+             } else {
+-                return null;
++                return; // ShreddedPaper
+             }
+             Location enter = this.getBukkitEntity().getLocation();
+             Location exit = (worldserver == null) ? null : CraftLocation.toBukkit(shapedetectorshape.pos, worldserver.getWorld(), shapedetectorshape.yRot, shapedetectorshape.xRot);
+             PlayerTeleportEvent tpEvent = new PlayerTeleportEvent(this.getBukkitEntity(), enter, exit, cause);
+             Bukkit.getServer().getPluginManager().callEvent(tpEvent);
+             if (tpEvent.isCancelled() || tpEvent.getTo() == null) {
+-                return null;
++                return; // ShreddedPaper
+             }
+             exit = tpEvent.getTo();
+             worldserver = ((CraftWorld) exit.getWorld()).getHandle();
+@@ -1410,6 +1416,17 @@ public class ServerPlayer extends Player {
+             }
+             // Paper end - Reset shield blocking on dimension change
+ 
++            }; // ShreddedPaper start - run on right thread
++            if (TickThread.isTickThreadFor(this) && TickThread.isTickThreadFor(shapedetectorshape.world, shapedetectorshape.pos)) {
++                task.run();
++            } else {
++                ShreddedPaperRegionScheduler.scheduleAcrossLevels(
++                        this.serverLevel(), RegionPos.forChunk(this.chunkPosition()),
++                        shapedetectorshape.world, RegionPos.forBlockPos((int) shapedetectorshape.pos.x, (int) shapedetectorshape.pos.y, (int) shapedetectorshape.pos.z),
++                        task);
++            }
++            // ShreddedPaper end - run on right thread
++
+             return this;
+         }
+     }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 2e0967cdbc19887d89ae854261d49886fc494025..cad612dccae637690693182ed02005cc3ebc18f4 100644
+index 2e0967cdbc19887d89ae854261d49886fc494025..76404d6b904417c31ac37df93e891ce0eb3300d0 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -6,6 +6,8 @@ import com.google.common.collect.Lists;
@@ -65,3 +143,78 @@ index 2e0967cdbc19887d89ae854261d49886fc494025..cad612dccae637690693182ed02005cc
                      } // Paper - Add EntityPortalReadyEvent
                      // CraftBukkit end
                      //this.level().getProfiler().pop(); // Purpur
+@@ -3747,11 +3771,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     }
+ 
+     @Nullable
+-    public Entity teleportTo(ServerLevel worldserver, Vec3 location) {
++    public Entity teleportTo(ServerLevel worldserver2, Vec3 location) { // ShreddedPaper - rename worldserver -> worldserver2
+         // CraftBukkit end
+         // Paper start - Fix item duplication and teleport issues
+         if (!this.isAlive() || !this.valid) {
+-            LOGGER.warn("Illegal Entity Teleport " + this + " to " + worldserver + ":" + location, new Throwable());
++            LOGGER.warn("Illegal Entity Teleport " + this + " to " + worldserver2 + ":" + location, new Throwable()); // ShreddedPaper - rename worldserver -> worldserver2
+             return null;
+         }
+         // Paper end - Fix item duplication and teleport issues
+@@ -3759,16 +3783,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+             //this.level().getProfiler().push("changeDimension"); // Purpur
+             // CraftBukkit start
+             // this.unRide();
+-            if (worldserver == null) {
++            if (worldserver2 == null) { // ShreddedPaper - rename worldserver -> worldserver2
+                 return null;
+             }
+             // CraftBukkit end
+             //this.level().getProfiler().push("reposition"); // Purpur
+-            PortalInfo shapedetectorshape = (location == null) ? this.findDimensionEntryPoint(worldserver) : new PortalInfo(new Vec3(location.x(), location.y(), location.z()), Vec3.ZERO, this.yRot, this.xRot, worldserver, null); // CraftBukkit
++            PortalInfo shapedetectorshape = (location == null) ? this.findDimensionEntryPoint(worldserver2) : new PortalInfo(new Vec3(location.x(), location.y(), location.z()), Vec3.ZERO, this.yRot, this.xRot, worldserver2, null); // CraftBukkit // ShreddedPaper - rename worldserver -> worldserver2
+ 
+             if (shapedetectorshape == null) {
+                 return null;
+             } else {
++                Runnable task = () -> { // ShreddedPaper - run on right thread
++                ServerLevel worldserver; // ShreddedPaper
++
+                 // CraftBukkit start
+                 worldserver = shapedetectorshape.world;
+                 // Paper start - Call EntityPortalExitEvent
+@@ -3782,7 +3809,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                     bukkitEntity.getVelocity(), org.bukkit.craftbukkit.util.CraftVector.toBukkit(shapedetectorshape.speed));
+                 event.callEvent();
+                 if (this.isRemoved()) {
+-                    return null;
++                    return; // ShreddedPaper
+                 }
+ 
+                 if (!event.isCancelled() && event.getTo() != null) {
+@@ -3797,7 +3824,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                     // SPIGOT-6782: Just move the entity if a plugin changed the world to the one the entity is already in
+                     this.moveTo(shapedetectorshape.pos.x, shapedetectorshape.pos.y, shapedetectorshape.pos.z, shapedetectorshape.yRot, shapedetectorshape.xRot);
+                     this.setDeltaMovement(shapedetectorshape.speed);
+-                    return this;
++                    return; // ShreddedPaper
+                 }
+                 TickThread.ensureTickThread(worldserver, position.x, position.z, "Can't teleport entity to async destination"); // ShreddedPaper - can't teleport into other regions
+                 this.unRide();
+@@ -3834,7 +3861,19 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                 ((ServerLevel) this.level()).resetEmptyTime();
+                 worldserver.resetEmptyTime();
+                 //this.level().getProfiler().pop(); // Purpur
+-                return entity;
++
++                }; // ShreddedPaper start - run on right thread
++                if (TickThread.isTickThreadFor(this) && TickThread.isTickThreadFor(shapedetectorshape.world, shapedetectorshape.pos)) {
++                    task.run();
++                } else {
++                    ShreddedPaperRegionScheduler.scheduleAcrossLevels(
++                            (ServerLevel) this.level(), RegionPos.forChunk(this.chunkPosition()),
++                            shapedetectorshape.world, RegionPos.forBlockPos((int) shapedetectorshape.pos.x, (int) shapedetectorshape.pos.y, (int) shapedetectorshape.pos.z),
++                            task);
++                }
++                // ShreddedPaper end - run on right thread
++
++                return null; // ShreddedPaper - no one seems to use the return value of this method
+             }
+         } else {
+             return null;
