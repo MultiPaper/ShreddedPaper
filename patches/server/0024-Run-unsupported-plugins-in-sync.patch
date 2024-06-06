@@ -217,10 +217,10 @@ index e94224ed280247ee69dfdff8dc960f2b8729be33..9025b44a3ef50e95dcbb4351763f550c
          Component pluginName = Component.text(name, fromStatus(provider))
          // Purpur start
 diff --git a/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java b/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
-index 02597f890ac7f2dc12c94c283356b8309638dd17..169a940429a0e7f2318bcc88b4bd78986d62d314 100644
+index 24121a43aeb5e9bce013f30c92dddd15f99736c6..8d7af084b8682c1032f911995c6837536d0770c1 100644
 --- a/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
 +++ b/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
-@@ -17,6 +17,9 @@ import org.bukkit.Location;
+@@ -19,6 +19,9 @@ import org.bukkit.Location;
  import org.bukkit.command.Command;
  import org.bukkit.command.CommandException;
  import org.bukkit.command.CommandSender;
@@ -230,7 +230,7 @@ index 02597f890ac7f2dc12c94c283356b8309638dd17..169a940429a0e7f2318bcc88b4bd7898
  
  import java.util.Arrays;
  import java.util.List;
-@@ -83,7 +86,14 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
+@@ -88,7 +91,14 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
  
              //try (Timing ignored = this.command.timings.startTiming()) { // Purpur
                  // Note: we don't return the result of target.execute as thats success / failure, we return handled (true) or not handled (false)
@@ -246,7 +246,7 @@ index 02597f890ac7f2dc12c94c283356b8309638dd17..169a940429a0e7f2318bcc88b4bd7898
              //} // Purpur
  
              // return true as command was handled
-@@ -107,24 +117,37 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
+@@ -112,10 +122,23 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
              org.bukkit.command.CommandSender sender = context.getSource().getSender();
              String[] args = builder.getRemaining().split(" ", -1); // We need the command included -- Set limit to -1, allow for trailing spaces
  
@@ -272,8 +272,9 @@ index 02597f890ac7f2dc12c94c283356b8309638dd17..169a940429a0e7f2318bcc88b4bd7898
              } catch (CommandException ex) {
                  sender.sendMessage(ChatColor.RED + "An internal error occurred while attempting to tab-complete this command");
                  Bukkit.getServer().getLogger().log(Level.SEVERE, "Exception when " + sender.getName() + " attempted to tab complete " + builder.getRemaining(), ex);
+@@ -130,14 +153,14 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
+                 }
              }
- 
              // Paper end
 -            if (results == null) {
 +            if (results.value() == null) { // ShreddedPaper
