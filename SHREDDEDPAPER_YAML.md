@@ -26,5 +26,11 @@ multithreading:
   # guaranteed. If false, or if the plugin is supported, all the plugin's code
   # will run asynchronously in the ticking region worker threads.
   run-unsupported-plugins-in-sync: true
+  
+  # Can unsupported plugins modify blocks/entities/etc from the global scheduler
+  # This will be false if there are multiple servers as tasks in the global
+  # scheduler do not have the required region locks. These locks aren't needed
+  # for single server instances.
+  allow-unsupported-plugins-to-modify-chunks-via-global-scheduler: true
 
 ```

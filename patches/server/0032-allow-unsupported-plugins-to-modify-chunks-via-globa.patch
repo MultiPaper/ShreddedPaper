@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Thu, 6 Jun 2024 17:09:45 +0900
+Subject: [PATCH] 
+ allow-unsupported-plugins-to-modify-chunks-via-global-scheduler
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+index 3fc916f72e107b5bbdb6e169e414fbc4e5691b2d..71905410decf469c146c301cf8124fcee21caca0 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+@@ -22,11 +22,15 @@ import java.util.concurrent.CompletableFuture;
+ 
+ public class ShreddedPaperChunkTicker {
+ 
++    public static boolean tickingChunks = false;
++
+     public static void tickChunks(ServerLevel level, NaturalSpawner.SpawnState spawnercreature_d) {
+         List<CompletableFuture<Void>> futures = new ArrayList<>();
+ 
+         MinecraftServer.getServer().executeMidTickTasks();
+ 
++        tickingChunks = true;
++
+         level.chunkSource.tickingRegions.forEach(
+                 region -> futures.add(tickRegion(level, region, spawnercreature_d))
+         );
+@@ -37,6 +41,8 @@ public class ShreddedPaperChunkTicker {
+             }
+         }
+ 
++        tickingChunks = false;
++
+         MinecraftServer.getServer().executeMidTickTasks();
+     }
+ 
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
+index cee763e641821090382ab1d20405d54052852bab..39262659b6b0793880378fb49220c30de3d78485 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
+@@ -1,5 +1,6 @@
+ package io.multipaper.shreddedpaper.threading;
+ 
++import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+ import io.multipaper.shreddedpaper.region.RegionPos;
+ import io.multipaper.shreddedpaper.util.ObjectHolder;
+@@ -37,7 +38,7 @@ public class ShreddedPaperRegionLocker {
+      * Checks if the current thread holds a read lock for the given region
+      */
+     public boolean hasLock(RegionPos regionPos) {
+-        return localLocks.get().contains(regionPos);
++        return localLocks.get().contains(regionPos) || TickThread.canBypassTickThreadCheck();
+     }
+ 
+     /**
+@@ -46,7 +47,7 @@ public class ShreddedPaperRegionLocker {
+      * syncing conflicts with other servers.
+      */
+     public boolean hasWriteLock(RegionPos regionPos) {
+-        return writeLocks.get().contains(regionPos);
++        return writeLocks.get().contains(regionPos) || TickThread.canBypassTickThreadCheck();
+     }
+ 
+     /**
+diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
+index 8fe50092e5e99127c937cf50990c3ad80f9a750e..b20a40e36ed42fc3fd14220b5dab7b9db3bb8332 100644
+--- a/src/main/java/io/papermc/paper/util/TickThread.java
++++ b/src/main/java/io/papermc/paper/util/TickThread.java
+@@ -1,5 +1,8 @@
+ package io.papermc.paper.util;
+ 
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ServerLevel;
+@@ -68,6 +71,16 @@ public class TickThread extends Thread {
+     }
+     // ShreddedPaper end
+ 
++    // ShreddedPaper start
++    public static boolean canBypassTickThreadCheck() {
++        return
++                ShreddedPaperConfiguration.get().multithreading.allowUnsupportedPluginsToModifyChunksViaGlobalScheduler &&
++                SynchronousPluginExecution.getCurrentPlugin() != null &&
++                Thread.currentThread() == MinecraftServer.getServer().getRunningThread() &&
++                !ShreddedPaperChunkTicker.tickingChunks;
++    }
++    // ShreddedPaper end
++
+     /**
+      * @deprecated
+      */
