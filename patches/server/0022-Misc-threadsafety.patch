@@ -31,6 +31,59 @@ index a5f706d6f716b2a463ae58adcde69d9e665c7733..2f269fee6e9119db5b67934627d66e96
          for (int i = 0, len = this.needsRecalculation.size(); i < len; ++i) {
              final Region region = this.needsRecalculation.removeFirst();
  
+diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
+index 758c155c23d95c3cc952cb14f864c703f9b45127..6b83f09f9862e298cad009b3e3a384478f616030 100644
+--- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
++++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkHolderManager.java
+@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
+ import com.google.gson.JsonArray;
+ import com.google.gson.JsonObject;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import io.papermc.paper.chunk.system.RegionizedPlayerChunkLoader;
+ import io.papermc.paper.chunk.system.io.RegionFileIOThread;
+ import io.papermc.paper.chunk.system.poi.PoiChunk;
+@@ -50,6 +51,7 @@ import java.util.Collection;
+ import java.util.Collections;
+ import java.util.Iterator;
+ import java.util.List;
++import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.TimeUnit;
+ import java.util.concurrent.atomic.AtomicBoolean;
+@@ -57,6 +59,7 @@ import java.util.concurrent.atomic.AtomicLong;
+ import java.util.concurrent.atomic.AtomicReference;
+ import java.util.concurrent.locks.LockSupport;
+ import java.util.function.Predicate;
++import java.util.function.Supplier;
+ 
+ public final class ChunkHolderManager {
+ 
+@@ -279,7 +282,23 @@ public final class ChunkHolderManager {
+         for (int i = 0, len = holders.size(); i < len; ++i) {
+             final NewChunkHolder holder = holders.get(i);
+             try {
+-                final NewChunkHolder.SaveStat saveStat = holder.save(shutdown, false);
++                // ShreddedPaper start - save on chunk's thread
++                CompletableFuture<NewChunkHolder.SaveStat> future;
++                Supplier<NewChunkHolder.SaveStat> supplier = () -> holder.save(shutdown, false);
++                do {
++                    if (TickThread.isShutdownThread()) {
++                        // We're shutting down, no need to worry about chunk threads
++                        future = CompletableFuture.completedFuture(supplier.get());
++                    } else {
++                        future = CompletableFuture.supplyAsync(supplier, r -> world.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(RegionPos.forChunk(holder.vanillaChunkHolder.pos), r));
++                        if (!future.isDone()) {
++                            // Poll task while we wait for region to become unlocked
++                            world.chunkSource.mainThreadProcessor.pollTask();
++                        }
++                    }
++                } while (!future.isDone());
++                final NewChunkHolder.SaveStat saveStat = future.join();
++                // ShreddedPaper end - save on chunk's thread
+                 if (saveStat != null) {
+                     ++saved;
+                     needsFlush = flush;
 diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
 index 645e39222d81a5049888c86881ee381310fa7060..8fe50092e5e99127c937cf50990c3ad80f9a750e 100644
 --- a/src/main/java/io/papermc/paper/util/TickThread.java
@@ -221,6 +274,19 @@ index 12f1345ff70388fb217100bfc717ef861785381d..9c0f561a65ed5f5b45ce4c30754f71b3
 +        return this.playersLock.optimisticRead(() -> this.players.getBoolean(player)); // ShreddedPaper
      }
  }
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 7142c6e43b84cd253f85c59bb268c3dbbd88f1f2..71d2d75da3e46af6b7c608bd0580291ad6b55de8 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     private void wakeUpAllPlayers() {
+         this.sleepStatus.removeAllSleepers();
+         (this.players.stream().filter(LivingEntity::isSleeping).collect(Collectors.toList())).forEach((entityplayer) -> { // CraftBukkit - decompile error
+-            entityplayer.stopSleepInBed(false, false);
++            entityplayer.getBukkitEntity().taskScheduler.schedule(e -> entityplayer.stopSleepInBed(false, false), e -> {}, 1); // ShreddedPaper - run sync
+         });
+     }
+     // Paper start - optimise random block ticking
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java
 index c6f193339fdcbcc938d4eafdcad0b112cf1698d5..256fbdc2a287a8232c8ecb9d0e06290a141a49ee 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java
@@ -435,7 +501,7 @@ index 114f273dd7f8b8a3c02f0651f6944859b33a65d4..bc501ce058f001a4c87bf2d513a855f1
  
      abstract BossBar createBossBar();
 diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..6aabcb7899e104ef9602c348cc4dfe537fb2a326 100644
+index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..3862ddfdb2581c3517d2ee174d56afa5ee1d6d97 100644
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
 @@ -3,8 +3,12 @@ package org.spigotmc;
@@ -471,7 +537,7 @@ index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..6aabcb7899e104ef9602c348cc4dfe53
 +        ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads( true, true );
 +        return Arrays.stream(threads)
 +                .filter(thread -> thread.getThreadName().startsWith("ShreddedPaperTickThread"))
-+                .filter(thread -> Arrays.stream(thread.getStackTrace()).anyMatch(stack -> !stack.getClassName().startsWith("java")))
++                .filter(thread -> Arrays.stream(thread.getStackTrace()).anyMatch(stack -> !stack.getClassName().startsWith("java") && !stack.getClassName().startsWith("jdk")))
 +                .toList();
 +    }
 +

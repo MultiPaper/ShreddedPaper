@@ -5,7 +5,7 @@ Subject: [PATCH] Player
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-index 9c02586147e22a9a09c67d28dd47e0496a475fa1..ab5c9563615faa09871d8870f7a31042c4f10d04 100644
+index 5563cf9bd79df0e9972f6db37c9c1ca24064fdec..29c584e602764262ee8a430979a08c224402ba9e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 @@ -3,6 +3,7 @@ package io.multipaper.shreddedpaper;
@@ -360,7 +360,7 @@ index 8c134a642ccaf3530022f2e675a858d726e1dda4..f5154194df9e44f8bcf431029f4bbed6
              engine.executeIfPossible(() -> {
                  packetProcessing.push(listener); // Paper - detailed watchdog information
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 53f1fb8a72772ae7c222b9732d11bacf33ac6dff..b6d5954ae9fbbcc52d9bd0bfb7b46d78f907b436 100644
+index 53f1fb8a72772ae7c222b9732d11bacf33ac6dff..6aa46eca869b7cbf358a76ca88faa285999a5350 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,8 @@ import com.mojang.authlib.GameProfileRepository;
@@ -372,7 +372,7 @@ index 53f1fb8a72772ae7c222b9732d11bacf33ac6dff..b6d5954ae9fbbcc52d9bd0bfb7b46d78
  import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.longs.LongIterator;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-@@ -1790,6 +1792,18 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1790,6 +1792,20 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
          // Paper end - Perf: Optimize time updates
          //MinecraftTimings.timeUpdateTimer.stopTiming(); // Spigot // Paper // Purpur
@@ -382,8 +382,10 @@ index 53f1fb8a72772ae7c222b9732d11bacf33ac6dff..b6d5954ae9fbbcc52d9bd0bfb7b46d78
 +        for (ServerPlayer player : this.playerList.getPlayers()) {
 +            if (player.isRemoved()) {
 +                ShreddedPaper.runSync((ServerLevel) player.level(), player.chunkPosition(), () -> {
-+                    player.getBukkitEntity().taskScheduler.executeTick();
-+                    ShreddedPaperPlayerTicker.tickPlayer(player);
++                    if (TickThread.isTickThreadFor(player)) {
++                        player.getBukkitEntity().taskScheduler.executeTick();
++                        ShreddedPaperPlayerTicker.tickPlayer(player);
++                    }
 +                });
 +            }
 +        }
@@ -391,7 +393,7 @@ index 53f1fb8a72772ae7c222b9732d11bacf33ac6dff..b6d5954ae9fbbcc52d9bd0bfb7b46d78
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
          Iterator iterator = this.getAllLevels().iterator(); // Paper - Throw exception on world create while being ticked; move down
-@@ -1840,7 +1854,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1840,7 +1856,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
          //this.profiler.popPush("connection"); // Purpur
          // MinecraftTimings.connectionTimer.startTiming(); // Spigot // Paper // Purpur
