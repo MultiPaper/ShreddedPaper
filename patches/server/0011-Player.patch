@@ -161,7 +161,7 @@ index 0000000000000000000000000000000000000000..5c514aa0e9bb89aa58359752dc15c8b4
 +
 +}
 diff --git a/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java b/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
-index 149cfb0587299f72fcfddf395fb71b70438986c1..7dbfb606375d16b93e4e446c3639e33137bf70e3 100644
+index 149cfb0587299f72fcfddf395fb71b70438986c1..0e0097c49b893b56921bd1f92329de29437a3b34 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
 @@ -3,6 +3,8 @@ package io.papermc.paper.chunk.system;
@@ -204,7 +204,7 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..7dbfb606375d16b93e4e446c3639e331
                  final int pendingSendZ = CoordinateUtils.getChunkZ(pendingSend);
                  final LevelChunk chunk = this.world.chunkSource.getChunkAtIfLoadedMainThreadNoCache(pendingSendX, pendingSendZ);
 -                if (!chunk.areNeighboursLoaded(1) || !TickThread.isTickThreadFor(this.world, pendingSendX, pendingSendZ)) {
-+                if (!chunk.areNeighboursLoaded(1)) { // ShreddedPaper - do thread check later
++                if (chunk == null || !chunk.areNeighboursLoaded(1)) { // ShreddedPaper - do thread check later / chunk could have been unloaded before sending
                      // nothing to do
                      // the target chunk may not be owned by this region, but this should be resolved in the future
                      break;
@@ -547,7 +547,7 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..d03e9227859d1432bea814407f88de14
      private int getCoprime(int horizontalSpawnArea) {
          return horizontalSpawnArea <= 16 ? horizontalSpawnArea - 1 : 17;
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index b82a72775f9de5ad65ae46a8b97f93a7ef852265..9199bf80d372d83e0ad049505f2b90aa0efd3e40 100644
+index dcc3cb2c476831d6093928ce0a14424634b100ec..d6010548f7bce6c8e14fff0e21571b2a00233896 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -4,6 +4,10 @@ import com.mojang.authlib.GameProfile;
