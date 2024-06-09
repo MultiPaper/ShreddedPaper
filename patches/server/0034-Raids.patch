@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sun, 9 Jun 2024 09:42:44 +0900
+Subject: [PATCH] Raids
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/raid/Raids.java b/src/main/java/net/minecraft/world/entity/raid/Raids.java
+index eedce2a3d67d875d5174ee125e2679480d4d412c..998d7184cb5718e6f643e6dccc416cb872b9d519 100644
+--- a/src/main/java/net/minecraft/world/entity/raid/Raids.java
++++ b/src/main/java/net/minecraft/world/entity/raid/Raids.java
+@@ -5,6 +5,8 @@ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
+ import javax.annotation.Nullable;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderLookup;
+@@ -27,7 +29,7 @@ public class Raids extends SavedData {
+ 
+     private static final String RAID_FILE_ID = "raids";
+     public final Map<java.util.UUID, Integer> playerCooldowns = Maps.newHashMap();
+-    public final Map<Integer, Raid> raidMap = Maps.newHashMap();
++    public final Map<Integer, Raid> raidMap = Maps.newConcurrentMap(); // ShreddedPaper - concurrent map
+     private final ServerLevel level;
+     private int nextAvailableID;
+     private int tick;
+@@ -68,16 +70,18 @@ public class Raids extends SavedData {
+         while (iterator.hasNext()) {
+             Raid raid = (Raid) iterator.next();
+ 
++            ShreddedPaper.runSync((ServerLevel) raid.getLevel(), raid.getCenter(), () -> { // ShreddedPaper - run on right thread
+             if (this.level.getGameRules().getBoolean(GameRules.RULE_DISABLE_RAIDS)) {
+                 raid.stop();
+             }
+ 
+             if (raid.isStopped()) {
+-                iterator.remove();
++                this.raidMap.remove(raid.getId(), raid); // iterator.remove(); // ShreddedPaper - run on right thread
+                 this.setDirty();
+             } else {
+                 raid.tick();
+             }
++            }); // ShreddedPaper - run on right thread
+         }
+ 
+         if (this.tick % 200 == 0) {
