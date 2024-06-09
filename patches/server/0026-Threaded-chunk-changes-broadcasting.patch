@@ -70,7 +70,7 @@ index 0000000000000000000000000000000000000000..4ca4532c53c5b28833dcd9b6a1c4b593
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index ff598ed149e403d71c4d2930837d46a6dc629a6c..fc9e4fd75ff4b076ccff75b84684107473403a08 100644
+index a5fce3e8ca6922ee70c20d556e6bf9cb88679f71..fba2cef5eaaba13eaf3b005d4b3f27a35d551f81 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -63,6 +63,8 @@ public class ShreddedPaperChunkTicker {
@@ -91,9 +91,9 @@ index ff598ed149e403d71c4d2930837d46a6dc629a6c..fc9e4fd75ff4b076ccff75b846841074
              if (region.isEmpty()) {
                  level.chunkSource.tickingRegions.remove(region.getRegionPos());
              }
-@@ -91,6 +95,8 @@ public class ShreddedPaperChunkTicker {
-     private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
-         chunk1.getChunkHolder().getEntityChunk().forEach(entity -> Optional.ofNullable(entity.getBukkitEntityRaw()).ifPresent(bukkit -> bukkit.taskScheduler.executeTick()));
+@@ -95,6 +99,8 @@ public class ShreddedPaperChunkTicker {
+             }
+         });
  
 +        if (chunk1.getChunkHolder().vanillaChunkHolder.needsBroadcastChanges()) ShreddedPaperChangesBroadcaster.add(chunk1.getChunkHolder().vanillaChunkHolder); // ShreddedPaper
 +

@@ -368,7 +368,7 @@ index 0000000000000000000000000000000000000000..692dee8b14e70b2a1e9af885a7f75860
 +}
 +
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index de1eaf59a94c2586a1049a623a193af0687691a9..e35d1b5c4756e31a718ddff59ea9d38851f03867 100644
+index de1eaf59a94c2586a1049a623a193af0687691a9..33fed1c16e45fc01934801fc57390f8315d00806 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -17,6 +17,7 @@ import io.multipaper.shreddedpaper.region.LevelChunkRegion;
@@ -397,11 +397,15 @@ index de1eaf59a94c2586a1049a623a193af0687691a9..e35d1b5c4756e31a718ddff59ea9d388
              if (region.isEmpty()) {
                  level.chunkSource.tickingRegions.remove(region.getRegionPos());
              }
-@@ -69,6 +79,8 @@ public class ShreddedPaperChunkTicker {
+@@ -69,6 +79,12 @@ public class ShreddedPaperChunkTicker {
      }
  
      private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
-+        chunk1.getChunkHolder().getEntityChunk().forEach(entity -> Optional.ofNullable(entity.getBukkitEntityRaw()).ifPresent(bukkit -> bukkit.taskScheduler.executeTick()));
++        chunk1.getChunkHolder().getEntityChunk().forEach(entity -> {
++            if (!entity.isRemoved()) { // Entity could have been removed by another entity's task
++                Optional.ofNullable(entity.getBukkitEntityRaw()).ifPresent(bukkit -> bukkit.taskScheduler.executeTick());
++            }
++        });
 +
          // Start - Import the same variables as the original chunk ticking method to make copying new changes easier
          int j = 1; // Inhabited time increment in ticks

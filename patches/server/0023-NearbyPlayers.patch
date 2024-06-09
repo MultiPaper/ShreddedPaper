@@ -5,10 +5,10 @@ Subject: [PATCH] NearbyPlayers
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 762e632ddfde46c57f5a60e061cee13e6765769c..ff598ed149e403d71c4d2930837d46a6dc629a6c 100644
+index 1d626cbeefae65aafeefb1886bfff5c44930400d..a5fce3e8ca6922ee70c20d556e6bf9cb88679f71 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -110,7 +110,9 @@ public class ShreddedPaperChunkTicker {
+@@ -114,7 +114,9 @@ public class ShreddedPaperChunkTicker {
          boolean spawn = false;
          boolean tick = false;
          for (int itr = 0, len = playersNearby.size(); itr < len; ++itr) {
@@ -18,7 +18,7 @@ index 762e632ddfde46c57f5a60e061cee13e6765769c..ff598ed149e403d71c4d2930837d46a6
              if (player.isSpectator()) {
                  continue;
              }
-@@ -121,6 +123,7 @@ public class ShreddedPaperChunkTicker {
+@@ -125,6 +127,7 @@ public class ShreddedPaperChunkTicker {
              if (spawn & tick) {
                  break;
              }
@@ -213,7 +213,7 @@ index 8ea36e3ade095e77dbc796f5e76d03276c947dec..e8d9cb71daf8047117097c201a6dc6c6
      }
      // Paper end - per player mob count backoff
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 7142c6e43b84cd253f85c59bb268c3dbbd88f1f2..6c75198bbcac7de6f688348f00cbe9bd58d9fc8e 100644
+index 71d2d75da3e46af6b7c608bd0580291ad6b55de8..8f32e799aac6702c94bb7e9db27ebd5024422baa 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -611,7 +611,9 @@ public class ServerLevel extends Level implements WorldGenLevel {
