@@ -4,29 +4,6 @@ Date: Sun, 12 May 2024 23:54:34 +0900
 Subject: [PATCH] Player
 
 
-diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-index 5563cf9bd79df0e9972f6db37c9c1ca24064fdec..29c584e602764262ee8a430979a08c224402ba9e 100644
---- a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-@@ -3,6 +3,7 @@ package io.multipaper.shreddedpaper;
- import io.papermc.paper.util.TickThread;
- import net.minecraft.core.BlockPos;
- import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.world.entity.Entity;
- import net.minecraft.world.level.ChunkPos;
- import org.bukkit.Location;
- import org.bukkit.craftbukkit.CraftWorld;
-@@ -14,6 +15,10 @@ public class ShreddedPaper {
-         runSync(((CraftWorld) location.getWorld()).getHandle(), new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), runnable);
-     }
- 
-+    public static void runSync(Entity entity, Runnable runnable) {
-+        entity.getBukkitEntity().taskScheduler.schedule(e -> runnable.run(), null, 1);
-+    }
-+
-     public static void runSync(ServerLevel serverLevel, BlockPos blockPos, Runnable runnable) {
-         runSync(serverLevel, new ChunkPos(blockPos), runnable);
-     }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 index 12ec698d2abd4cd0afe83bb8663dd8e2658eba9e..1ea6c7d88c6122451b3faffe1828b900a3085d8e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java

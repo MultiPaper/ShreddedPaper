@@ -6,15 +6,16 @@ Subject: [PATCH] Add task scheduling API
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5563cf9bd79df0e9972f6db37c9c1ca24064fdec
+index 0000000000000000000000000000000000000000..0671578ca4a43ff5ba3853440ad8ee96018c9916
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,58 @@
 +package io.multipaper.shreddedpaper;
 +
 +import io.papermc.paper.util.TickThread;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.server.level.ServerLevel;
++import net.minecraft.world.entity.Entity;
 +import net.minecraft.world.level.ChunkPos;
 +import org.bukkit.Location;
 +import org.bukkit.craftbukkit.CraftWorld;
@@ -24,6 +25,10 @@ index 0000000000000000000000000000000000000000..5563cf9bd79df0e9972f6db37c9c1ca2
 +
 +    public static void runSync(Location location, Runnable runnable) {
 +        runSync(((CraftWorld) location.getWorld()).getHandle(), new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), runnable);
++    }
++
++    public static void runSync(Entity entity, Runnable runnable) {
++        entity.getBukkitEntity().taskScheduler.schedule(e -> runnable.run(), null, 1);
 +    }
 +
 +    public static void runSync(ServerLevel serverLevel, BlockPos blockPos, Runnable runnable) {
@@ -36,6 +41,14 @@ index 0000000000000000000000000000000000000000..5563cf9bd79df0e9972f6db37c9c1ca2
 +
 +    public static void ensureSync(Location location, Runnable runnable) {
 +        ensureSync(((CraftWorld) location.getWorld()).getHandle(), new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), runnable);
++    }
++
++    public static void ensureSync(Entity entity, Runnable runnable) {
++        if (!isSync((ServerLevel) entity.level(), entity.chunkPosition())) {
++            runSync(entity, runnable);
++        } else {
++            runnable.run();
++        }
 +    }
 +
 +    public static void ensureSync(ServerLevel serverLevel, BlockPos blockPos, Runnable runnable) {

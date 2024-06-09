@@ -4,6 +4,38 @@ Date: Sun, 9 Jun 2024 09:42:44 +0900
 Subject: [PATCH] Raids
 
 
+diff --git a/src/main/java/net/minecraft/world/entity/raid/Raid.java b/src/main/java/net/minecraft/world/entity/raid/Raid.java
+index fdff9788eaf663be79214b2ca491f0f0444f6136..71a442d218b7e7e7ebb57d9a1559289bda04c4d5 100644
+--- a/src/main/java/net/minecraft/world/entity/raid/Raid.java
++++ b/src/main/java/net/minecraft/world/entity/raid/Raid.java
+@@ -15,6 +15,8 @@ import java.util.UUID;
+ import java.util.function.Predicate;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+@@ -425,14 +427,17 @@ public class Raid {
+                                 LivingEntity entityliving = (LivingEntity) entity;
+ 
+                                 if (!entity.isSpectator()) {
++                                    ShreddedPaper.ensureSync(entity, () -> { // ShreddedPaper - run on right thread
+                                     entityliving.addEffect(new MobEffectInstance(MobEffects.HERO_OF_THE_VILLAGE, 48000, this.raidOmenLevel - 1, false, false, true));
+                                     if (entityliving instanceof ServerPlayer) {
+                                         ServerPlayer entityplayer = (ServerPlayer) entityliving;
+ 
+                                         entityplayer.awardStat(Stats.RAID_WIN);
+                                         CriteriaTriggers.RAID_WIN.trigger(entityplayer);
+-                                        winners.add(entityplayer.getBukkitEntity()); // CraftBukkit
++                                        // winners.add(entityplayer.getBukkitEntity()); // CraftBukkit // ShreddedPaper - don't run on right thread
+                                     }
++                                    }); // ShreddedPaper - run on right thread
++                                    if (entityliving instanceof ServerPlayer entityplayer) winners.add(entityplayer.getBukkitEntity()); // ShreddedPaper - this doesn't need to be run on right thread
+                                 }
+                             }
+                         }
 diff --git a/src/main/java/net/minecraft/world/entity/raid/Raids.java b/src/main/java/net/minecraft/world/entity/raid/Raids.java
 index eedce2a3d67d875d5174ee125e2679480d4d412c..998d7184cb5718e6f643e6dccc416cb872b9d519 100644
 --- a/src/main/java/net/minecraft/world/entity/raid/Raids.java
