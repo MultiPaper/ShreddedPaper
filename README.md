@@ -25,17 +25,25 @@ In summary, a plugin must be careful of:
 - One thread reading data while it is being updated by another thread.
 - Code is to be executed on the chunk's thread, not simply the main thread.
 
-If your plugin already has support for Folia there is a 99% chance it will work with ShreddedPaper without any changes
-If you have a sanity check similar to the following
+If your plugin already has support for Folia it is highly likely that it will already work with ShreddedPaper without any changes.  
+If you have a Folia check similar to the following:  
 ```java
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
+try {
+    Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+    return true;
+} catch (ClassNotFoundException e) {
+    return false;
+}
 ```
-You should either remove it (because its really not needed) OR add a check for the class `io.multipaper.shreddedpaper.ShreddedPaper`
+You should remove it and instead check of the existence of Paper's region api:  
+```java
+try {
+    Bukkit.class.getMethod("getRegionScheduler");
+    return true;
+} catch (NoSuchMethodException e) {
+    return false;
+}
+```
 
 [See here for a more detailed tutorial](DEVELOPING_A_MULTITHREAD_PLUGIN.md)
 
