@@ -100,7 +100,7 @@ index a9b6fdaaec268ea694e84e8467886777b49e1a6b..9b4c50b2d677b15e9dd1f923114496f5
  }
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index e35d1b5c4756e31a718ddff59ea9d38851f03867..29c45c301f027a39dcb75a18b3158025d6ff0fae 100644
+index 33fed1c16e45fc01934801fc57390f8315d00806..d9a89fec018030c2566a98f27bed7821bfcdcda8 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -68,6 +68,8 @@ public class ShreddedPaperChunkTicker {
@@ -524,7 +524,7 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..d03e9227859d1432bea814407f88de14
      private int getCoprime(int horizontalSpawnArea) {
          return horizontalSpawnArea <= 16 ? horizontalSpawnArea - 1 : 17;
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index dcc3cb2c476831d6093928ce0a14424634b100ec..d6010548f7bce6c8e14fff0e21571b2a00233896 100644
+index dcc3cb2c476831d6093928ce0a14424634b100ec..f59d7197d6392cfb2c55579f3e86fcf45c197b7d 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -4,6 +4,10 @@ import com.mojang.authlib.GameProfile;
@@ -562,7 +562,7 @@ index dcc3cb2c476831d6093928ce0a14424634b100ec..d6010548f7bce6c8e14fff0e21571b2a
  
 -            this.server.processQueue.add(waitable);
 +            // ShreddedPaper start - run on player's thread
-+            if (MinecraftServer.getServer().serverThread == Thread.currentThread() || TickThread.isShutdownThread()) {
++            if (TickThread.isTickThread()) {
 +                this.player.serverLevel().chunkScheduler.schedule(RegionPos.forChunk(this.player.chunkPosition()), waitable);
 +            } else {
 +                ShreddedPaper.runSync(this.player, waitable); // this.server.processQueue.add(waitable);

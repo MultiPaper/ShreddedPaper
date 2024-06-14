@@ -6,7 +6,7 @@ Subject: [PATCH]
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 3fc916f72e107b5bbdb6e169e414fbc4e5691b2d..71905410decf469c146c301cf8124fcee21caca0 100644
+index 715095e30f18557e8ceba955836a2e8e0fe32c69..98d9a825db582e7e5bf571666285d721ece53090 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -22,11 +22,15 @@ import java.util.concurrent.CompletableFuture;
