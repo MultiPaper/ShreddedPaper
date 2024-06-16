@@ -25,6 +25,8 @@ In summary, a plugin must be careful of:
 - One thread reading data while it is being updated by another thread.
 - Code is to be executed on the chunk's thread, not simply the main thread.
 
+[See here for a more detailed tutorial](DEVELOPING_A_MULTITHREAD_PLUGIN.md)
+
 If your plugin already has support for Folia it is highly likely that it will already work with ShreddedPaper without any changes.  
 If you have a Folia check similar to the following:  
 ```java
@@ -44,8 +46,6 @@ try {
     return false;
 }
 ```
-
-[See here for a more detailed tutorial](DEVELOPING_A_MULTITHREAD_PLUGIN.md)
 
 ### Using the ShreddedPaper API as a dependency
 
