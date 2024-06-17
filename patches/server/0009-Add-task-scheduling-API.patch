@@ -868,6 +868,35 @@ index 713444b84fd910e9633f60d38ce759d69835cfcd..2555d09b1b44fb35f5a72f8d96d72116
                      // Paper start - Remove stale POIs
                      if (optional.isEmpty() && this.getPoiManager().exists(blockposition1, poiType -> true)) {
                          this.getPoiManager().remove(blockposition1);
+diff --git a/src/main/java/net/minecraft/util/thread/BlockableEventLoop.java b/src/main/java/net/minecraft/util/thread/BlockableEventLoop.java
+index 43487a9ee202c5b0e5a416519939111f77b3059c..21d98fc8f006d1f445752f6ecd60e24dd6126272 100644
+--- a/src/main/java/net/minecraft/util/thread/BlockableEventLoop.java
++++ b/src/main/java/net/minecraft/util/thread/BlockableEventLoop.java
+@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Queues;
+ import com.mojang.logging.LogUtils;
+ import java.util.List;
++import java.util.NoSuchElementException;
+ import java.util.Queue;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.Executor;
+@@ -122,8 +123,15 @@ public abstract class BlockableEventLoop<R extends Runnable> implements Profiler
+         } else if (this.blockingCount == 0 && !this.shouldRun(runnable)) {
+             return false;
+         } else {
+-            this.doRunTask(this.pendingRunnables.remove());
++            // ShreddedPaper start - concurrency fix
++            R task = this.pendingRunnables.poll();
++            if (task == null) {
++                return false;
++            }
++
++            this.doRunTask(task);
+             return true;
++            // ShreddedPaper end - concurrency fix
+         }
+     }
+ 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 index 2787161170203e9bcbb88b96599ac7f12ae79570..8ff1f92bf02a510299c0332a9d01c54a387adb5a 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
