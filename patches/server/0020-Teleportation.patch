@@ -390,20 +390,19 @@ index a87bc013292b6d29125d12ba96f1d08a94f7a42e..a284dd9dc9e165a1b45dddfea3c287b9
              if (immediate != null) {
                  return java.util.concurrent.CompletableFuture.completedFuture(new CraftChunk(immediate));
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..b75fc4424cb138a79c1e86cd3bb8e6393be7cfe0 100644
+index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..67d7eede1543599497cd31b7de308e1caf952a08 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-@@ -8,6 +8,9 @@ import com.google.common.collect.Lists;
+@@ -8,6 +8,8 @@ import com.google.common.collect.Lists;
  import java.util.List;
  import java.util.Set;
  import java.util.UUID;
 +
-+import io.papermc.paper.util.TickThread;
-+import net.minecraft.core.BlockPos;
++import io.multipaper.shreddedpaper.ShreddedPaper;
  import net.minecraft.nbt.CompoundTag;
  import net.minecraft.nbt.Tag;
  import net.minecraft.network.chat.Component;
-@@ -19,6 +22,7 @@ import net.minecraft.world.entity.Entity;
+@@ -19,6 +21,7 @@ import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.boss.EnderDragonPart;
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
  import net.minecraft.world.entity.projectile.AbstractArrow;
@@ -411,7 +410,7 @@ index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..b75fc4424cb138a79c1e86cd3bb8e639
  import net.minecraft.world.phys.AABB;
  import org.bukkit.EntityEffect;
  import org.bukkit.Location;
-@@ -57,6 +61,8 @@ import org.bukkit.util.NumberConversions;
+@@ -57,6 +60,8 @@ import org.bukkit.util.NumberConversions;
  import org.bukkit.util.Vector;
  
  import net.md_5.bungee.api.chat.BaseComponent; // Spigot
@@ -420,7 +419,33 @@ index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..b75fc4424cb138a79c1e86cd3bb8e639
  
  public abstract class CraftEntity implements org.bukkit.entity.Entity {
      private static PermissibleBase perm;
-@@ -1070,7 +1076,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+@@ -1064,13 +1069,36 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+         net.minecraft.server.level.ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
+         java.util.concurrent.CompletableFuture<Boolean> ret = new java.util.concurrent.CompletableFuture<>();
+ 
++        // ShreddedPaper start - run sync if possible
++        ChunkPos fromChunkPos = this.getHandle().chunkPosition();
++        ChunkPos toChunkPos = CraftLocation.toChunkPosition(locationClone);
++        if (ShreddedPaper.isSync((ServerLevel) this.getHandle().level(), fromChunkPos)
++                && ShreddedPaper.isSync(world, toChunkPos)
++                && this.getHandle().level().hasChunk(fromChunkPos.x, fromChunkPos.z)
++                && world.hasChunk(toChunkPos.x, toChunkPos.z)) {
++            try {
++                ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
++            } catch (Throwable throwable) {
++                if (throwable instanceof ThreadDeath) {
++                    throw (ThreadDeath)throwable;
++                }
++                net.minecraft.server.MinecraftServer.LOGGER.error("Failed to teleport entity " + CraftEntity.this, throwable);
++                ret.completeExceptionally(throwable);
++            }
++            return ret;
++        }
++        // ShreddedPaper end
++
+         world.loadChunksForMoveAsync(getHandle().getBoundingBoxAt(locationClone.getX(), locationClone.getY(), locationClone.getZ()),
+             this instanceof CraftPlayer ? ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.HIGHER : ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.NORMAL, (list) -> {
+                 net.minecraft.server.level.ServerChunkCache chunkProviderServer = world.getChunkSource();
                  for (net.minecraft.world.level.chunk.ChunkAccess chunk : list) {
                      chunkProviderServer.addTicketAtLevel(net.minecraft.server.level.TicketType.POST_TELEPORT, chunk.getPos(), 33, CraftEntity.this.getEntityId());
                  }
@@ -463,3 +488,29 @@ index 241340a6d66f17f2a31fb03ff0dfab121b856368..a4babdf77ca53994a397ea3636797f16
              }
          }
  
+diff --git a/src/main/java/org/bukkit/craftbukkit/util/CraftLocation.java b/src/main/java/org/bukkit/craftbukkit/util/CraftLocation.java
+index 097996d3955ab5126b71f7bff1dd2c62becb5ffd..ebc362617934e90dece6fd35becdc1558996dc0d 100644
+--- a/src/main/java/org/bukkit/craftbukkit/util/CraftLocation.java
++++ b/src/main/java/org/bukkit/craftbukkit/util/CraftLocation.java
+@@ -1,6 +1,8 @@
+ package org.bukkit.craftbukkit.util;
+ 
+ import net.minecraft.core.BlockPos;
++import net.minecraft.core.SectionPos;
++import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.phys.Vec3;
+ import org.bukkit.Location;
+ import org.bukkit.World;
+@@ -40,6 +42,12 @@ public final class CraftLocation {
+         return new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+     }
+ 
++    // ShreddedPaper start
++    public static ChunkPos toChunkPosition(Location location) {
++        return new ChunkPos(SectionPos.blockToSectionCoord(location.getBlockX()), SectionPos.blockToSectionCoord(location.getBlockZ()));
++    }
++    // ShreddedPaper end
++
+     public static Vec3 toVec3D(Location location) {
+         return new Vec3(location.getX(), location.getY(), location.getZ());
+     }

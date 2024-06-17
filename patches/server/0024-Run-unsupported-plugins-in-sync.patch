@@ -357,26 +357,26 @@ index a284dd9dc9e165a1b45dddfea3c287b9dd9ef6cf..306ff2a80f470444748e09acd0e580db
          });
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index b75fc4424cb138a79c1e86cd3bb8e6393be7cfe0..c2d410580629a7a2ca43daa954e191ff36b37ef1 100644
+index 67d7eede1543599497cd31b7de308e1caf952a08..62b5f0f918118a8305f745ea9c1406fb8d2d8093 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-@@ -9,6 +9,7 @@ import java.util.List;
- import java.util.Set;
+@@ -10,6 +10,7 @@ import java.util.Set;
  import java.util.UUID;
  
+ import io.multipaper.shreddedpaper.ShreddedPaper;
 +import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
- import io.papermc.paper.util.TickThread;
- import net.minecraft.core.BlockPos;
  import net.minecraft.nbt.CompoundTag;
-@@ -1069,6 +1070,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+ import net.minecraft.nbt.Tag;
+ import net.minecraft.network.chat.Component;
+@@ -1068,6 +1069,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
  
          net.minecraft.server.level.ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
          java.util.concurrent.CompletableFuture<Boolean> ret = new java.util.concurrent.CompletableFuture<>();
 +        Plugin plugin = SynchronousPluginExecution.getCurrentPlugin(); // ShreddedPaper - synchronous plugin execution
  
-         world.loadChunksForMoveAsync(getHandle().getBoundingBoxAt(locationClone.getX(), locationClone.getY(), locationClone.getZ()),
-             this instanceof CraftPlayer ? ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.HIGHER : ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.NORMAL, (list) -> {
-@@ -1081,13 +1083,13 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+         // ShreddedPaper start - run sync if possible
+         ChunkPos fromChunkPos = this.getHandle().chunkPosition();
+@@ -1100,13 +1102,13 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
                          world, RegionPos.forLocation(locationClone),
                          () -> { // ShreddedPaper - Run teleports on the correct threads
                      try {
