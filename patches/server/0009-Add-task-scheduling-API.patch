@@ -682,7 +682,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..47e9d18a4c4981e0b561eeaf52bf6e5b
                          this.changeEntityChunkStatus(FullChunkStatus.ENTITY_TICKING);
                          chunk.onChunkEntityTicking(this);
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index c192e3719474c5aefe6e4f8926c0d5c7766c48ad..53f1fb8a72772ae7c222b9732d11bacf33ac6dff 100644
+index db03b9a15b38a3a683890efc0822f9ff8812164e..23d523d2e779adaf31239345af010b14e7debacd 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,7 @@ import com.mojang.authlib.GameProfileRepository;
@@ -747,7 +747,7 @@ index c192e3719474c5aefe6e4f8926c0d5c7766c48ad..53f1fb8a72772ae7c222b9732d11bacf
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          //this.profiler.push("commandFunctions"); // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index ce58fde9ccaccbf774f219c4dcdbd650456a1ce8..720c7e4e7d637dcf61bc8da14cffc53b72501a7a 100644
+index 47ea24c97759f23b513ff4438cb4b6bb2651a8d4..4f01058375294c250df464bbdccf7d704e14f573 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -13,10 +13,14 @@ import java.util.function.BooleanSupplier;
@@ -898,10 +898,10 @@ index 43487a9ee202c5b0e5a416519939111f77b3059c..21d98fc8f006d1f445752f6ecd60e24d
      }
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index 2787161170203e9bcbb88b96599ac7f12ae79570..8ff1f92bf02a510299c0332a9d01c54a387adb5a 100644
+index 01472ee224ac91ec4fbffdf82a0d92e0d1ab69c1..0e0a098f543e19a41b4bae73156ece970b9f7d50 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -260,6 +260,7 @@ import org.yaml.snakeyaml.error.MarkedYAMLException;
+@@ -261,6 +261,7 @@ import org.yaml.snakeyaml.error.MarkedYAMLException;
  
  import net.md_5.bungee.api.chat.BaseComponent; // Spigot
  import io.multipaper.shreddedpaper.permissions.ShreddedPaperPermissions;
@@ -909,7 +909,7 @@ index 2787161170203e9bcbb88b96599ac7f12ae79570..8ff1f92bf02a510299c0332a9d01c54a
  
  import javax.annotation.Nullable; // Paper
  import javax.annotation.Nonnull; // Paper
-@@ -308,7 +309,7 @@ public final class CraftServer implements Server {
+@@ -310,7 +311,7 @@ public final class CraftServer implements Server {
      private final io.papermc.paper.potion.PaperPotionBrewer potionBrewer; // Paper - Custom Potion Mixes
  
      // Paper start - Folia region threading API
@@ -919,7 +919,7 @@ index 2787161170203e9bcbb88b96599ac7f12ae79570..8ff1f92bf02a510299c0332a9d01c54a
      private final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler globalRegionScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..4697e5aa538ac930b6b496eb815f4b57f8425f7e 100644
+index 523a6afd7f1dcb0b4ddf5ede0415487c104296bc..38fd594b8184e4b2f11812f80e77a6d1d8df65ad 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -5,6 +5,9 @@ import com.google.common.base.Predicates;
@@ -956,7 +956,7 @@ index 226ff7c6048b510be2e71ecc5d5ff3581092aa5e..4697e5aa538ac930b6b496eb815f4b57
          }
          ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
          if (chunk == null) {
-@@ -2554,7 +2560,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2579,7 +2585,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
  
          io.papermc.paper.chunk.system.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {

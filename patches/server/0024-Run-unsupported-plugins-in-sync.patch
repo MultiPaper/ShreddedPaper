@@ -330,7 +330,7 @@ index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..2e250604d22dde70fc1133d55b3730ff
                  Plugin plugin = registration.getPlugin();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index a284dd9dc9e165a1b45dddfea3c287b9dd9ef6cf..306ff2a80f470444748e09acd0e580db07f4dfd0 100644
+index bd60758e8291821c66bd82a5d23682959b915136..3e43ca0b1d62323ca85e93e82bb2dfc3b2f56dfc 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
@@ -341,7 +341,7 @@ index a284dd9dc9e165a1b45dddfea3c287b9dd9ef6cf..306ff2a80f470444748e09acd0e580db
  import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-@@ -2558,12 +2559,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2583,12 +2584,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          }
  
          java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();

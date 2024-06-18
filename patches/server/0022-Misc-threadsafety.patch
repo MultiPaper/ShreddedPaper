@@ -390,7 +390,7 @@ index 031fc626d2075cbe0941fecc188406712ab9953f..b9b084b7e9d5c9b4613d45eed9612ad5
              world.removeBlockEntity(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-index 1284c941a4c863c287098a0a04efcc723e727bb3..51090b56d26645bfb0ff943c3efb849912d74ff6 100644
+index 3ed19f30f1cab9df3b1bfdf0b0caf7882a77c5f7..bebe02d73ed34453ff521ec1d803935c0287604b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 @@ -9,6 +9,8 @@ import java.util.Iterator;
@@ -412,10 +412,10 @@ index 1284c941a4c863c287098a0a04efcc723e727bb3..51090b56d26645bfb0ff943c3efb8499
          return true;
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index a4babdf77ca53994a397ea3636797f16837f8157..f9ebb2951bcee7bf7ef62de579d8eefe9afe1fb0 100644
+index 4a756915ccc42fe3895b8e3a7f37e8b712d9eb78..9e8952fe755d6460aa6f2876435fc584d8f2bad1 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -3491,7 +3491,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -3500,7 +3500,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
      // Paper start - Add chunk view API
      @Override
      public Set<java.lang.Long> getSentChunkKeys() {
@@ -424,7 +424,7 @@ index a4babdf77ca53994a397ea3636797f16837f8157..f9ebb2951bcee7bf7ef62de579d8eefe
          return it.unimi.dsi.fastutil.longs.LongSets.unmodifiable(
              this.getHandle().chunkLoader.getSentChunksRaw().clone()
          );
-@@ -3499,7 +3499,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -3508,7 +3508,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
  
      @Override
      public Set<org.bukkit.Chunk> getSentChunks() {
@@ -433,7 +433,7 @@ index a4babdf77ca53994a397ea3636797f16837f8157..f9ebb2951bcee7bf7ef62de579d8eefe
          final it.unimi.dsi.fastutil.longs.LongOpenHashSet rawChunkKeys = this.getHandle().chunkLoader.getSentChunksRaw();
          final it.unimi.dsi.fastutil.objects.ObjectOpenHashSet<org.bukkit.Chunk> chunks = new it.unimi.dsi.fastutil.objects.ObjectOpenHashSet<>(rawChunkKeys.size());
          final org.bukkit.World world = this.getWorld();
-@@ -3512,7 +3512,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -3521,7 +3521,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
  
      @Override
      public boolean isChunkSent(final long chunkKey) {

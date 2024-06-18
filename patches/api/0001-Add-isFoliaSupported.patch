@@ -5,10 +5,10 @@ Subject: [PATCH] Add isFoliaSupported
 
 
 diff --git a/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java b/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java
-index 8f45caade7357bc55c6a90cfe0c3a2feb2d877ff..514216f93e60a0ea7ae048bf95810d9b4f0733e6 100644
+index a857e46fa6f0c212db93193e1fdd8b0ea9c33c38..26efead73ac9a1d0d33a4137738cf3ab958af271 100644
 --- a/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java
 +++ b/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java
-@@ -259,6 +259,7 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
+@@ -260,6 +260,7 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
      private Set<PluginAwareness> awareness = ImmutableSet.of();
      private String apiVersion = null;
      private List<String> libraries = ImmutableList.of();
@@ -16,7 +16,7 @@ index 8f45caade7357bc55c6a90cfe0c3a2feb2d877ff..514216f93e60a0ea7ae048bf95810d9b
      // Paper start - plugin loader api
      private String paperPluginLoader;
      @org.jetbrains.annotations.ApiStatus.Internal @org.jetbrains.annotations.Nullable
-@@ -1056,6 +1057,11 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
+@@ -1057,6 +1058,11 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
          return libraries;
      }
  
@@ -28,7 +28,7 @@ index 8f45caade7357bc55c6a90cfe0c3a2feb2d877ff..514216f93e60a0ea7ae048bf95810d9b
      /**
       * @return unused
       * @deprecated unused
-@@ -1257,6 +1263,12 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
+@@ -1258,6 +1264,12 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
          }
          // Paper end - plugin loader api
  
@@ -41,7 +41,7 @@ index 8f45caade7357bc55c6a90cfe0c3a2feb2d877ff..514216f93e60a0ea7ae048bf95810d9b
          try {
              lazyPermissions = (Map<?, ?>) map.get("permissions");
          } catch (ClassCastException ex) {
-@@ -1335,6 +1347,12 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
+@@ -1336,6 +1348,12 @@ public final class PluginDescriptionFile implements io.papermc.paper.plugin.conf
              map.put("libraries", libraries);
          }
  

@@ -377,10 +377,10 @@ index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..2e0967cdbc19887d89ae854261d49886
                  // CraftBukkit end
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index a87bc013292b6d29125d12ba96f1d08a94f7a42e..a284dd9dc9e165a1b45dddfea3c287b9dd9ef6cf 100644
+index ad53a7b2e4e58837ca13b05828442125c9280469..bd60758e8291821c66bd82a5d23682959b915136 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -2543,7 +2543,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2568,7 +2568,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
      // Paper start
      public java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
          warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
@@ -458,7 +458,7 @@ index 0ed18542fd8e2a992dc56a5f421eaa840e0af193..67d7eede1543599497cd31b7de308e1c
                          ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
                      } catch (Throwable throwable) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 241340a6d66f17f2a31fb03ff0dfab121b856368..a4babdf77ca53994a397ea3636797f16837f8157 100644
+index 8211ec2c701687d8e5334156772cf435b89f3cb3..4a756915ccc42fe3895b8e3a7f37e8b712d9eb78 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -6,6 +6,7 @@ import com.google.common.io.BaseEncoding;
@@ -479,7 +479,7 @@ index 241340a6d66f17f2a31fb03ff0dfab121b856368..a4babdf77ca53994a397ea3636797f16
          }
          return true;
      }
-@@ -3355,7 +3357,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+@@ -3364,7 +3366,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
          {
              if ( CraftPlayer.this.getHealth() <= 0 && CraftPlayer.this.isOnline() )
              {

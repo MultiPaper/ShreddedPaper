@@ -505,10 +505,10 @@ index 2e0967cdbc19887d89ae854261d49886fc494025..8dc4de6b00c5793988f641dcc01dfce1
          // CraftBukkit end
      }
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 74ec7345ef6a55742e05fe6e6a96eed90ab59f81..b348490edd7ebedcda67a394cdbaeedc0ab3ffa2 100644
+index 546273a048eeae9948176137344c05590c931b21..7bc113a5451901c811bd5c25d986c9aeabf7941e 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-@@ -3901,7 +3901,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -3895,7 +3895,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
      }
  
      @Override

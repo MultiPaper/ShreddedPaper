@@ -36,7 +36,7 @@ index 68236139e3571791b891dbbef6e3ee20031e16d9..40af9033d213527950de6522f5d5d97e
                      if (treeType != null) {
                          structureEvent = new StructureGrowEvent(location, treeType, false, null, blocks);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 6c75198bbcac7de6f688348f00cbe9bd58d9fc8e..809681dd4e758c46e41e41f19ce29dbf7835f876 100644
+index 8f32e799aac6702c94bb7e9db27ebd5024422baa..8c4b244b28f8baae40075f68aa0262fa9d628f14 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1771,8 +1771,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -84,7 +84,7 @@ index 7424246750d6ceca1acd5d9ebfd48f0d66504c5d..fcfd4fb1e3d7e17a6039dc6bc85414dc
                      org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, state, this.player, itemsToDrop); // Paper - capture all item additions to the world
                  }
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index 4934e912653361dc4af8306d3747850c0c0f4554..c7835254acbe4932842809e660f8bb5a77d2faff 100644
+index dc6c07b3cce53da0247fa8e2a7dc70d02a55ade4..530469693af4d4d6b7ea7d92a16a6353fd0edc84 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
 @@ -402,29 +402,31 @@ public final class ItemStack implements DataComponentHolder {
@@ -108,7 +108,7 @@ index 4934e912653361dc4af8306d3747850c0c0f4554..c7835254acbe4932842809e660f8bb5a
 -                world.captureBlockStates = false;
 +                world.captureBlockStates.set(false); // ShreddedPaper - thread local
              }
-             DataComponentPatch newData = this.components.asPatch(); // Paper - Directly access components as patch instead of getComponentsPatch as said method yields EMPTY on items with count 0
+             DataComponentPatch newData = this.components.asPatch();
              int newCount = this.getCount();
              this.setCount(oldCount);
              this.restorePatch(oldData);
@@ -425,10 +425,10 @@ index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..fe771ae4fe21dc0d9753552be1081d9f
              tileentity = (BlockEntity) this.blockEntities.get(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 306ff2a80f470444748e09acd0e580db07f4dfd0..e6e93c543072ace74901040e482be5869c4147b5 100644
+index 3e43ca0b1d62323ca85e93e82bb2dfc3b2f56dfc..3f19b892430fe0d7a53cb5c4a7cd036f187fa6b3 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -850,13 +850,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -875,13 +875,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
      public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
@@ -449,7 +449,7 @@ index 306ff2a80f470444748e09acd0e580db07f4dfd0..e6e93c543072ace74901040e482be586
                  BlockPos position = ((CraftBlockState) blockstate).getPosition();
                  net.minecraft.world.level.block.state.BlockState oldBlock = this.world.getBlockState(position);
                  int flag = ((CraftBlockState) blockstate).getFlag();
-@@ -864,10 +866,10 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -889,10 +891,10 @@ public class CraftWorld extends CraftRegionAccessor implements World {
                  net.minecraft.world.level.block.state.BlockState newBlock = this.world.getBlockState(position);
                  this.world.notifyAndUpdatePhysics(position, null, oldBlock, newBlock, newBlock, flag, 512);
              }
