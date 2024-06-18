@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Tue, 18 Jun 2024 17:01:01 +0900
+Subject: [PATCH] Thread-safe redstoneUpdateInfos
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
+index 124032e8f768821a7a2b7c9064f9d9343e920751..ea8578335ce13791848fa6529a1b4a77002c3d3b 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
++++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
+@@ -12,9 +12,11 @@ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Mob;
+ import net.minecraft.world.level.BlockEventData;
++import net.minecraft.world.level.block.RedstoneTorchBlock;
+ import net.minecraft.world.level.block.entity.TickingBlockEntity;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ 
++import java.util.ArrayDeque;
+ import java.util.ArrayList;
+ import java.util.Collection;
+ import java.util.List;
+@@ -34,6 +36,7 @@ public class LevelChunkRegion {
+     public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
+     public final List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
+     private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
++    public ArrayDeque<RedstoneTorchBlock.Toggle> redstoneUpdateInfos;
+ 
+     public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
+         this.level = level;
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index e0802a0d3572268b62034658f0b3dae2c9b3849e..972be2bc1fe0a9ec3206cdf9947b0b6b0c714dad 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -186,7 +186,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     private org.spigotmc.TickLimiter tileLimiter;
+     // private int tileTickPosition; // ShreddedPaper - removed tileTickPosition
+     public final Map<Explosion.CacheKey, Float> explosionDensityCache = new HashMap<>(); // Paper - Optimize explosions
+-    public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
++    // public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here // ShreddedPaper - move to LevelChunkRegion
+ 
+     // Purpur start
+     private com.google.common.cache.Cache<BreedingCooldownPair, Object> playerBreedingCooldowns;
+diff --git a/src/main/java/net/minecraft/world/level/block/RedstoneTorchBlock.java b/src/main/java/net/minecraft/world/level/block/RedstoneTorchBlock.java
+index ceba9617748a8b4f3a9bd459475952c9c6c9ed7c..554377cfee5a7b8df3ddd67a043e8b6a20982a35 100644
+--- a/src/main/java/net/minecraft/world/level/block/RedstoneTorchBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/RedstoneTorchBlock.java
+@@ -6,6 +6,8 @@ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.WeakHashMap;
++
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.particles.DustParticleOptions;
+@@ -81,7 +83,7 @@ public class RedstoneTorchBlock extends BaseTorchBlock {
+     protected void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource random) {
+         boolean flag = this.hasNeighborSignal(world, pos, state);
+         // Paper start - Faster redstone torch rapid clock removal
+-        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> redstoneUpdateInfos = world.redstoneUpdateInfos;
++        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> redstoneUpdateInfos = world.chunkSource.tickingRegions.get(RegionPos.forBlockPos(pos)).redstoneUpdateInfos; // ShreddedPaper - move redstoneUpdateInfos to the region
+         if (redstoneUpdateInfos != null) {
+             RedstoneTorchBlock.Toggle curr;
+             while ((curr = redstoneUpdateInfos.peek()) != null && world.getGameTime() - curr.when > 60L) {
+@@ -165,9 +167,9 @@ public class RedstoneTorchBlock extends BaseTorchBlock {
+ 
+     private static boolean isToggledTooFrequently(Level world, BlockPos pos, boolean addNew) {
+         // Paper start - Faster redstone torch rapid clock removal
+-        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> list = world.redstoneUpdateInfos;
++        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> list = ((ServerLevel) world).chunkSource.tickingRegions.get(RegionPos.forBlockPos(pos)).redstoneUpdateInfos; // ShreddedPaper - move redstoneUpdateInfos to the region
+         if (list == null) {
+-            list = world.redstoneUpdateInfos = new java.util.ArrayDeque<>();
++            list = ((ServerLevel) world).chunkSource.tickingRegions.get(RegionPos.forBlockPos(pos)).redstoneUpdateInfos = new java.util.ArrayDeque<>(); // ShreddedPaper - move redstoneUpdateInfos to the region
+         }
+         // Paper end - Faster redstone torch rapid clock removal
+ 
