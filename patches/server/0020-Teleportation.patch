@@ -341,7 +341,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..ab96dcb873758f9d92eecb62b473b84d
  
      public void sendPlayerPermissionLevel(ServerPlayer player) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..2e0967cdbc19887d89ae854261d49886fc494025 100644
+index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..41813b63f6ef5cfab455fad9477c1a5127d65cf3 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
@@ -376,6 +376,15 @@ index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..2e0967cdbc19887d89ae854261d49886
                  this.unRide();
                  // CraftBukkit end
  
+@@ -3814,7 +3818,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+                     // CraftBukkit start - Don't spawn the new entity if the current entity isn't spawned
+                     if (this.inWorld) {
+                         worldserver.addDuringTeleport(entity);
+-                        if (worldserver.getTypeKey() == LevelStem.END) { // CraftBukkit
++                        if (worldserver.getTypeKey() == LevelStem.END && location == null) { // CraftBukkit // ShreddedPaper - fix: don't make obsidian platform from CraftEntity.teleportAsync
+                             ServerLevel.makeObsidianPlatform(worldserver, this); // CraftBukkit
+                         }
+                     }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 index ad53a7b2e4e58837ca13b05828442125c9280469..bd60758e8291821c66bd82a5d23682959b915136 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
