@@ -524,7 +524,7 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..d03e9227859d1432bea814407f88de14
      private int getCoprime(int horizontalSpawnArea) {
          return horizontalSpawnArea <= 16 ? horizontalSpawnArea - 1 : 17;
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index dcc3cb2c476831d6093928ce0a14424634b100ec..a4f80692cad209aedc35d9618bbc79300a7e72e6 100644
+index dcc3cb2c476831d6093928ce0a14424634b100ec..efd4456c59c51862ffaf0c17d5b49514a93a7b57 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -4,6 +4,10 @@ import com.mojang.authlib.GameProfile;
@@ -563,7 +563,7 @@ index dcc3cb2c476831d6093928ce0a14424634b100ec..a4f80692cad209aedc35d9618bbc7930
 -            this.server.processQueue.add(waitable);
 +            // ShreddedPaper start - run on player's thread
 +            if (TickThread.isTickThread()) {
-+                this.player.serverLevel().chunkScheduler.schedule(RegionPos.forChunk(this.player.chunkPosition()), waitable);
++                this.player.serverLevel().chunkSource.tickingRegions.execute(RegionPos.forChunk(this.player.chunkPosition()), waitable);
 +            } else {
 +                ShreddedPaper.runSync(this.player, waitable); // this.server.processQueue.add(waitable);
 +            }
