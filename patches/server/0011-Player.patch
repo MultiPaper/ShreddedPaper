@@ -337,7 +337,7 @@ index 8c134a642ccaf3530022f2e675a858d726e1dda4..f5154194df9e44f8bcf431029f4bbed6
              engine.executeIfPossible(() -> {
                  packetProcessing.push(listener); // Paper - detailed watchdog information
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 53f1fb8a72772ae7c222b9732d11bacf33ac6dff..6aa46eca869b7cbf358a76ca88faa285999a5350 100644
+index 23d523d2e779adaf31239345af010b14e7debacd..f40f5b1bb97ef9dca92d480274b1098e2e0472db 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,8 @@ import com.mojang.authlib.GameProfileRepository;
@@ -524,7 +524,7 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..d03e9227859d1432bea814407f88de14
      private int getCoprime(int horizontalSpawnArea) {
          return horizontalSpawnArea <= 16 ? horizontalSpawnArea - 1 : 17;
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index dcc3cb2c476831d6093928ce0a14424634b100ec..f59d7197d6392cfb2c55579f3e86fcf45c197b7d 100644
+index dcc3cb2c476831d6093928ce0a14424634b100ec..a4f80692cad209aedc35d9618bbc79300a7e72e6 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -4,6 +4,10 @@ import com.mojang.authlib.GameProfile;
@@ -556,7 +556,7 @@ index dcc3cb2c476831d6093928ce0a14424634b100ec..f59d7197d6392cfb2c55579f3e86fcf4
              Waitable waitable = new Waitable() {
                  @Override
                  protected Object evaluate() {
-@@ -391,7 +395,13 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+@@ -391,9 +395,16 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
                  }
              };
  
@@ -570,7 +570,10 @@ index dcc3cb2c476831d6093928ce0a14424634b100ec..f59d7197d6392cfb2c55579f3e86fcf4
 +            // ShreddedPaper end - run on player's thread
  
              try {
++                if (TickThread.isTickThread()) this.player.serverLevel().chunkSource.mainThreadProcessor.managedBlock(waitable::isDone); // ShreddedPaper - don't block when waiting
                  waitable.get();
+             } catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 index 64f5d5ed295fd4bddb2d27f6fefcdf36c29d3254..2df36cae9539007ad9e9363890a421124ad45b28 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
@@ -652,3 +655,20 @@ index b863f6fe65c796a1d3102cc3eddb5d6c5becd3ac..900891527ca401858d9c2678ae154928
          worldserver1 = ((CraftWorld) loc.getWorld()).getHandle();
  
          player.spawnIn(worldserver1);
+diff --git a/src/main/java/org/bukkit/craftbukkit/util/Waitable.java b/src/main/java/org/bukkit/craftbukkit/util/Waitable.java
+index 864a213adaef77cf24327ed5de61cd5cae10176d..fa4b350d42a773843f45bfdda5fbc8c579a251fb 100644
+--- a/src/main/java/org/bukkit/craftbukkit/util/Waitable.java
++++ b/src/main/java/org/bukkit/craftbukkit/util/Waitable.java
+@@ -33,6 +33,12 @@ public abstract class Waitable<T> implements Runnable {
+ 
+     protected abstract T evaluate();
+ 
++    // ShreddedPaper start
++    public boolean isDone() {
++        return this.status == Status.FINISHED;
++    }
++    // ShreddedPaper end
++
+     public synchronized T get() throws InterruptedException, ExecutionException {
+         while (this.status != Status.FINISHED) {
+             this.wait();
