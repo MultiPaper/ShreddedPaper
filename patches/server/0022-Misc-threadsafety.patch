@@ -287,6 +287,27 @@ index 7142c6e43b84cd253f85c59bb268c3dbbd88f1f2..71d2d75da3e46af6b7c608bd0580291a
          });
      }
      // Paper start - optimise random block ticking
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index d7519408d7280818d1e7f6e26e51affdeb5de65e..7cf508d29bfa2c871f2c1908585db2fe2be7eee8 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -7,6 +7,7 @@ import com.mojang.brigadier.ParseResults;
+ import com.mojang.brigadier.StringReader;
+ import com.mojang.brigadier.suggestion.Suggestions;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+@@ -3530,7 +3531,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+ 
+         this.filterTextPacket(list).thenAcceptAsync((list1) -> {
+             this.updateSignText(packet, list1);
+-        }, this.server);
++        }, r -> ShreddedPaper.runSync(this.player, r)); // ShreddedPaper - run on region thread
+     }
+ 
+     private void updateSignText(ServerboundSignUpdatePacket packet, List<FilteredText> signText) {
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java
 index c6f193339fdcbcc938d4eafdcad0b112cf1698d5..256fbdc2a287a8232c8ecb9d0e06290a141a49ee 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java
