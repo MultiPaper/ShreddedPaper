@@ -274,6 +274,19 @@ index 12f1345ff70388fb217100bfc717ef861785381d..9c0f561a65ed5f5b45ce4c30754f71b3
 +        return this.playersLock.optimisticRead(() -> this.players.getBoolean(player)); // ShreddedPaper
      }
  }
+diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
+index 6542c67e753245cd131de872c28862f83e7ff2f3..f355833ee748e25af228ad9bd3dc06606308e490 100644
+--- a/src/main/java/net/minecraft/server/level/ServerEntity.java
++++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
+@@ -13,6 +13,8 @@ import java.util.Set;
+ import java.util.function.Consumer;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index 7142c6e43b84cd253f85c59bb268c3dbbd88f1f2..71d2d75da3e46af6b7c608bd0580291ad6b55de8 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
@@ -287,6 +300,19 @@ index 7142c6e43b84cd253f85c59bb268c3dbbd88f1f2..71d2d75da3e46af6b7c608bd0580291a
          });
      }
      // Paper start - optimise random block ticking
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index 01904ed991aecab3a399d62c562195b84c713750..66d859000e610934560d022750c93026ebf057a1 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -2852,6 +2852,8 @@ public class ServerPlayer extends Player {
+ 
+                 this.connection.send(new ClientboundRemoveMobEffectPacket(entity.getId(), mobeffect.getEffect()));
+             }
++
++            if (entity.tracker != null) entity.tracker.serverEntity.sendChanges(); // ShreddedPaper - send changes now
+         }
+ 
+     }
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 index d7519408d7280818d1e7f6e26e51affdeb5de65e..7cf508d29bfa2c871f2c1908585db2fe2be7eee8 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
