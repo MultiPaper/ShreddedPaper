@@ -380,7 +380,7 @@ index 23d523d2e779adaf31239345af010b14e7debacd..f40f5b1bb97ef9dca92d480274b1098e
          //this.profiler.popPush("players"); // Purpur
          //MinecraftTimings.playerListTimer.startTiming(); // Spigot // Paper // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index c58cc51a5882dbdf60d846e7e829412f0acf7cc6..7c7823b7cd733a02c1dfef24de28b8010c7dbe52 100644
+index c58cc51a5882dbdf60d846e7e829412f0acf7cc6..6712bbbdaeb78d44d7174b8837c44be9882d3de2 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -31,6 +31,7 @@ import java.util.Objects;
@@ -420,7 +420,7 @@ index c58cc51a5882dbdf60d846e7e829412f0acf7cc6..7c7823b7cd733a02c1dfef24de28b801
  
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
-+            if (entity instanceof ServerPlayer serverPlayer) ServerLevel.this.chunkSource.tickingRegions.movePlayer(serverPlayer); // MultiPpaer - move player into the new region
++            if (entity instanceof ServerPlayer serverPlayer) ServerLevel.this.chunkSource.tickingRegions.movePlayer(serverPlayer); // ShreddedPaper - move player into the new region
          }
      }
  
