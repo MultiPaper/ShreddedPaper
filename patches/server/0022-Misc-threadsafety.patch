@@ -288,7 +288,7 @@ index 6542c67e753245cd131de872c28862f83e7ff2f3..f355833ee748e25af228ad9bd3dc0660
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.game.ClientGamePacketListener;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 7142c6e43b84cd253f85c59bb268c3dbbd88f1f2..71d2d75da3e46af6b7c608bd0580291ad6b55de8 100644
+index e1560a58cc2e9570b9533e26156f322b8cdcc332..c992f7510efd80b000c9ce364e964ca59e220b9d 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -300,6 +300,48 @@ index 7142c6e43b84cd253f85c59bb268c3dbbd88f1f2..71d2d75da3e46af6b7c608bd0580291a
          });
      }
      // Paper start - optimise random block ticking
+@@ -2204,18 +2204,21 @@ public class ServerLevel extends Level implements WorldGenLevel {
+         // Paper start - Call missing map initialize event and set id
+         final DimensionDataStorage storage = this.getServer().overworld().getDataStorage();
+ 
+-        final net.minecraft.world.level.saveddata.SavedData existing = storage.cache.get(id.key());
+-        if (existing == null && !storage.cache.containsKey(id.key())) {
++        // ShreddedPaper start - thread-safe
++        final net.minecraft.world.level.saveddata.SavedData existing = storage.cache.computeIfAbsent(id.key(), key -> {
+             final MapItemSavedData worldmap = (MapItemSavedData) this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), id.key());
+-            storage.cache.put(id.key(), worldmap);
+             if (worldmap != null) {
+                 worldmap.id = id;
+                 new MapInitializeEvent(worldmap.mapView).callEvent();
+                 return worldmap;
+             }
+-        } else if (existing instanceof MapItemSavedData mapItemSavedData) {
++            return worldmap;
++        });
++
++        if (existing instanceof MapItemSavedData mapItemSavedData) {
+             mapItemSavedData.id = id;
+         }
++        // ShreddedPaper end - thread-safe
+ 
+         return existing instanceof MapItemSavedData data ? data : null;
+         // Paper end - Call missing map initialize event and set id
+@@ -2841,6 +2844,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+                     {
+                         if ( o instanceof MapItemSavedData )
+                         {
++                            synchronized (o) { // ShreddedPaper - thread-safe
+                             MapItemSavedData map = (MapItemSavedData) o;
+                             map.carriedByPlayers.remove( (Player) entity );
+                             for ( Iterator<MapItemSavedData.HoldingPlayer> iter = (Iterator<MapItemSavedData.HoldingPlayer>) map.carriedBy.iterator(); iter.hasNext(); )
+@@ -2851,6 +2855,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+                                     iter.remove();
+                                 }
+                             }
++                            } // ShreddedPaper - thread-safe
+                         }
+                     }
+                 } );
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 index 01904ed991aecab3a399d62c562195b84c713750..66d859000e610934560d022750c93026ebf057a1 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
@@ -365,6 +407,58 @@ index c6f193339fdcbcc938d4eafdcad0b112cf1698d5..256fbdc2a287a8232c8ecb9d0e06290a
          this.villageDistanceTracker.propagateUpdates(); // Paper - rewrite chunk system
      }
  
+diff --git a/src/main/java/net/minecraft/world/item/MapItem.java b/src/main/java/net/minecraft/world/item/MapItem.java
+index 608390ed36710a419de1542b80340dd3fcc7299c..13b7973ad6d53cefea5aa037cd1a9ff2ad839df4 100644
+--- a/src/main/java/net/minecraft/world/item/MapItem.java
++++ b/src/main/java/net/minecraft/world/item/MapItem.java
+@@ -69,6 +69,7 @@ public class MapItem extends ComplexItem {
+     }
+ 
+     public void update(Level world, Entity entity, MapItemSavedData state) {
++        synchronized (state) { // ShreddedPaper - thread-safe
+         if (world.dimension() == state.dimension && entity instanceof Player) {
+             int i = 1 << state.scale;
+             int j = state.centerX;
+@@ -181,6 +182,7 @@ public class MapItem extends ComplexItem {
+                 }
+             }
+         }
++        } // ShreddedPaper - thread-safe
+     }
+ 
+     private BlockState getCorrectStateForFluidBlock(Level world, BlockState state, BlockPos pos) {
+@@ -195,6 +197,7 @@ public class MapItem extends ComplexItem {
+     public static void renderBiomePreviewMap(ServerLevel world, ItemStack map) {
+         MapItemSavedData mapItemSavedData = getSavedData(map, world);
+         if (mapItemSavedData != null) {
++            synchronized (mapItemSavedData) { // ShreddedPaper - thread-safe
+             mapItemSavedData.isExplorerMap = true; // Purpur
+             if (world.dimension() == mapItemSavedData.dimension) {
+                 int i = 1 << mapItemSavedData.scale;
+@@ -265,6 +268,7 @@ public class MapItem extends ComplexItem {
+                     }
+                 }
+             }
++            } // ShreddedPaper - thread-safe
+         }
+     }
+ 
+@@ -273,6 +277,7 @@ public class MapItem extends ComplexItem {
+         if (!world.isClientSide) {
+             MapItemSavedData mapItemSavedData = getSavedData(stack, world);
+             if (mapItemSavedData != null) {
++                synchronized (mapItemSavedData) { // ShreddedPaper - thread-safe
+                 if (entity instanceof Player player) {
+                     mapItemSavedData.tickCarriedBy(player, stack);
+                 }
+@@ -280,6 +285,7 @@ public class MapItem extends ComplexItem {
+                 if (!mapItemSavedData.locked && (selected || entity instanceof Player && ((Player)entity).getOffhandItem() == stack)) {
+                     this.update(world, entity, mapItemSavedData);
+                 }
++                } // ShreddedPaper - thread-safe
+             }
+         }
+     }
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 index cd0e43f4c53a746dd6183a8406269f9b11ad3571..5f810f8c11a10bd371127a08b4fd9df874373f90 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
@@ -436,6 +530,79 @@ index 031fc626d2075cbe0941fecc188406712ab9953f..b9b084b7e9d5c9b4613d45eed9612ad5
          if (state.hasBlockEntity() && !state.is(newState.getBlock())) {
              world.removeBlockEntity(pos);
          }
+diff --git a/src/main/java/net/minecraft/world/level/saveddata/maps/MapIndex.java b/src/main/java/net/minecraft/world/level/saveddata/maps/MapIndex.java
+index 763b315b1d761bc3bd82d9b847ed3f64fd5ce991..841aa55043f354d5058992d43645bf9e56a723db 100644
+--- a/src/main/java/net/minecraft/world/level/saveddata/maps/MapIndex.java
++++ b/src/main/java/net/minecraft/world/level/saveddata/maps/MapIndex.java
+@@ -33,7 +33,7 @@ public class MapIndex extends SavedData {
+     }
+ 
+     @Override
+-    public CompoundTag save(CompoundTag nbt, HolderLookup.Provider registryLookup) {
++    public synchronized CompoundTag save(CompoundTag nbt, HolderLookup.Provider registryLookup) { // ShreddedPaper - thread-safe
+         for (Entry<String> entry : this.usedAuxIds.object2IntEntrySet()) {
+             nbt.putInt(entry.getKey(), entry.getIntValue());
+         }
+@@ -41,7 +41,7 @@ public class MapIndex extends SavedData {
+         return nbt;
+     }
+ 
+-    public MapId getFreeAuxValueForMap() {
++    public synchronized MapId getFreeAuxValueForMap() { // ShreddedPaper - thread-safe
+         int i = this.usedAuxIds.getInt("map") + 1;
+         this.usedAuxIds.put("map", i);
+         this.setDirty();
+diff --git a/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java b/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
+index 6e23e69abd56eeda3b52a22019e1b74ae10682e7..3fdbec5ab625e5d1e9c7cbad2377a8e673a64765 100644
+--- a/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
++++ b/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
+@@ -25,7 +25,7 @@ import org.slf4j.Logger;
+ 
+ public class DimensionDataStorage implements java.io.Closeable { // Paper - Write SavedData IO async
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    public final Map<String, SavedData> cache = Maps.newHashMap();
++    public final Map<String, SavedData> cache = Maps.newConcurrentMap(); // ShreddedPaper - thread-safe
+     private final DataFixer fixerUpper;
+     private final HolderLookup.Provider registries;
+     private final File dataFolder;
+@@ -43,25 +43,23 @@ public class DimensionDataStorage implements java.io.Closeable { // Paper - Writ
+     }
+ 
+     public <T extends SavedData> T computeIfAbsent(SavedData.Factory<T> type, String id) {
+-        T savedData = this.get(type, id);
+-        if (savedData != null) {
++        // ShreddedPaper start - thread-safe
++        return (T) this.cache.compute(id, (key, savedData) -> {
++            if (savedData == null) {
++                return type.constructor().get();
++            }
+             return savedData;
+-        } else {
+-            T savedData2 = (T)type.constructor().get();
+-            this.set(id, savedData2);
+-            return savedData2;
+-        }
++        });
++        // ShreddedPaper end - thread-safe
+     }
+ 
+     @Nullable
+     public <T extends SavedData> T get(SavedData.Factory<T> type, String id) {
+-        SavedData savedData = this.cache.get(id);
+-        if (savedData == null && !this.cache.containsKey(id)) {
+-            savedData = this.readSavedData(type.deserializer(), type.type(), id);
+-            this.cache.put(id, savedData);
+-        }
+-
+-        return (T)savedData;
++        // ShreddedPaper start - thread-safe
++        return (T) this.cache.computeIfAbsent(id, (key) -> {
++            return this.readSavedData(type.deserializer(), type.type(), key);
++        });
++        // ShreddedPaper end - thread-safe
+     }
+ 
+     @Nullable
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 index 3ed19f30f1cab9df3b1bfdf0b0caf7882a77c5f7..bebe02d73ed34453ff521ec1d803935c0287604b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
