@@ -5,7 +5,7 @@ Subject: [PATCH] ThreadLocals for block state capturing
 
 
 diff --git a/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java b/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
-index 68236139e3571791b891dbbef6e3ee20031e16d9..40af9033d213527950de6522f5d5d97e472faaf6 100644
+index f076380621dc6a40663e4f703de458a1d9b87fd9..06d85ca406b57f54827dd591910185909b4428e8 100644
 --- a/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
 @@ -634,7 +634,7 @@ public interface DispenseItemBehavior {
@@ -25,8 +25,8 @@ index 68236139e3571791b891dbbef6e3ee20031e16d9..40af9033d213527950de6522f5d5d97e
 -                if (worldserver.capturedBlockStates.size() > 0) {
 +                worldserver.captureTreeGeneration.set(false); // ShreddedPaper - thread local
 +                if (worldserver.capturedBlockStates.get().size() > 0) { // ShreddedPaper - thread local
-                     TreeType treeType = SaplingBlock.treeType;
-                     SaplingBlock.treeType = null;
+                     TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
+                     SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
                      Location location = CraftLocation.toBukkit(blockposition, worldserver.getWorld());
 -                    List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(worldserver.capturedBlockStates.values());
 -                    worldserver.capturedBlockStates.clear();
@@ -36,7 +36,7 @@ index 68236139e3571791b891dbbef6e3ee20031e16d9..40af9033d213527950de6522f5d5d97e
                      if (treeType != null) {
                          structureEvent = new StructureGrowEvent(location, treeType, false, null, blocks);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 8f32e799aac6702c94bb7e9db27ebd5024422baa..8c4b244b28f8baae40075f68aa0262fa9d628f14 100644
+index a5558faa00cb970a9039190b58241ce0c9367526..b71ca26c25fa951ec39a9bf5a292aa8871fe173e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1771,8 +1771,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -84,10 +84,10 @@ index 7424246750d6ceca1acd5d9ebfd48f0d66504c5d..fcfd4fb1e3d7e17a6039dc6bc85414dc
                      org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, state, this.player, itemsToDrop); // Paper - capture all item additions to the world
                  }
 diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
-index dc6c07b3cce53da0247fa8e2a7dc70d02a55ade4..530469693af4d4d6b7ea7d92a16a6353fd0edc84 100644
+index 20c2ed5b8a4a76554f251aa9c28fa5df10553bd9..04c29d349b2a5952b209e1f6c9503f4d6fd376d0 100644
 --- a/src/main/java/net/minecraft/world/item/ItemStack.java
 +++ b/src/main/java/net/minecraft/world/item/ItemStack.java
-@@ -402,29 +402,31 @@ public final class ItemStack implements DataComponentHolder {
+@@ -400,29 +400,31 @@ public final class ItemStack implements DataComponentHolder {
              ServerLevel world = (ServerLevel) context.getLevel();
  
              if (!(item instanceof BucketItem/* || item instanceof SolidBucketItem*/)) { // if not bucket // Paper - Fix cancelled powdered snow bucket placement
@@ -117,8 +117,8 @@ index dc6c07b3cce53da0247fa8e2a7dc70d02a55ade4..530469693af4d4d6b7ea7d92a16a6353
 +            if (enuminteractionresult.consumesAction() && world.captureTreeGeneration.get() && world.capturedBlockStates.get().size() > 0) { // ShreddedPaper - thread local
 +                world.captureTreeGeneration.set(false); // ShreddedPaper - thread local
                  Location location = CraftLocation.toBukkit(blockposition, world.getWorld());
-                 TreeType treeType = SaplingBlock.treeType;
-                 SaplingBlock.treeType = null;
+                 TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
+                 SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
 -                List<CraftBlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
 -                world.capturedBlockStates.clear();
 +                List<CraftBlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.get().values()); // ShreddedPaper - thread local
@@ -126,8 +126,8 @@ index dc6c07b3cce53da0247fa8e2a7dc70d02a55ade4..530469693af4d4d6b7ea7d92a16a6353
                  StructureGrowEvent structureEvent = null;
                  if (treeType != null) {
                      boolean isBonemeal = this.getItem() == Items.BONE_MEAL;
-@@ -453,13 +455,13 @@ public final class ItemStack implements DataComponentHolder {
-                 SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
+@@ -451,13 +453,13 @@ public final class ItemStack implements DataComponentHolder {
+                 SignItem.openSignThreadLocal.remove(); // SPIGOT-6758 - Reset on early return // ShreddedPaper - thread local for openSign
                  return enuminteractionresult;
              }
 -            world.captureTreeGeneration = false;
@@ -143,7 +143,7 @@ index dc6c07b3cce53da0247fa8e2a7dc70d02a55ade4..530469693af4d4d6b7ea7d92a16a6353
                  if (blocks.size() > 1) {
                      placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(world, entityhuman, enumhand, blocks, blockposition.getX(), blockposition.getY(), blockposition.getZ());
                  } else if (blocks.size() == 1 && item != Items.POWDER_SNOW_BUCKET) { // Paper - Fix cancelled powdered snow bucket placement
-@@ -470,16 +472,16 @@ public final class ItemStack implements DataComponentHolder {
+@@ -468,16 +470,16 @@ public final class ItemStack implements DataComponentHolder {
                      enuminteractionresult = InteractionResult.FAIL; // cancel placement
                      // PAIL: Remove this when MC-99075 fixed
                      placeEvent.getPlayer().updateInventory();
@@ -165,7 +165,7 @@ index dc6c07b3cce53da0247fa8e2a7dc70d02a55ade4..530469693af4d4d6b7ea7d92a16a6353
  
                      // Brute force all possible updates
                      // Paper start - Don't resync blocks
-@@ -496,7 +498,7 @@ public final class ItemStack implements DataComponentHolder {
+@@ -494,7 +496,7 @@ public final class ItemStack implements DataComponentHolder {
                          this.setCount(newCount);
                      }
  
@@ -174,7 +174,7 @@ index dc6c07b3cce53da0247fa8e2a7dc70d02a55ade4..530469693af4d4d6b7ea7d92a16a6353
                          world.setBlockEntity(e.getValue());
                      }
  
-@@ -584,8 +586,8 @@ public final class ItemStack implements DataComponentHolder {
+@@ -582,8 +584,8 @@ public final class ItemStack implements DataComponentHolder {
                      entityhuman.awardStat(Stats.ITEM_USED.get(item));
                  }
              }
@@ -186,7 +186,7 @@ index dc6c07b3cce53da0247fa8e2a7dc70d02a55ade4..530469693af4d4d6b7ea7d92a16a6353
  
              return enuminteractionresult;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 97742d2286468c55daf2076f6da1f31a58412c0c..e0802a0d3572268b62034658f0b3dae2c9b3849e 100644
+index 329291edfef3098ce8c68acce9cf16b9eeb7d2b3..76bed59483e41c637a2bdedee2bdce600d77beab 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
@@ -352,7 +352,7 @@ index 5ae3decf100d21f7d4a471c155eaf5e00e996580..23706d591cc1c1c4b5c3225878e62cae
                  world.addFreshEntity(entityitem);
              }
 diff --git a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
-index d262a5a6da57ef9ba9a6fe0dfbc88f577105e74f..c87a30862b86b6fa94cd5df06a8df6fbe95686ba 100644
+index 99e69f34d4f2dd9a67076e38e094246d5969cd11..0e7626eb64c97ae5ff2fea075ce7f8d1d75ad6e3 100644
 --- a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
 +++ b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
 @@ -66,18 +66,18 @@ public class SaplingBlock extends BushBlock implements BonemealableBlock {
@@ -370,8 +370,8 @@ index d262a5a6da57ef9ba9a6fe0dfbc88f577105e74f..c87a30862b86b6fa94cd5df06a8df6fb
 -                if (world.capturedBlockStates.size() > 0) {
 +                world.captureTreeGeneration.set(false); // ShreddedPaper - thread local
 +                if (world.capturedBlockStates.get().size() > 0) { // ShreddedPaper - thread local
-                     TreeType treeType = SaplingBlock.treeType;
-                     SaplingBlock.treeType = null;
+                     TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
+                     SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
                      Location location = CraftLocation.toBukkit(pos, world.getWorld());
 -                    java.util.List<BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
 -                    world.capturedBlockStates.clear();
@@ -394,7 +394,7 @@ index 5cb06959aeaceeb98cfee34b1df804e6642f305f..7fa724b10f89856f99956047290a08b6
              BlockState iblockdata = blockEntity.getBlockState();
              boolean flag = iblockdata.is(Blocks.WITHER_SKELETON_SKULL) || iblockdata.is(Blocks.WITHER_SKELETON_WALL_SKULL);
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..fe771ae4fe21dc0d9753552be1081d9f427a56a5 100644
+index ea8ef68cd005c96d6a31cce787c94c9771b398f7..efa605d6ff1adcb8e35ec095daa7aac7f6d4c4ed 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -452,7 +452,7 @@ public class LevelChunk extends ChunkAccess {
@@ -463,7 +463,7 @@ index 3e43ca0b1d62323ca85e93e82bb2dfc3b2f56dfc..3f19b892430fe0d7a53cb5c4a7cd036f
          }
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
-index ac11f18690434922179b61ffcc3036dea025b0cb..6d90382a5193d0d43ebed49c23eba5a5754698ca 100644
+index efdac83c60651818f7d1829be8970cd1c546f3de..ed30feb916daecc1d9b9aaa854ac5b832aa59757 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 @@ -549,15 +549,15 @@ public class CraftBlock implements Block {
@@ -478,8 +478,8 @@ index ac11f18690434922179b61ffcc3036dea025b0cb..6d90382a5193d0d43ebed49c23eba5a5
  
 -        if (world.capturedBlockStates.size() > 0) {
 +        if (world.capturedBlockStates.get().size() > 0) { // ShreddedPaper - thread local
-             TreeType treeType = SaplingBlock.treeType;
-             SaplingBlock.treeType = null;
+             TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
+             SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
 -            List<BlockState> blocks = new ArrayList<>(world.capturedBlockStates.values());
 -            world.capturedBlockStates.clear();
 +            List<BlockState> blocks = new ArrayList<>(world.capturedBlockStates.get().values()); // ShreddedPaper - thread local

@@ -6,13 +6,12 @@ Subject: [PATCH] Thread-safe NeigbhorUpdater
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/PerThreadNeighborUpdater.java b/src/main/java/io/multipaper/shreddedpaper/threading/PerThreadNeighborUpdater.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9f06ff3bf8ddebf3e97623c1db1c69f0a085a9f2
+index 0000000000000000000000000000000000000000..e01ca0d4a18a5cea678d0fd4809291f6b7bdc731
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/PerThreadNeighborUpdater.java
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,44 @@
 +package io.multipaper.shreddedpaper.threading;
 +
-+import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
 +import net.minecraft.world.level.block.Block;
@@ -20,34 +19,19 @@ index 0000000000000000000000000000000000000000..9f06ff3bf8ddebf3e97623c1db1c69f0
 +import net.minecraft.world.level.redstone.NeighborUpdater;
 +import org.jetbrains.annotations.NotNull;
 +import org.jetbrains.annotations.Nullable;
-+import io.multipaper.shreddedpaper.util.SimpleStampedLock;
 +
 +import java.util.function.Supplier;
 +
 +public class PerThreadNeighborUpdater implements NeighborUpdater {
 +
-+    private final Supplier<NeighborUpdater> factory;
-+    private final Long2ReferenceOpenHashMap<NeighborUpdater> neighborUpdaters = new Long2ReferenceOpenHashMap<>();
-+    private final SimpleStampedLock lock = new SimpleStampedLock();
++    private final ThreadLocal<NeighborUpdater> threadLocalNeighborUpdater;
 +
 +    public PerThreadNeighborUpdater(Supplier<NeighborUpdater> factory) {
-+        this.factory = factory;
++        this.threadLocalNeighborUpdater = ThreadLocal.withInitial(factory);
 +    }
 +
 +    private NeighborUpdater getOrCreate() {
-+        long id = Thread.currentThread().threadId();
-+        NeighborUpdater neighborUpdater = get(id);
-+
-+        if (neighborUpdater == null) {
-+            lock.write(() -> this.neighborUpdaters.put(id, factory.get()));
-+            neighborUpdater = get(id);
-+        }
-+
-+        return neighborUpdater;
-+    }
-+
-+    private NeighborUpdater get(long id) {
-+        return lock.optimisticRead(() -> this.neighborUpdaters.get(id));
++        return threadLocalNeighborUpdater.get();
 +    }
 +
 +    @Override

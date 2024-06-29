@@ -4,6 +4,27 @@ Date: Sat, 25 May 2024 13:58:42 +0900
 Subject: [PATCH] Misc threadsafety
 
 
+diff --git a/src/main/java/com/destroystokyo/paper/util/RedstoneWireTurbo.java b/src/main/java/com/destroystokyo/paper/util/RedstoneWireTurbo.java
+index 9f17170179cc99d84ad25a1e838aff3d8cc66f93..e0f567a94fb73d0d20a513f9a1a72974965063c9 100644
+--- a/src/main/java/com/destroystokyo/paper/util/RedstoneWireTurbo.java
++++ b/src/main/java/com/destroystokyo/paper/util/RedstoneWireTurbo.java
+@@ -833,14 +833,14 @@ public class RedstoneWireTurbo {
+         j = getMaxCurrentStrength(upd, j);
+         int l = 0;
+ 
+-        wire.shouldSignal = false;
++        wire.shouldSignalThreadLocal.set(false); // ShreddedPaper - use thread local for shouldSignal
+         // Unfortunately, World.isBlockIndirectlyGettingPowered is complicated,
+         // and I'm not ready to try to replicate even more functionality from
+         // elsewhere in Minecraft into this accelerator.  So sadly, we must
+         // suffer the performance hit of this very expensive call.  If there
+         // is consistency to what this call returns, we may be able to cache it.
+         final int k = worldIn.getBestNeighborSignal(upd.self);
+-        wire.shouldSignal = true;
++        wire.shouldSignalThreadLocal.set(true); // ShreddedPaper - use thread local for shouldSignal
+ 
+         // The variable 'k' holds the maximum redstone power value of any adjacent blocks.
+         // If 'k' has the highest level of all neighbors, then the power level of this
 diff --git a/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java b/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java
 index a5f706d6f716b2a463ae58adcde69d9e665c7733..2f269fee6e9119db5b67934627d66e96672da892 100644
 --- a/src/main/java/io/papermc/paper/chunk/SingleThreadChunkRegionManager.java
@@ -190,6 +211,212 @@ index 645e39222d81a5049888c86881ee381310fa7060..8fe50092e5e99127c937cf50990c3ad8
          }
      }
  
+diff --git a/src/main/java/net/minecraft/core/dispenser/BoatDispenseItemBehavior.java b/src/main/java/net/minecraft/core/dispenser/BoatDispenseItemBehavior.java
+index 6df0db8b4cdab23494ea34236949ece4989110a3..28a62457a0a02c81055af711105b306f446b3fb5 100644
+--- a/src/main/java/net/minecraft/core/dispenser/BoatDispenseItemBehavior.java
++++ b/src/main/java/net/minecraft/core/dispenser/BoatDispenseItemBehavior.java
+@@ -63,7 +63,7 @@ public class BoatDispenseItemBehavior extends DefaultDispenseItemBehavior {
+         CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+         BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(d1, d2 + d4, d3));
+-        if (!DispenserBlock.eventFired) {
++        if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+             worldserver.getCraftServer().getPluginManager().callEvent(event);
+         }
+ 
+diff --git a/src/main/java/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java b/src/main/java/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
+index f28705547a62da790f5df071400986aacba39367..18b64fe578ea7c865d8f84b57ad6743b013264fb 100644
+--- a/src/main/java/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
++++ b/src/main/java/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
+@@ -85,7 +85,7 @@ public class DefaultDispenseItemBehavior implements DispenseItemBehavior {
+         CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack);
+ 
+         BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), CraftVector.toBukkit(entityitem.getDeltaMovement()));
+-        if (!DispenserBlock.eventFired) {
++        if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+             world.getCraftServer().getPluginManager().callEvent(event);
+         }
+ 
+diff --git a/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java b/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
+index 68236139e3571791b891dbbef6e3ee20031e16d9..f076380621dc6a40663e4f703de458a1d9b87fd9 100644
+--- a/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
++++ b/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
+@@ -114,7 +114,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+                 BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                     worldserver.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -173,7 +173,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+                 BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                     worldserver.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -228,7 +228,7 @@ public interface DispenseItemBehavior {
+                     CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+                     BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) list.get(0).getBukkitEntity());
+-                    if (!DispenserBlock.eventFired) {
++                    if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                         world.getCraftServer().getPluginManager().callEvent(event);
+                     }
+ 
+@@ -284,7 +284,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+                 BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) entityhorseabstract.getBukkitEntity());
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                     world.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -358,7 +358,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+                 BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) entityhorsechestedabstract.getBukkitEntity());
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                     world.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -430,7 +430,7 @@ public interface DispenseItemBehavior {
+                     CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack.copyWithCount(1)); // Paper - single item in event
+ 
+                     BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(x, y, z));
+-                    if (!DispenserBlock.eventFired) {
++                    if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                         worldserver.getCraftServer().getPluginManager().callEvent(event);
+                     }
+ 
+@@ -506,7 +506,7 @@ public interface DispenseItemBehavior {
+                         CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack.copyWithCount(1)); // Paper - single item in event
+ 
+                         BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(blockposition.getX(), blockposition.getY(), blockposition.getZ()));
+-                        if (!DispenserBlock.eventFired) {
++                        if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                             worldserver.getCraftServer().getPluginManager().callEvent(event);
+                         }
+ 
+@@ -553,7 +553,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack); // Paper - ignore stack size on damageable items
+ 
+                 BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                     worldserver.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -616,7 +616,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack.copyWithCount(1)); // Paper - single item in event
+ 
+                 BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                     worldserver.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -645,8 +645,8 @@ public interface DispenseItemBehavior {
+                 // CraftBukkit start
+                 worldserver.captureTreeGeneration = false;
+                 if (worldserver.capturedBlockStates.size() > 0) {
+-                    TreeType treeType = SaplingBlock.treeType;
+-                    SaplingBlock.treeType = null;
++                    TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
++                    SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
+                     Location location = CraftLocation.toBukkit(blockposition, worldserver.getWorld());
+                     List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(worldserver.capturedBlockStates.values());
+                     worldserver.capturedBlockStates.clear();
+@@ -685,7 +685,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+                 BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector((double) blockposition.getX() + 0.5D, (double) blockposition.getY(), (double) blockposition.getZ() + 0.5D));
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                    worldserver.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -742,7 +742,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack.copyWithCount(1)); // Paper - single item in event
+ 
+                 BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(blockposition.getX(), blockposition.getY(), blockposition.getZ()));
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                     worldserver.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -791,7 +791,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack.copyWithCount(1)); // Paper - single item in event
+ 
+                 BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(blockposition.getX(), blockposition.getY(), blockposition.getZ()));
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                     worldserver.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -864,7 +864,7 @@ public interface DispenseItemBehavior {
+                 CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack.copyWithCount(1)); // Paper - only single item in event
+ 
+                 BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(blockposition.getX(), blockposition.getY(), blockposition.getZ()));
+-                if (!DispenserBlock.eventFired) {
++                if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                     worldserver.getCraftServer().getPluginManager().callEvent(event);
+                 }
+ 
+@@ -946,7 +946,7 @@ public interface DispenseItemBehavior {
+                     CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+                     BlockDispenseEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) list.get(0).getBukkitEntity());
+-                    if (!DispenserBlock.eventFired) {
++                    if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                         world.getCraftServer().getPluginManager().callEvent(event);
+                     }
+ 
+diff --git a/src/main/java/net/minecraft/core/dispenser/ProjectileDispenseBehavior.java b/src/main/java/net/minecraft/core/dispenser/ProjectileDispenseBehavior.java
+index e37d2d29f3ba67cfe28abe4847a3dca07121f0be..2b0c59dac5cbe34d2e88c2634d4e58bfeaf9fd0c 100644
+--- a/src/main/java/net/minecraft/core/dispenser/ProjectileDispenseBehavior.java
++++ b/src/main/java/net/minecraft/core/dispenser/ProjectileDispenseBehavior.java
+@@ -45,7 +45,7 @@ public class ProjectileDispenseBehavior extends DefaultDispenseItemBehavior {
+         CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+         BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector((double) enumdirection.getStepX(), (double) enumdirection.getStepY(), (double) enumdirection.getStepZ()));
+-        if (!DispenserBlock.eventFired) {
++        if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+             worldserver.getCraftServer().getPluginManager().callEvent(event);
+         }
+ 
+diff --git a/src/main/java/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java b/src/main/java/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java
+index e4fab82b369f2c2ea0d8c8acd814d06140d551fc..eea19c71541204c0cccbba2bc86e0538d33027a2 100644
+--- a/src/main/java/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java
++++ b/src/main/java/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java
+@@ -41,7 +41,7 @@ public class ShearsDispenseItemBehavior extends OptionalDispenseItemBehavior {
+         CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack); // Paper - ignore stack size on damageable items
+ 
+         BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
+-        if (!DispenserBlock.eventFired) {
++        if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+             worldserver.getCraftServer().getPluginManager().callEvent(event);
+         }
+ 
+diff --git a/src/main/java/net/minecraft/core/dispenser/ShulkerBoxDispenseBehavior.java b/src/main/java/net/minecraft/core/dispenser/ShulkerBoxDispenseBehavior.java
+index cb308808906a8cdb127df8284e106e00553473ca..e0bce00aa34e283bacbeb32a5a7e4e5b73d72338 100644
+--- a/src/main/java/net/minecraft/core/dispenser/ShulkerBoxDispenseBehavior.java
++++ b/src/main/java/net/minecraft/core/dispenser/ShulkerBoxDispenseBehavior.java
+@@ -37,7 +37,7 @@ public class ShulkerBoxDispenseBehavior extends OptionalDispenseItemBehavior {
+             CraftItemStack craftItem = CraftItemStack.asCraftMirror(stack.copyWithCount(1)); // Paper - single item in event
+ 
+             BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(blockposition.getX(), blockposition.getY(), blockposition.getZ()));
+-            if (!DispenserBlock.eventFired) {
++            if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                 pointer.level().getCraftServer().getPluginManager().callEvent(event);
+             }
+ 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
 index 472b9494f8a34a8ba90d6a2936b0db7530a229ad..0e0c3a010d5cfaa0c15bcb38c4e3b1a8d7ad39a1 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
@@ -288,7 +515,7 @@ index 6542c67e753245cd131de872c28862f83e7ff2f3..f355833ee748e25af228ad9bd3dc0660
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.game.ClientGamePacketListener;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index e1560a58cc2e9570b9533e26156f322b8cdcc332..c992f7510efd80b000c9ce364e964ca59e220b9d 100644
+index e1560a58cc2e9570b9533e26156f322b8cdcc332..b18e89bcf1619a78da6a36d4d7157b3fa69ed3a7 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -326,6 +553,15 @@ index e1560a58cc2e9570b9533e26156f322b8cdcc332..c992f7510efd80b000c9ce364e964ca5
  
          return existing instanceof MapItemSavedData data ? data : null;
          // Paper end - Call missing map initialize event and set id
+@@ -2548,7 +2551,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     public void blockUpdated(BlockPos pos, Block block) {
+         if (!this.isDebug()) {
+             // CraftBukkit start
+-            if (this.populating) {
++            if (this.populatingThreadLocal.get()) { // ShreddedPaper - thread local for populating
+                 return;
+             }
+             // CraftBukkit end
 @@ -2841,6 +2844,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
                      {
                          if ( o instanceof MapItemSavedData )
@@ -407,6 +643,97 @@ index c6f193339fdcbcc938d4eafdcad0b112cf1698d5..256fbdc2a287a8232c8ecb9d0e06290a
          this.villageDistanceTracker.propagateUpdates(); // Paper - rewrite chunk system
      }
  
+diff --git a/src/main/java/net/minecraft/world/item/ArmorItem.java b/src/main/java/net/minecraft/world/item/ArmorItem.java
+index b108ca4c7900ccf6a14ebea01c21c103459054f8..4576722aac8cb7f5310fc4c981a78488b17918bb 100644
+--- a/src/main/java/net/minecraft/world/item/ArmorItem.java
++++ b/src/main/java/net/minecraft/world/item/ArmorItem.java
+@@ -77,7 +77,7 @@ public class ArmorItem extends Item implements Equipable {
+             CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+             BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) entityliving.getBukkitEntity());
+-            if (!DispenserBlock.eventFired) {
++            if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                 world.getCraftServer().getPluginManager().callEvent(event);
+             }
+ 
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index dc6c07b3cce53da0247fa8e2a7dc70d02a55ade4..20c2ed5b8a4a76554f251aa9c28fa5df10553bd9 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -23,7 +23,6 @@ import javax.annotation.Nullable;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+-import net.minecraft.core.Direction;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.HolderSet;
+@@ -47,7 +46,6 @@ import net.minecraft.network.chat.HoverEvent;
+ import net.minecraft.network.chat.MutableComponent;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+-import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+ import net.minecraft.resources.RegistryOps;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+@@ -93,7 +91,7 @@ import org.slf4j.Logger;
+ 
+ // CraftBukkit start
+ import java.util.Map;
+-import java.util.Objects;
++
+ import net.minecraft.world.level.ItemLike;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.BaseEntityBlock;
+@@ -421,8 +419,8 @@ public final class ItemStack implements DataComponentHolder {
+             if (enuminteractionresult.consumesAction() && world.captureTreeGeneration && world.capturedBlockStates.size() > 0) {
+                 world.captureTreeGeneration = false;
+                 Location location = CraftLocation.toBukkit(blockposition, world.getWorld());
+-                TreeType treeType = SaplingBlock.treeType;
+-                SaplingBlock.treeType = null;
++                TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
++                SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
+                 List<CraftBlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
+                 world.capturedBlockStates.clear();
+                 StructureGrowEvent structureEvent = null;
+@@ -450,7 +448,7 @@ public final class ItemStack implements DataComponentHolder {
+                     entityhuman.awardStat(Stats.ITEM_USED.get(item)); // SPIGOT-7236 - award stat
+                 }
+ 
+-                SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
++                SignItem.openSignThreadLocal.remove(); // SPIGOT-6758 - Reset on early return // ShreddedPaper - thread local for openSign
+                 return enuminteractionresult;
+             }
+             world.captureTreeGeneration = false;
+@@ -488,7 +486,7 @@ public final class ItemStack implements DataComponentHolder {
+                     //     ((ServerPlayer) entityhuman).connection.send(new ClientboundBlockUpdatePacket(world, placedPos.relative(dir)));
+                     // }
+                     // Paper end - Don't resync blocks
+-                    SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
++                    SignItem.openSignThreadLocal.remove(); // SPIGOT-6758 - Reset on early return // ShreddedPaper - thread local for openSign
+                 } else {
+                     // Change the stack to its new contents if it hasn't been tampered with.
+                     if (this.getCount() == oldCount && Objects.equals(this.components.asPatch(), oldData)) {
+@@ -548,15 +546,15 @@ public final class ItemStack implements DataComponentHolder {
+                     }
+ 
+                     // SPIGOT-4678
+-                    if (this.item instanceof SignItem && SignItem.openSign != null) {
++                    if (this.item instanceof SignItem && SignItem.openSignThreadLocal.get() != null) { // ShreddedPaper - thread local for openSign
+                         try {
+-                            if (world.getBlockEntity(SignItem.openSign) instanceof SignBlockEntity tileentitysign) {
+-                                if (world.getBlockState(SignItem.openSign).getBlock() instanceof SignBlock blocksign) {
++                            if (world.getBlockEntity(SignItem.openSignThreadLocal.get()) instanceof SignBlockEntity tileentitysign) { // ShreddedPaper - thread local for openSign
++                                if (world.getBlockState(SignItem.openSignThreadLocal.get()).getBlock() instanceof SignBlock blocksign) { // ShreddedPaper - thread local for openSign
+                                     blocksign.openTextEdit(entityhuman, tileentitysign, true, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLACE); // Paper - Add PlayerOpenSignEvent
+                                 }
+                             }
+                         } finally {
+-                            SignItem.openSign = null;
++                            SignItem.openSignThreadLocal.remove(); // ShreddedPaper - thread local for openSign
+                         }
+                     }
+ 
 diff --git a/src/main/java/net/minecraft/world/item/MapItem.java b/src/main/java/net/minecraft/world/item/MapItem.java
 index 608390ed36710a419de1542b80340dd3fcc7299c..13b7973ad6d53cefea5aa037cd1a9ff2ad839df4 100644
 --- a/src/main/java/net/minecraft/world/item/MapItem.java
@@ -459,8 +786,220 @@ index 608390ed36710a419de1542b80340dd3fcc7299c..13b7973ad6d53cefea5aa037cd1a9ff2
              }
          }
      }
+diff --git a/src/main/java/net/minecraft/world/item/MinecartItem.java b/src/main/java/net/minecraft/world/item/MinecartItem.java
+index 4b8cebb321eddc852b4ec7def7f51d781f67927b..5a99f87ce3b58d3bc076fca9fbbff339696e89b9 100644
+--- a/src/main/java/net/minecraft/world/item/MinecartItem.java
++++ b/src/main/java/net/minecraft/world/item/MinecartItem.java
+@@ -71,7 +71,7 @@ public class MinecartItem extends Item {
+             CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
+ 
+             BlockDispenseEvent event = new BlockDispenseEvent(block2, craftItem.clone(), new org.bukkit.util.Vector(d0, d1 + d3, d2));
+-            if (!DispenserBlock.eventFired) {
++            if (!DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+                 worldserver.getCraftServer().getPluginManager().callEvent(event);
+             }
+ 
+diff --git a/src/main/java/net/minecraft/world/item/SignItem.java b/src/main/java/net/minecraft/world/item/SignItem.java
+index 21c25026da4117b2cb2c85576d2def945a97dbe2..9b588a6f29f67520cc67aa9ec95d70bf499289cd 100644
+--- a/src/main/java/net/minecraft/world/item/SignItem.java
++++ b/src/main/java/net/minecraft/world/item/SignItem.java
+@@ -13,7 +13,7 @@ import net.minecraft.world.level.block.state.BlockState;
+ 
+ public class SignItem extends StandingAndWallBlockItem {
+ 
+-    public static BlockPos openSign; // CraftBukkit
++    public static final ThreadLocal<BlockPos> openSignThreadLocal = new ThreadLocal<>(); // CraftBukkit // ShreddedPaper - thread local for openSign
+ 
+     public SignItem(Item.Properties settings, Block standingBlock, Block wallBlock) {
+         super(standingBlock, wallBlock, settings, Direction.DOWN);
+@@ -39,7 +39,7 @@ public class SignItem extends StandingAndWallBlockItem {
+ 
+                     // CraftBukkit start - SPIGOT-4678
+                     // blocksign.openTextEdit(entityhuman, tileentitysign, true);
+-                    SignItem.openSign = pos;
++                    SignItem.openSignThreadLocal.set(pos); // ShreddedPaper - thread local for openSign
+                     // CraftBukkit end
+                 }
+             }
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 97742d2286468c55daf2076f6da1f31a58412c0c..329291edfef3098ce8c68acce9cf16b9eeb7d2b3 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -166,7 +166,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
+     public int wakeupInactiveRemainingMonsters;
+     public int wakeupInactiveRemainingVillagers;
+     // Paper end
+-    public boolean populating;
++    public final ThreadLocal<Boolean> populatingThreadLocal = ThreadLocal.withInitial(() -> false); // ShreddedPaper - thread local for populating
+     public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
+     // Paper start - add paper world config
+     private final io.papermc.paper.configuration.WorldConfiguration paperConfig;
+diff --git a/src/main/java/net/minecraft/world/level/block/DispenserBlock.java b/src/main/java/net/minecraft/world/level/block/DispenserBlock.java
+index f6edfea463b3725d3a79aca38825e86dbf82175c..59e8748805feaf9bc36fcc5de11c9c56e3104eeb 100644
+--- a/src/main/java/net/minecraft/world/level/block/DispenserBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/DispenserBlock.java
+@@ -51,7 +51,7 @@ public class DispenserBlock extends BaseEntityBlock {
+         object2objectopenhashmap.defaultReturnValue(DispenserBlock.DEFAULT_BEHAVIOR);
+     });
+     private static final int TRIGGER_DURATION = 4;
+-    public static boolean eventFired = false; // CraftBukkit
++    public static final ThreadLocal<Boolean> eventFiredThreadLocal = ThreadLocal.withInitial(() -> false); // CraftBukkit // ShreddedPaper - use thread local for eventFired
+ 
+     @Override
+     public MapCodec<? extends DispenserBlock> codec() {
+@@ -111,7 +111,7 @@ public class DispenserBlock extends BaseEntityBlock {
+ 
+                 if (idispensebehavior != DispenseItemBehavior.NOOP) {
+                     if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockPreDispenseEvent(world, pos, itemstack, i)) return; // Paper - Add BlockPreDispenseEvent
+-                    DispenserBlock.eventFired = false; // CraftBukkit - reset event status
++                    DispenserBlock.eventFiredThreadLocal.set(false); // CraftBukkit - reset event status // ShreddedPaper - use thread local for eventFired
+                     tileentitydispenser.setItem(i, idispensebehavior.dispense(sourceblock, itemstack));
+                 }
+ 
+diff --git a/src/main/java/net/minecraft/world/level/block/FungusBlock.java b/src/main/java/net/minecraft/world/level/block/FungusBlock.java
+index 454f95ba814b375e97189430b498c0e7486fbd94..0adc7974ccbc5aee8a6c077ae8ab9641accdf013 100644
+--- a/src/main/java/net/minecraft/world/level/block/FungusBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/FungusBlock.java
+@@ -76,9 +76,9 @@ public class FungusBlock extends BushBlock implements BonemealableBlock {
+         this.getFeature(world).ifPresent((holder) -> {
+             // CraftBukkit start
+             if (this == Blocks.WARPED_FUNGUS) {
+-                SaplingBlock.treeType = org.bukkit.TreeType.WARPED_FUNGUS;
++                SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.WARPED_FUNGUS); // ShreddedPaper - thread local for treeType
+             } else if (this == Blocks.CRIMSON_FUNGUS) {
+-                SaplingBlock.treeType = org.bukkit.TreeType.CRIMSON_FUNGUS;
++                SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.CRIMSON_FUNGUS); // ShreddedPaper - thread local for treeType
+             }
+             // CraftBukkit end
+             ((ConfiguredFeature) holder.value()).place(world, world.getChunkSource().getGenerator(), random, pos);
+diff --git a/src/main/java/net/minecraft/world/level/block/MushroomBlock.java b/src/main/java/net/minecraft/world/level/block/MushroomBlock.java
+index 1172d85c5c26ab2142343d91149766e5993cb36a..103d24bf049e2cf4ba8f4f3fab38b0a3590473a2 100644
+--- a/src/main/java/net/minecraft/world/level/block/MushroomBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/MushroomBlock.java
+@@ -105,7 +105,7 @@ public class MushroomBlock extends BushBlock implements BonemealableBlock {
+             return false;
+         } else {
+             world.removeBlock(pos, false);
+-            SaplingBlock.treeType = (this == Blocks.BROWN_MUSHROOM) ? TreeType.BROWN_MUSHROOM : TreeType.RED_MUSHROOM; // CraftBukkit
++            SaplingBlock.treeTypeThreadLocal.set((this == Blocks.BROWN_MUSHROOM) ? TreeType.BROWN_MUSHROOM : TreeType.RED_MUSHROOM); // CraftBukkit // ShreddedPaper - thread local for treeType
+             if (((ConfiguredFeature) ((Holder) optional.get()).value()).place(world, world.getChunkSource().getGenerator(), random, pos)) {
+                 return true;
+             } else {
+diff --git a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
+index c131734cad123a35456d18f8a161f77a4ac9ac99..77c2cf5190d5732e15bf28c9ab98f5e3b1918cb6 100644
+--- a/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/RedStoneWireBlock.java
+@@ -68,7 +68,7 @@ public class RedStoneWireBlock extends Block {
+     });
+     private static final float PARTICLE_DENSITY = 0.2F;
+     private final BlockState crossState;
+-    public boolean shouldSignal = true;
++    public final ThreadLocal<Boolean> shouldSignalThreadLocal = ThreadLocal.withInitial(() -> true); // ShreddedPaper - use thread local for shouldSignal
+ 
+     @Override
+     public MapCodec<RedStoneWireBlock> codec() {
+@@ -260,7 +260,7 @@ public class RedStoneWireBlock extends Block {
+ 
+     // Paper start - Optimize redstone (Eigencraft)
+     // The bulk of the new functionality is found in RedstoneWireTurbo.java
+-    com.destroystokyo.paper.util.RedstoneWireTurbo turbo = new com.destroystokyo.paper.util.RedstoneWireTurbo(this);
++    final ThreadLocal<com.destroystokyo.paper.util.RedstoneWireTurbo> turboThreadLocal = ThreadLocal.withInitial(() -> new com.destroystokyo.paper.util.RedstoneWireTurbo(this)); // ShreddedPaper - thread local for turbo
+ 
+     /*
+      * Modified version of pre-existing updateSurroundingRedstone, which is called from
+@@ -269,7 +269,7 @@ public class RedStoneWireBlock extends Block {
+      */
+     private void updateSurroundingRedstone(Level worldIn, BlockPos pos, BlockState state, BlockPos source) {
+         if (worldIn.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.EIGENCRAFT) {
+-            turbo.updateSurroundingRedstone(worldIn, pos, state, source);
++            turboThreadLocal.get().updateSurroundingRedstone(worldIn, pos, state, source); // ShreddedPaper - thread local for turbo
+             return;
+         }
+         updatePowerStrength(worldIn, pos, state);
+@@ -288,9 +288,9 @@ public class RedStoneWireBlock extends Block {
+         int i = state.getValue(POWER);
+         int j = 0;
+         j = this.getPower(j, worldIn.getBlockState(pos2));
+-        this.shouldSignal = false;
++        this.shouldSignalThreadLocal.set(false); // ShreddedPaper - use thread local for shouldSignal
+         int k = worldIn.getBestNeighborSignal(pos1);
+-        this.shouldSignal = true;
++        this.shouldSignalThreadLocal.set(true); // ShreddedPaper - use thread local for shouldSignal
+ 
+         if (worldIn.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.VANILLA) {
+             // This code is totally redundant to if statements just below the loop.
+@@ -360,7 +360,7 @@ public class RedStoneWireBlock extends Block {
+                 // [Space Walker] suppress shape updates and emit those manually to
+                 // bypass the new neighbor update stack.
+                 if (worldIn.setBlock(pos1, state, Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS))
+-                    turbo.updateNeighborShapes(worldIn, pos1, state);
++                    turboThreadLocal.get().updateNeighborShapes(worldIn, pos1, state); // ShreddedPaper - thread local for turbo
+             }
+         }
+ 
+@@ -409,10 +409,10 @@ public class RedStoneWireBlock extends Block {
+     }
+ 
+     private int calculateTargetStrength(Level world, BlockPos pos) {
+-        this.shouldSignal = false;
++        this.shouldSignalThreadLocal.set(false); // ShreddedPaper - use thread local for shouldSignal
+         int i = world.getBestNeighborSignal(pos);
+ 
+-        this.shouldSignal = true;
++        this.shouldSignalThreadLocal.set(true); // ShreddedPaper - use thread local for shouldSignal
+         int j = 0;
+ 
+         if (i < 15) {
+@@ -551,12 +551,12 @@ public class RedStoneWireBlock extends Block {
+ 
+     @Override
+     protected int getDirectSignal(BlockState state, BlockGetter world, BlockPos pos, Direction direction) {
+-        return !this.shouldSignal ? 0 : state.getSignal(world, pos, direction);
++        return !this.shouldSignalThreadLocal.get() ? 0 : state.getSignal(world, pos, direction); // ShreddedPaper - use thread local for shouldSignal
+     }
+ 
+     @Override
+     protected int getSignal(BlockState state, BlockGetter world, BlockPos pos, Direction direction) {
+-        if (this.shouldSignal && direction != Direction.DOWN) {
++        if (this.shouldSignalThreadLocal.get() && direction != Direction.DOWN) { // ShreddedPaper - use thread local for shouldSignal
+             int i = (Integer) state.getValue(RedStoneWireBlock.POWER);
+ 
+             return i == 0 ? 0 : (direction != Direction.UP && !((RedstoneSide) this.getConnectionState(world, state, pos).getValue((Property) RedStoneWireBlock.PROPERTY_BY_DIRECTION.get(direction.getOpposite()))).isConnected() ? 0 : i);
+@@ -583,7 +583,7 @@ public class RedStoneWireBlock extends Block {
+ 
+     @Override
+     protected boolean isSignalSource(BlockState state) {
+-        return this.shouldSignal;
++        return this.shouldSignalThreadLocal.get(); // ShreddedPaper - use thread local for shouldSignal
+     }
+ 
+     public static int getColorForPower(int powerLevel) {
+diff --git a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+index d262a5a6da57ef9ba9a6fe0dfbc88f577105e74f..99e69f34d4f2dd9a67076e38e094246d5969cd11 100644
+--- a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+@@ -35,7 +35,7 @@ public class SaplingBlock extends BushBlock implements BonemealableBlock {
+     protected static final float AABB_OFFSET = 6.0F;
+     protected static final VoxelShape SHAPE = Block.box(2.0D, 0.0D, 2.0D, 14.0D, 12.0D, 14.0D);
+     protected final TreeGrower treeGrower;
+-    public static TreeType treeType; // CraftBukkit
++    public static final ThreadLocal<TreeType> treeTypeThreadLocal = new ThreadLocal<>(); // CraftBukkit // ShreddedPaper - thread local for treeType
+ 
+     @Override
+     public MapCodec<? extends SaplingBlock> codec() {
+@@ -73,8 +73,8 @@ public class SaplingBlock extends BushBlock implements BonemealableBlock {
+                 this.treeGrower.growTree(world, world.getChunkSource().getGenerator(), pos, state, random);
+                 world.captureTreeGeneration = false;
+                 if (world.capturedBlockStates.size() > 0) {
+-                    TreeType treeType = SaplingBlock.treeType;
+-                    SaplingBlock.treeType = null;
++                    TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
++                    SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
+                     Location location = CraftLocation.toBukkit(pos, world.getWorld());
+                     java.util.List<BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
+                     world.capturedBlockStates.clear();
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-index cd0e43f4c53a746dd6183a8406269f9b11ad3571..5f810f8c11a10bd371127a08b4fd9df874373f90 100644
+index cd0e43f4c53a746dd6183a8406269f9b11ad3571..7ecc61382e2025d09fff0c9bc515d7da2b460d5e 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 @@ -6,6 +6,8 @@ import java.util.HashSet;
@@ -480,16 +1019,116 @@ index cd0e43f4c53a746dd6183a8406269f9b11ad3571..5f810f8c11a10bd371127a08b4fd9df8
  import net.minecraft.world.item.BlockItem;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.Level;
-@@ -233,6 +236,7 @@ public abstract class BlockEntity {
+@@ -38,7 +41,7 @@ import co.aikar.timings.MinecraftTimings; // Paper
+ import co.aikar.timings.Timing; // Paper
+ 
+ public abstract class BlockEntity {
+-    static boolean ignoreTileUpdates; // Paper - Perf: Optimize Hoppers
++    static final ThreadLocal<Boolean> ignoreTileUpdatesThreadLocal = ThreadLocal.withInitial(() -> false); // Paper - Perf: Optimize Hoppers // ShreddedPaper - use thread local for ignoreTileUpdates
+ 
+     public Timing tickTimer = MinecraftTimings.getTileEntityTimings(this); // Paper
+     // CraftBukkit start - data containers
+@@ -232,7 +235,8 @@ public abstract class BlockEntity {
+ 
      public void setChanged() {
          if (this.level != null) {
-             if (ignoreTileUpdates) return; // Paper - Perf: Optimize Hoppers
+-            if (ignoreTileUpdates) return; // Paper - Perf: Optimize Hoppers
++            if (ignoreTileUpdatesThreadLocal.get()) return; // Paper - Perf: Optimize Hoppers // ShreddedPaper - use thread local for ignoreTileUpdates
 +            TickThread.ensureTickThread((ServerLevel) this.level, this.worldPosition, "Block entity modification"); // ShreddedPaper
              BlockEntity.setChanged(this.level, this.worldPosition, this.blockState);
          }
  
+diff --git a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+index 8310d132006043e93c612890514c4c7f3eb1c74d..460e6111aca479334210f2524c13ab0c9fc3482c 100644
+--- a/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
++++ b/src/main/java/net/minecraft/world/level/block/entity/HopperBlockEntity.java
+@@ -237,12 +237,12 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+     }
+ 
+     // Paper start - Perf: Optimize Hoppers
+-    private static boolean skipPullModeEventFire;
+-    private static boolean skipPushModeEventFire;
++    private static final ThreadLocal<Boolean> skipPullModeEventFireThreadLocal = ThreadLocal.withInitial(() -> false); // ShreddedPaper - use thread local for skipPullModeEventFire
++    private static final ThreadLocal<Boolean> skipPushModeEventFireThreadLocal = ThreadLocal.withInitial(() -> false); // ShreddedPaper - use thread local for skipPushModeEventFire
+     public static boolean skipHopperEvents;
+ 
+     private static boolean hopperPush(final Level level, final Container destination, final Direction direction, final HopperBlockEntity hopper) {
+-        skipPushModeEventFire = skipHopperEvents;
++        skipPushModeEventFireThreadLocal.set(skipHopperEvents); // ShreddedPaper - use thread local for skipPushModeEventFire
+         boolean foundItem = false;
+         for (int i = 0; i < hopper.getContainerSize(); ++i) {
+             final ItemStack item = hopper.getItem(i);
+@@ -257,7 +257,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+ 
+                 // We only need to fire the event once to give protection plugins a chance to cancel this event
+                 // Because nothing uses getItem, every event call should end up the same result.
+-                if (!skipPushModeEventFire) {
++                if (!skipPushModeEventFireThreadLocal.get()) { // ShreddedPaper - use thread local for skipPushModeEventFire
+                     movedItem = callPushMoveEvent(destination, movedItem, hopper);
+                     if (movedItem == null) { // cancelled
+                         origItemStack.setCount(originalItemCount);
+@@ -293,7 +293,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+         container.setChanged(); // original logic always marks source inv as changed even if no move happens.
+         movedItem.setCount(movedItemCount);
+ 
+-        if (!skipPullModeEventFire) {
++        if (!skipPullModeEventFireThreadLocal.get()) { // ShreddedPaper - use thread local for skipPullModeEventFire
+             movedItem = callPullMoveEvent(hopper, container, movedItem);
+             if (movedItem == null) { // cancelled
+                 origItemStack.setCount(originalItemCount);
+@@ -313,9 +313,9 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+                 origItemStack.setCount(originalItemCount - movedItemCount + remainingItemCount);
+             }
+ 
+-            ignoreTileUpdates = true;
++            ignoreTileUpdatesThreadLocal.set(true); // ShreddedPaper - use thread local for ignoreTileUpdates
+             container.setItem(i, origItemStack);
+-            ignoreTileUpdates = false;
++            ignoreTileUpdatesThreadLocal.set(false); // ShreddedPaper - use thread local for ignoreTileUpdates
+             container.setChanged();
+             return true;
+         }
+@@ -335,7 +335,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+             CraftItemStack.asCraftMirror(itemstack), destinationInventory, true);
+         final boolean result = event.callEvent();
+         if (!event.calledGetItem && !event.calledSetItem) {
+-            skipPushModeEventFire = true;
++            skipPushModeEventFireThreadLocal.set(true); // ShreddedPaper - use thread local for skipPushModeEventFire
+         }
+         if (!result) {
+             cooldownHopper(hopper);
+@@ -358,7 +358,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+         final io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent event = new io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent(sourceInventory, CraftItemStack.asCraftMirror(itemstack), destination, false);
+         final boolean result = event.callEvent();
+         if (!event.calledGetItem && !event.calledSetItem) {
+-            skipPullModeEventFire = true;
++            skipPullModeEventFireThreadLocal.set(true); // ShreddedPaper - use thread local for skipPullModeEventFire
+         }
+         if (!result) {
+             cooldownHopper(hopper);
+@@ -547,7 +547,7 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+ 
+         if (iinventory != null) {
+             Direction enumdirection = Direction.DOWN;
+-            skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
++            skipPullModeEventFireThreadLocal.set(skipHopperEvents); // Paper - Perf: Optimize Hoppers // ShreddedPaper - use thread local for skipPullModeEventFire
+             int[] aint = HopperBlockEntity.getSlots(iinventory, enumdirection);
+             int i = aint.length;
+ 
+@@ -733,9 +733,9 @@ public class HopperBlockEntity extends RandomizableContainerBlockEntity implemen
+                     stack = stack.split(to.getMaxStackSize());
+                 }
+                 // Spigot end
+-                ignoreTileUpdates = true; // Paper - Perf: Optimize Hoppers
++                ignoreTileUpdatesThreadLocal.set(true); // Paper - Perf: Optimize Hoppers // ShreddedPaper - use thread local for ignoreTileUpdates
+                 to.setItem(slot, stack);
+-                ignoreTileUpdates = false; // Paper - Perf: Optimize Hoppers
++                ignoreTileUpdatesThreadLocal.set(false); // Paper - Perf: Optimize Hoppers // ShreddedPaper - use thread local for ignoreTileUpdates
+                 stack = leftover; // Paper - Make hoppers respect inventory max stack size
+                 flag = true;
+             } else if (HopperBlockEntity.canMergeItems(itemstack1, stack)) {
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
-index 81dd0aa6a90fd9dda9e7752f85b9cf4568e3b575..49d288e22911acd20c8935bfbed415a6f7374c4e 100644
+index 81dd0aa6a90fd9dda9e7752f85b9cf4568e3b575..a9c1d3848794b7cd67d48588637083b2f938c45c 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/SculkCatalystBlockEntity.java
 @@ -45,9 +45,9 @@ public class SculkCatalystBlockEntity extends BlockEntity implements GameEventLi
@@ -497,13 +1136,94 @@ index 81dd0aa6a90fd9dda9e7752f85b9cf4568e3b575..49d288e22911acd20c8935bfbed415a6
  
      public static void serverTick(Level world, BlockPos pos, BlockState state, SculkCatalystBlockEntity blockEntity) {
 -        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = blockEntity.getBlockPos(); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep.
-+        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride.set(blockEntity.getBlockPos()); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep. // ShreddedPaper - use thread local
++        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverrideThreadLocal.set(blockEntity.getBlockPos()); // CraftBukkit - SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep. // ShreddedPaper - use thread local
          blockEntity.catalystListener.getSculkSpreader().updateCursors(world, pos, world.getRandom(), true);
 -        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride = null; // CraftBukkit
-+        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverride.remove(); // CraftBukkit // ShreddedPaper - use thread local
++        org.bukkit.craftbukkit.event.CraftEventFactory.sourceBlockOverrideThreadLocal.remove(); // CraftBukkit // ShreddedPaper - use thread local
      }
  
      @Override
+diff --git a/src/main/java/net/minecraft/world/level/block/grower/TreeGrower.java b/src/main/java/net/minecraft/world/level/block/grower/TreeGrower.java
+index 597599138f69c9ee05dc7657c51c25336337875e..e7a8dd959d43b029f99178dc463b4900f67ddf60 100644
+--- a/src/main/java/net/minecraft/world/level/block/grower/TreeGrower.java
++++ b/src/main/java/net/minecraft/world/level/block/grower/TreeGrower.java
+@@ -25,7 +25,6 @@ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+ // CraftBukkit start
+-import net.minecraft.data.worldgen.features.TreeFeatures;
+ import org.bukkit.TreeType;
+ // CraftBukkit end
+ 
+@@ -175,47 +174,47 @@ public final class TreeGrower {
+     private void setTreeType(Holder<ConfiguredFeature<?, ?>> holder) {
+         ResourceKey<ConfiguredFeature<?, ?>> worldgentreeabstract = holder.unwrapKey().get();
+         if (worldgentreeabstract == TreeFeatures.OAK || worldgentreeabstract == TreeFeatures.OAK_BEES_005) {
+-            SaplingBlock.treeType = TreeType.TREE;
++           SaplingBlock.treeTypeThreadLocal.set(TreeType.TREE); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.HUGE_RED_MUSHROOM) {
+-            SaplingBlock.treeType = TreeType.RED_MUSHROOM;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.RED_MUSHROOM); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.HUGE_BROWN_MUSHROOM) {
+-            SaplingBlock.treeType = TreeType.BROWN_MUSHROOM;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.BROWN_MUSHROOM); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.JUNGLE_TREE) {
+-            SaplingBlock.treeType = TreeType.COCOA_TREE;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.COCOA_TREE); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.JUNGLE_TREE_NO_VINE) {
+-            SaplingBlock.treeType = TreeType.SMALL_JUNGLE;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.SMALL_JUNGLE); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.PINE) {
+-            SaplingBlock.treeType = TreeType.TALL_REDWOOD;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.TALL_REDWOOD); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.SPRUCE) {
+-            SaplingBlock.treeType = TreeType.REDWOOD;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.REDWOOD); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.ACACIA) {
+-            SaplingBlock.treeType = TreeType.ACACIA;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.ACACIA); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.BIRCH || worldgentreeabstract == TreeFeatures.BIRCH_BEES_005) {
+-            SaplingBlock.treeType = TreeType.BIRCH;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.BIRCH); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.SUPER_BIRCH_BEES_0002) {
+-            SaplingBlock.treeType = TreeType.TALL_BIRCH;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.TALL_BIRCH); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.SWAMP_OAK) {
+-            SaplingBlock.treeType = TreeType.SWAMP;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.SWAMP); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.FANCY_OAK || worldgentreeabstract == TreeFeatures.FANCY_OAK_BEES_005) {
+-            SaplingBlock.treeType = TreeType.BIG_TREE;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.BIG_TREE); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.JUNGLE_BUSH) {
+-            SaplingBlock.treeType = TreeType.JUNGLE_BUSH;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.JUNGLE_BUSH); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.DARK_OAK) {
+-            SaplingBlock.treeType = TreeType.DARK_OAK;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.DARK_OAK); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.MEGA_SPRUCE) {
+-            SaplingBlock.treeType = TreeType.MEGA_REDWOOD;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.MEGA_REDWOOD); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.MEGA_PINE) {
+-            SaplingBlock.treeType = TreeType.MEGA_PINE;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.MEGA_PINE); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.MEGA_JUNGLE_TREE) {
+-            SaplingBlock.treeType = TreeType.JUNGLE;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.JUNGLE); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.AZALEA_TREE) {
+-            SaplingBlock.treeType = TreeType.AZALEA;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.AZALEA); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.MANGROVE) {
+-            SaplingBlock.treeType = TreeType.MANGROVE;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.MANGROVE); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.TALL_MANGROVE) {
+-            SaplingBlock.treeType = TreeType.TALL_MANGROVE;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.TALL_MANGROVE); // ShreddedPaper - thread local for treeType
+         } else if (worldgentreeabstract == TreeFeatures.CHERRY || worldgentreeabstract == TreeFeatures.CHERRY_BEES_005) {
+-            SaplingBlock.treeType = TreeType.CHERRY;
++            SaplingBlock.treeTypeThreadLocal.set(TreeType.CHERRY); // ShreddedPaper - thread local for treeType
+         } else {
+             throw new IllegalArgumentException("Unknown tree generator " + worldgentreeabstract);
+         }
 diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 index 031fc626d2075cbe0941fecc188406712ab9953f..b9b084b7e9d5c9b4613d45eed9612ad5f7a4af77 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
@@ -530,6 +1250,50 @@ index 031fc626d2075cbe0941fecc188406712ab9953f..b9b084b7e9d5c9b4613d45eed9612ad5
          if (state.hasBlockEntity() && !state.is(newState.getBlock())) {
              world.removeBlockEntity(pos);
          }
+diff --git a/src/main/java/net/minecraft/world/level/border/WorldBorder.java b/src/main/java/net/minecraft/world/level/border/WorldBorder.java
+index 6c6eb7deed281678c05ef27f933e1693b11dae7c..ee9c8fd4924e60a8f593c886c17f0014a3dda76c 100644
+--- a/src/main/java/net/minecraft/world/level/border/WorldBorder.java
++++ b/src/main/java/net/minecraft/world/level/border/WorldBorder.java
+@@ -38,14 +38,14 @@ public class WorldBorder {
+     }
+ 
+     // Paper start - Bound treasure maps to world border
+-    private final BlockPos.MutableBlockPos mutPos = new BlockPos.MutableBlockPos();
++    private final ThreadLocal<BlockPos.MutableBlockPos> mutPosThreadLocal = ThreadLocal.withInitial(() -> new BlockPos.MutableBlockPos()); // ShreddedPaper - thread local for mutPos
+     public boolean isBlockInBounds(int chunkX, int chunkZ) {
+-        this.mutPos.set(chunkX, 64, chunkZ);
+-        return this.isWithinBounds(this.mutPos);
++        this.mutPosThreadLocal.get().set(chunkX, 64, chunkZ); // ShreddedPaper - thread local for mutPos
++        return this.isWithinBounds(this.mutPosThreadLocal.get()); // ShreddedPaper - thread local for mutPos
+     }
+     public boolean isChunkInBounds(int chunkX, int chunkZ) {
+-        this.mutPos.set(((chunkX << 4) + 15), 64, (chunkZ << 4) + 15);
+-        return this.isWithinBounds(this.mutPos);
++        this.mutPosThreadLocal.get().set(((chunkX << 4) + 15), 64, (chunkZ << 4) + 15); // ShreddedPaper - thread local for mutPos
++        return this.isWithinBounds(this.mutPosThreadLocal.get()); // ShreddedPaper - thread local for mutPos
+     }
+     // Paper end - Bound treasure maps to world border
+ 
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..ea8ef68cd005c96d6a31cce787c94c9771b398f7 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -795,13 +795,13 @@ public class LevelChunk extends ChunkAccess {
+ 
+                 org.bukkit.World world = this.level.getWorld();
+                 if (world != null) {
+-                    this.level.populating = true;
++                    this.level.populatingThreadLocal.set(true); // ShreddedPaper - thread local for populating
+                     try {
+                         for (org.bukkit.generator.BlockPopulator populator : world.getPopulators()) {
+                             populator.populate(world, random, bukkitChunk);
+                         }
+                     } finally {
+-                        this.level.populating = false;
++                        this.level.populatingThreadLocal.set(false); // ShreddedPaper - thread local for populating
+                     }
+                 }
+                 server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkPopulateEvent(bukkitChunk));
 diff --git a/src/main/java/net/minecraft/world/level/saveddata/maps/MapIndex.java b/src/main/java/net/minecraft/world/level/saveddata/maps/MapIndex.java
 index 763b315b1d761bc3bd82d9b847ed3f64fd5ce991..841aa55043f354d5058992d43645bf9e56a723db 100644
 --- a/src/main/java/net/minecraft/world/level/saveddata/maps/MapIndex.java
@@ -603,6 +1367,21 @@ index 6e23e69abd56eeda3b52a22019e1b74ae10682e7..3fdbec5ab625e5d1e9c7cbad2377a8e6
      }
  
      @Nullable
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+index ac11f18690434922179b61ffcc3036dea025b0cb..efdac83c60651818f7d1829be8970cd1c546f3de 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+@@ -554,8 +554,8 @@ public class CraftBlock implements Block {
+         world.captureTreeGeneration = false;
+ 
+         if (world.capturedBlockStates.size() > 0) {
+-            TreeType treeType = SaplingBlock.treeType;
+-            SaplingBlock.treeType = null;
++            TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
++            SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
+             List<BlockState> blocks = new ArrayList<>(world.capturedBlockStates.values());
+             world.capturedBlockStates.clear();
+             StructureGrowEvent structureEvent = null;
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 index 3ed19f30f1cab9df3b1bfdf0b0caf7882a77c5f7..bebe02d73ed34453ff521ec1d803935c0287604b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
@@ -657,7 +1436,7 @@ index c12484e13ff2b06b9bad7c5b2bbf9e82c1cbc989..8597de8b2a6a78fb6bc596063663fd75
      }
      // Paper end
 diff --git a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-index 5308dc55bcc334ad6bef927de6c2d9b9364d99ff..7e91d1ea6e144826e3d88e61a25fd533f2c9407d 100644
+index 5308dc55bcc334ad6bef927de6c2d9b9364d99ff..309786921442a94a275a7dcd923cfc216845f010 100644
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 @@ -951,7 +951,7 @@ public class CraftEventFactory {
@@ -665,7 +1444,7 @@ index 5308dc55bcc334ad6bef927de6c2d9b9364d99ff..7e91d1ea6e144826e3d88e61a25fd533
      }
  
 -    public static BlockPos sourceBlockOverride = null; // SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep.
-+    public static ThreadLocal<BlockPos> sourceBlockOverride = ThreadLocal.withInitial(() -> null); // SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep. // ShreddedPaper - use thread local
++    public static ThreadLocal<BlockPos> sourceBlockOverrideThreadLocal = ThreadLocal.withInitial(() -> null); // SPIGOT-7068: Add source block override, not the most elegant way but better than passing down a BlockPosition up to five methods deep. // ShreddedPaper - use thread local
  
      public static boolean handleBlockSpreadEvent(LevelAccessor world, BlockPos source, BlockPos target, net.minecraft.world.level.block.state.BlockState block, int flag) {
          // Suppress during worldgen
@@ -674,10 +1453,19 @@ index 5308dc55bcc334ad6bef927de6c2d9b9364d99ff..7e91d1ea6e144826e3d88e61a25fd533
          state.setData(block);
  
 -        BlockSpreadEvent event = new BlockSpreadEvent(state.getBlock(), CraftBlock.at(world, CraftEventFactory.sourceBlockOverride != null ? CraftEventFactory.sourceBlockOverride : source), state);
-+        BlockSpreadEvent event = new BlockSpreadEvent(state.getBlock(), CraftBlock.at(world, CraftEventFactory.sourceBlockOverride.get() != null ? CraftEventFactory.sourceBlockOverride.get() : source), state); // ShreddedPaper - use thread local
++        BlockSpreadEvent event = new BlockSpreadEvent(state.getBlock(), CraftBlock.at(world, CraftEventFactory.sourceBlockOverrideThreadLocal.get() != null ? CraftEventFactory.sourceBlockOverrideThreadLocal.get() : source), state); // ShreddedPaper - use thread local
          Bukkit.getPluginManager().callEvent(event);
  
          if (!event.isCancelled()) {
+@@ -2164,7 +2164,7 @@ public class CraftEventFactory {
+         CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemStack.copyWithCount(1));
+ 
+         org.bukkit.event.block.BlockDispenseEvent event = new org.bukkit.event.block.BlockDispenseEvent(bukkitBlock, craftItem.clone(), CraftVector.toBukkit(to));
+-        if (!net.minecraft.world.level.block.DispenserBlock.eventFired) {
++        if (!net.minecraft.world.level.block.DispenserBlock.eventFiredThreadLocal.get()) { // ShreddedPaper - use thread local for eventFired
+             if (!event.callEvent()) {
+                 return itemStack;
+             }
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
 index eafa54c870c3e2aef30c3f9f96f516607a7cae24..1ba11d3653790464bc9af174daecf351fac07d4e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
