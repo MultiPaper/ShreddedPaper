@@ -515,7 +515,7 @@ index 6542c67e753245cd131de872c28862f83e7ff2f3..f355833ee748e25af228ad9bd3dc0660
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.game.ClientGamePacketListener;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index e1560a58cc2e9570b9533e26156f322b8cdcc332..b18e89bcf1619a78da6a36d4d7157b3fa69ed3a7 100644
+index e1560a58cc2e9570b9533e26156f322b8cdcc332..e602d3690325e816c1f4643fff625528c0b3e4ba 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -527,33 +527,34 @@ index e1560a58cc2e9570b9533e26156f322b8cdcc332..b18e89bcf1619a78da6a36d4d7157b3f
          });
      }
      // Paper start - optimise random block ticking
-@@ -2204,18 +2204,21 @@ public class ServerLevel extends Level implements WorldGenLevel {
-         // Paper start - Call missing map initialize event and set id
-         final DimensionDataStorage storage = this.getServer().overworld().getDataStorage();
+@@ -2206,13 +2206,14 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
--        final net.minecraft.world.level.saveddata.SavedData existing = storage.cache.get(id.key());
--        if (existing == null && !storage.cache.containsKey(id.key())) {
-+        // ShreddedPaper start - thread-safe
-+        final net.minecraft.world.level.saveddata.SavedData existing = storage.cache.computeIfAbsent(id.key(), key -> {
-             final MapItemSavedData worldmap = (MapItemSavedData) this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), id.key());
+         final net.minecraft.world.level.saveddata.SavedData existing = storage.cache.get(id.key());
+         if (existing == null && !storage.cache.containsKey(id.key())) {
+-            final MapItemSavedData worldmap = (MapItemSavedData) this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), id.key());
 -            storage.cache.put(id.key(), worldmap);
++            final MapItemSavedData worldmap = (MapItemSavedData) this.getServer().overworld().getDataStorage().get(MapItemSavedData.factory(), id.key()); // ShreddedPaper - this is already a thread-safe cache fill
++            // storage.cache.put(id.key(), worldmap); // ShreddedPaper - unnecessary and thread-unsafe - The .get() above already puts it in the cache thread-safely
              if (worldmap != null) {
                  worldmap.id = id;
-                 new MapInitializeEvent(worldmap.mapView).callEvent();
+-                new MapInitializeEvent(worldmap.mapView).callEvent();
++                if (worldmap.hasCalledMapInitializeEvent.compareAndSet(false, true)) new MapInitializeEvent(worldmap.mapView).callEvent(); // ShreddedPaper - ensure only called once
                  return worldmap;
              }
--        } else if (existing instanceof MapItemSavedData mapItemSavedData) {
 +            return worldmap;
-+        });
-+
-+        if (existing instanceof MapItemSavedData mapItemSavedData) {
+         } else if (existing instanceof MapItemSavedData mapItemSavedData) {
              mapItemSavedData.id = id;
          }
-+        // ShreddedPaper end - thread-safe
- 
-         return existing instanceof MapItemSavedData data ? data : null;
-         // Paper end - Call missing map initialize event and set id
-@@ -2548,7 +2551,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2226,7 +2227,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+         // CraftBukkit start
+         state.id = id;
+         MapInitializeEvent event = new MapInitializeEvent(state.mapView);
+-        Bukkit.getServer().getPluginManager().callEvent(event);
++        if (state.hasCalledMapInitializeEvent.compareAndSet(false, true)) Bukkit.getServer().getPluginManager().callEvent(event); // ShreddedPaper - ensure only called once
+         // CraftBukkit end
+         this.getServer().overworld().getDataStorage().set(id.key(), state);
+     }
+@@ -2548,7 +2549,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      public void blockUpdated(BlockPos pos, Block block) {
          if (!this.isDebug()) {
              // CraftBukkit start
@@ -562,7 +563,7 @@ index e1560a58cc2e9570b9533e26156f322b8cdcc332..b18e89bcf1619a78da6a36d4d7157b3f
                  return;
              }
              // CraftBukkit end
-@@ -2841,6 +2844,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2841,6 +2842,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
                      {
                          if ( o instanceof MapItemSavedData )
                          {
@@ -570,7 +571,7 @@ index e1560a58cc2e9570b9533e26156f322b8cdcc332..b18e89bcf1619a78da6a36d4d7157b3f
                              MapItemSavedData map = (MapItemSavedData) o;
                              map.carriedByPlayers.remove( (Player) entity );
                              for ( Iterator<MapItemSavedData.HoldingPlayer> iter = (Iterator<MapItemSavedData.HoldingPlayer>) map.carriedBy.iterator(); iter.hasNext(); )
-@@ -2851,6 +2855,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2851,6 +2853,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
                                      iter.remove();
                                  }
                              }
@@ -1316,6 +1317,26 @@ index 763b315b1d761bc3bd82d9b847ed3f64fd5ce991..841aa55043f354d5058992d43645bf9e
          int i = this.usedAuxIds.getInt("map") + 1;
          this.usedAuxIds.put("map", i);
          this.setDirty();
+diff --git a/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java b/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
+index e26f6215ca42885cb0635a3183a8df93a924ba7f..5d01e9c124047ab89be5727ec4ecd044f76c202e 100644
+--- a/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
++++ b/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
+@@ -12,6 +12,7 @@ import java.util.List;
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Predicate;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
+@@ -72,6 +73,7 @@ public class MapItemSavedData extends SavedData {
+     public byte scale;
+     public byte[] colors = new byte[16384];
+     public boolean locked;
++    public AtomicBoolean hasCalledMapInitializeEvent = new AtomicBoolean(false); // ShreddedPaper
+     public final List<MapItemSavedData.HoldingPlayer> carriedBy = Lists.newArrayList();
+     public final Map<Player, MapItemSavedData.HoldingPlayer> carriedByPlayers = Maps.newHashMap();
+     private final Map<String, MapBanner> bannerMarkers = Maps.newHashMap();
 diff --git a/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java b/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
 index 6e23e69abd56eeda3b52a22019e1b74ae10682e7..3fdbec5ab625e5d1e9c7cbad2377a8e673a64765 100644
 --- a/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
