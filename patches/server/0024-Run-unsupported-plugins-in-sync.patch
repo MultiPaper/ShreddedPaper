@@ -6,7 +6,7 @@ Subject: [PATCH] Run unsupported plugins in sync
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3964721dfbfe071010d90426df09d802ddce67d3
+index 0000000000000000000000000000000000000000..18562ac2aa0f681ea47bd997ba5e18faa112538b
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 @@ -0,0 +1,161 @@
@@ -99,9 +99,9 @@ index 0000000000000000000000000000000000000000..3964721dfbfe071010d90426df09d802
 +                // We failed to instantly acquire the lock, back off from all locks and try again to avoid a deadlock
 +                for (String plugin : heldPluginLocks.get()) {
 +                    getLock(plugin).unlock();
-+                    heldPluginLocks.get().remove(plugin);
 +                    locksToAcquire.add(plugin);
 +                }
++                heldPluginLocks.get().clear();
 +                Collections.sort(locksToAcquire); // Ensure we lock in a predictable order to avoid deadlocks
 +            }
 +        }
