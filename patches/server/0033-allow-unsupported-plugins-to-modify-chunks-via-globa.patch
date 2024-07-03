@@ -64,19 +64,20 @@ index cee763e641821090382ab1d20405d54052852bab..39262659b6b0793880378fb49220c30d
  
      /**
 diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
-index 8fe50092e5e99127c937cf50990c3ad80f9a750e..b20a40e36ed42fc3fd14220b5dab7b9db3bb8332 100644
+index 313f30948c9ebd09094c1623bfe2c3594f30077c..2cc58dacd64689415b9fe1e35ff8d23ad103f5fd 100644
 --- a/src/main/java/io/papermc/paper/util/TickThread.java
 +++ b/src/main/java/io/papermc/paper/util/TickThread.java
-@@ -1,5 +1,8 @@
+@@ -1,6 +1,9 @@
  package io.papermc.paper.util;
  
 +import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
+ import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
 +import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
  import net.minecraft.core.BlockPos;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ServerLevel;
-@@ -68,6 +71,16 @@ public class TickThread extends Thread {
+@@ -69,6 +72,16 @@ public class TickThread extends Thread {
      }
      // ShreddedPaper end
  

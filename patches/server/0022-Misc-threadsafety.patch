@@ -106,10 +106,10 @@ index 758c155c23d95c3cc952cb14f864c703f9b45127..6b83f09f9862e298cad009b3e3a38447
                      ++saved;
                      needsFlush = flush;
 diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
-index 645e39222d81a5049888c86881ee381310fa7060..8fe50092e5e99127c937cf50990c3ad80f9a750e 100644
+index b7cd02acb6308d7c6af52f9c45ce0e13cf236fb3..313f30948c9ebd09094c1623bfe2c3594f30077c 100644
 --- a/src/main/java/io/papermc/paper/util/TickThread.java
 +++ b/src/main/java/io/papermc/paper/util/TickThread.java
-@@ -14,6 +14,9 @@ import net.minecraft.world.phys.Vec3;
+@@ -15,6 +15,9 @@ import net.minecraft.world.phys.Vec3;
  import org.bukkit.Bukkit;
  import io.multipaper.shreddedpaper.region.RegionPos;
  
@@ -119,7 +119,7 @@ index 645e39222d81a5049888c86881ee381310fa7060..8fe50092e5e99127c937cf50990c3ad8
  import java.util.concurrent.atomic.AtomicInteger;
  
  public class TickThread extends Thread {
-@@ -37,56 +40,77 @@ public class TickThread extends Thread {
+@@ -38,56 +41,77 @@ public class TickThread extends Thread {
          ensureTickThread(reason);
      }
  
@@ -593,7 +593,7 @@ index 01904ed991aecab3a399d62c562195b84c713750..66d859000e610934560d022750c93026
  
      }
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index d7519408d7280818d1e7f6e26e51affdeb5de65e..7cf508d29bfa2c871f2c1908585db2fe2be7eee8 100644
+index 069febfbc303a6d2a365a3762b237f5c57cfb8a3..98b3f8b4be0030812b2bc8c6e4b2c3aacb8d25cb 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -7,6 +7,7 @@ import com.mojang.brigadier.ParseResults;

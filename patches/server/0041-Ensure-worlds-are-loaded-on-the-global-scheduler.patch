@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Wed, 3 Jul 2024 19:10:59 +0900
+Subject: [PATCH] Ensure worlds are loaded on the global scheduler
+
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 37e5665fbeaf76126019f05ad35b559bfc320e8c..8a5318d30108fbc4bd619ea190ef66330cc30bd0 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -806,6 +806,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     // CraftBukkit start
+     public void prepareLevels(ChunkProgressListener worldloadlistener, ServerLevel worldserver) {
+         // WorldServer worldserver = this.overworld();
++        if (!TickThread.isTickThread()) throw new IllegalStateException("Cannot load worlds async!!"); // ShreddedPaper
++        if (ShreddedPaperTickThread.isShreddedPaperTickThread()) throw new IllegalStateException("Must load worlds from the global scheduler!"); // ShreddedPaper
+         this.forceTicks = true;
+         // CraftBukkit end
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 0e0a098f543e19a41b4bae73156ece970b9f7d50..9ee9fd2e57b001fd2c3fe8953c1b106a5225762a 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -13,6 +13,8 @@ import com.mojang.brigadier.StringReader;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.serialization.Dynamic;
+ import com.mojang.serialization.Lifecycle;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
++import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import java.awt.image.BufferedImage;
+ import java.io.ByteArrayOutputStream;
+@@ -1274,6 +1276,8 @@ public final class CraftServer implements Server {
+         Preconditions.checkState(this.console.getAllLevels().iterator().hasNext(), "Cannot create additional worlds on STARTUP");
+         //Preconditions.checkState(!this.console.isIteratingOverLevels, "Cannot create a world while worlds are being ticked"); // Paper - Cat - Temp disable. We'll see how this goes.
+         Preconditions.checkArgument(creator != null, "WorldCreator cannot be null");
++        if (!TickThread.isTickThread()) throw new IllegalStateException("Cannot load worlds async!!"); // ShreddedPaper
++        if (ShreddedPaperTickThread.isShreddedPaperTickThread()) throw new IllegalStateException("Must load worlds from the global scheduler!"); // ShreddedPaper
+ 
+         String name = creator.name();
+         ChunkGenerator generator = creator.generator();

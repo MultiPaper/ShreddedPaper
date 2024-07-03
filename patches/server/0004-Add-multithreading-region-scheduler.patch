@@ -607,10 +607,17 @@ index 0000000000000000000000000000000000000000..f98327c487394dd1e1a9798751810278
 +    }
 +}
 diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
-index bdaf062f9b66ceab303a0807eca301342886a8ea..645e39222d81a5049888c86881ee381310fa7060 100644
+index bdaf062f9b66ceab303a0807eca301342886a8ea..b7cd02acb6308d7c6af52f9c45ce0e13cf236fb3 100644
 --- a/src/main/java/io/papermc/paper/util/TickThread.java
 +++ b/src/main/java/io/papermc/paper/util/TickThread.java
-@@ -12,6 +12,8 @@ import net.minecraft.world.level.Level;
+@@ -1,5 +1,6 @@
+ package io.papermc.paper.util;
+ 
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ServerLevel;
+@@ -12,6 +13,8 @@ import net.minecraft.world.level.Level;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import org.bukkit.Bukkit;
@@ -619,46 +626,52 @@ index bdaf062f9b66ceab303a0807eca301342886a8ea..645e39222d81a5049888c86881ee3813
  import java.util.concurrent.atomic.AtomicInteger;
  
  public class TickThread extends Thread {
-@@ -114,46 +116,76 @@ public class TickThread extends Thread {
+@@ -110,50 +113,84 @@ public class TickThread extends Thread {
+     }
+ 
+     public static boolean isTickThread() {
+-        return Thread.currentThread() instanceof TickThread;
++        return MinecraftServer.getServer().forceTicks || isShutdownThread() || Thread.currentThread() instanceof TickThread || ShreddedPaperTickThread.isShreddedPaperTickThread(); // ShreddedPaper
      }
  
      public static boolean isShutdownThread() {
 -        return false;
-+        return Thread.currentThread() == MinecraftServer.getServer().shutdownThread;
++        return Thread.currentThread() == MinecraftServer.getServer().shutdownThread; // ShreddedPaper
      }
  
      public static boolean isTickThreadFor(final ServerLevel world, final BlockPos pos) {
 -        return isTickThread();
-+        return isTickThreadFor(world, new ChunkPos(pos));
++        return isTickThreadFor(world, new ChunkPos(pos)); // ShreddedPaper
      }
  
      public static boolean isTickThreadFor(final ServerLevel world, final ChunkPos pos) {
 -        return isTickThread();
-+        return world.getServer().forceTicks || isShutdownThread() || world.chunkScheduler.getRegionLocker().hasLock(RegionPos.forChunk(pos));
++        return world.getServer().forceTicks || isShutdownThread() || world.chunkScheduler.getRegionLocker().hasLock(RegionPos.forChunk(pos)); // ShreddedPaper
      }
  
      public static boolean isTickThreadFor(final ServerLevel world, final Vec3 pos) {
 -        return isTickThread();
-+        return isTickThreadFor(world, pos.x, pos.z);
++        return isTickThreadFor(world, pos.x, pos.z); // ShreddedPaper
      }
  
      public static boolean isTickThreadFor(final ServerLevel world, final int chunkX, final int chunkZ) {
 -        return isTickThread();
-+        return isTickThreadFor(world, new ChunkPos(chunkX, chunkZ));
++        return isTickThreadFor(world, new ChunkPos(chunkX, chunkZ)); // ShreddedPaper
      }
  
      public static boolean isTickThreadFor(final ServerLevel world, final AABB aabb) {
 -        return isTickThread();
-+        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(aabb.minX), CoordinateUtils.getChunkCoordinate(aabb.minZ), CoordinateUtils.getChunkCoordinate(aabb.maxX), CoordinateUtils.getChunkCoordinate(aabb.maxZ));
++        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(aabb.minX), CoordinateUtils.getChunkCoordinate(aabb.minZ), CoordinateUtils.getChunkCoordinate(aabb.maxX), CoordinateUtils.getChunkCoordinate(aabb.maxZ)); // ShreddedPaper
      }
  
      public static boolean isTickThreadFor(final ServerLevel world, final double blockX, final double blockZ) {
 -        return isTickThread();
-+        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(blockX), CoordinateUtils.getChunkCoordinate(blockZ));
++        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(blockX), CoordinateUtils.getChunkCoordinate(blockZ)); // ShreddedPaper
      }
  
      public static boolean isTickThreadFor(final ServerLevel world, final Vec3 position, final Vec3 deltaMovement, final int buffer) {
 -        return isTickThread();
++        // ShreddedPaper start
 +        int fromChunkX = CoordinateUtils.getChunkCoordinate(position.x);
 +        int fromChunkZ = CoordinateUtils.getChunkCoordinate(position.z);
 +        int toChunkX = CoordinateUtils.getChunkCoordinate(position.x + deltaMovement.x);
@@ -670,10 +683,12 @@ index bdaf062f9b66ceab303a0807eca301342886a8ea..645e39222d81a5049888c86881ee3813
 +        int maxChunkZ = Math.max(fromChunkZ, toChunkZ) + buffer;
 +
 +        return isTickThreadFor(world, minChunkX, minChunkZ, maxChunkX, maxChunkZ);
++        // ShreddedPaper end
      }
  
      public static boolean isTickThreadFor(final ServerLevel world, final int fromChunkX, final int fromChunkZ, final int toChunkX, final int toChunkZ) {
 -        return isTickThread();
++        // ShreddedPaper start
 +        if (world.getServer().forceTicks || isShutdownThread()) return true;
 +
 +        int fromRegionX = fromChunkX >> RegionPos.REGION_SHIFT;
@@ -695,20 +710,21 @@ index bdaf062f9b66ceab303a0807eca301342886a8ea..645e39222d81a5049888c86881ee3813
 +        }
 +
 +        return true;
++        // ShreddedPaper end
      }
  
      public static boolean isTickThreadFor(final ServerLevel world, final int chunkX, final int chunkZ, final int radius) {
 -        return isTickThread();
-+        return isTickThreadFor(world, chunkX - radius, chunkZ - radius, chunkX + radius, chunkZ + radius);
++        return isTickThreadFor(world, chunkX - radius, chunkZ - radius, chunkX + radius, chunkZ + radius); // ShreddedPaper
      }
  
      public static boolean isTickThreadFor(final Entity entity) {
 -        return isTickThread();
-+        return isTickThreadFor((ServerLevel) entity.level(), entity.chunkPosition());
++        return isTickThreadFor((ServerLevel) entity.level(), entity.chunkPosition()); // ShreddedPaper
      }
  }
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 05b790e0d4dc82475bb42d5f2160ab6a4fea49d4..c192e3719474c5aefe6e4f8926c0d5c7766c48ad 100644
+index 7e6203078de7c1cef6e02c9cbe70499b59e8ea70..db03b9a15b38a3a683890efc0822f9ff8812164e 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -191,6 +191,7 @@ import org.bukkit.event.server.ServerLoadEvent;
