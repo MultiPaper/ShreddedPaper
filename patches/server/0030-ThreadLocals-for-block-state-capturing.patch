@@ -36,7 +36,7 @@ index f076380621dc6a40663e4f703de458a1d9b87fd9..06d85ca406b57f54827dd59191018590
                      if (treeType != null) {
                          structureEvent = new StructureGrowEvent(location, treeType, false, null, blocks);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index a5558faa00cb970a9039190b58241ce0c9367526..b71ca26c25fa951ec39a9bf5a292aa8871fe173e 100644
+index 02667198b9020cc048fa62cfa88fd6fa75c39a99..dc9a91136cfeaf18dd2a5618d3e9cbdc97f9ee5e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1771,8 +1771,8 @@ public class ServerLevel extends Level implements WorldGenLevel {

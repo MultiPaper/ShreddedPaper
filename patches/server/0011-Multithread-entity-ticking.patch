@@ -5,7 +5,7 @@ Subject: [PATCH] Multithread entity ticking
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 7146b604808c0d60706b14c097ef41001384a1ab..de1eaf59a94c2586a1049a623a193af0687691a9 100644
+index dfbdfca7147e4463507be08a36de63aa96238ba4..bc81dc1c3b04e37be64642be72ea20bf36ccc36d 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -5,6 +5,7 @@ import io.multipaper.shreddedpaper.region.RegionPos;
@@ -16,7 +16,7 @@ index 7146b604808c0d60706b14c097ef41001384a1ab..de1eaf59a94c2586a1049a623a193af0
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.world.level.ChunkPos;
-@@ -111,6 +112,10 @@ public class ShreddedPaperChunkTicker {
+@@ -115,6 +116,10 @@ public class ShreddedPaperChunkTicker {
                  // if ((chunksTicked++ & 1) == 0) net.minecraft.server.MinecraftServer.getServer().executeMidTickTasks(); // Paper // ShreddedPaper - does this need to be implemented??
              }
          }
@@ -187,7 +187,7 @@ index f2e988b6fe9cc62c3fc167afac4a41a2e3fc8d75..28f4e0f7ee069f891b8ff1124902d415
              if (throwable instanceof ThreadDeath) throw throwable; // Paper
              // Paper start - Prevent block entity and entity crashes
 diff --git a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
-index 83a39f900551e39d5af6f17a339a386ddee4feef..951ff458efa225d814287bf83ed55cf759abad4a 100644
+index 0c8c534fc69172387f188af5282accfed7597ac7..eb62ae65c933d5631b5669e3875ec07fa8c67d63 100644
 --- a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
 @@ -1,5 +1,6 @@

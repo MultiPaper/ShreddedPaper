@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe AreaMap
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java b/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
-index 41b9405d6759d865e0d14dd4f95163e9690e967d..7d72990bcc25dc018e87e675383b41beb040fbc6 100644
+index 091b1ae822e1c0517e59572e7a9bda11e998c0ee..4ffbf6c8d00db0d94e0e2b022202632aed2f3385 100644
 --- a/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
 +++ b/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
 @@ -1,5 +1,6 @@

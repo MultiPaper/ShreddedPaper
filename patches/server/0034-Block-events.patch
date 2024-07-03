@@ -82,7 +82,7 @@ index 9b4c50b2d677b15e9dd1f923114496f597b2e4cf..40e1726a17644c2eca78e8964bcd3d62
  }
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index fc9e4fd75ff4b076ccff75b84684107473403a08..3fc916f72e107b5bbdb6e169e414fbc4e5691b2d 100644
+index 9bd5b536563db858f9ad8ddee5b5e547cb91bc7b..eaf1d050a91c79711f385dc4fd43a7bf7f8a3688 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -76,6 +76,8 @@ public class ShreddedPaperChunkTicker {
@@ -95,7 +95,7 @@ index fc9e4fd75ff4b076ccff75b84684107473403a08..3fc916f72e107b5bbdb6e169e414fbc4
  
              region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 809681dd4e758c46e41e41f19ce29dbf7835f876..b76fe41a3607d4315cf791d20fcf9d897468bf09 100644
+index dc9a91136cfeaf18dd2a5618d3e9cbdc97f9ee5e..013bc6153e17cf0b9965d16cb28b95afe4596e06 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -23,6 +23,7 @@ import java.io.Writer;

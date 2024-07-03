@@ -6,7 +6,7 @@ Subject: [PATCH] Custom spawners
 S
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 123ad0385d5de867abfbec293730d8277ec99e4d..26af30fc335a84d5733c4892aefb59908dcc6ec3 100644
+index 3ad15aa8b6c564d45b3a535602450ad14a41820b..9e42ce6bd109687640ec1e4eef0252eae4efb8eb 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1008,7 +1008,7 @@ public class ServerLevel extends Level implements WorldGenLevel {

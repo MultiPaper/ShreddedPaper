@@ -34,7 +34,7 @@ index 1ea6c7d88c6122451b3faffe1828b900a3085d8e..35e6420103b899b3cbbd6465fffce542
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index d8620035f66ef7ec353cd72e451d5bd3b0a18bc4..3aba79c8e1fdf3a906dfb5238dc62853adc17e33 100644
+index 9237f77018f1842a58a7f5c59ff514334924f2fa..812842b67bc3eb4c7facfdd0752f9e45723a4e80 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -65,6 +65,8 @@ public class ShreddedPaperChunkTicker {
@@ -345,7 +345,7 @@ index 47e9d18a4c4981e0b561eeaf52bf6e5bec102680..e6d0b0250d058e60a7ae7a22770f8a18
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 345f143b0eeb77acb96e4bc716f3b23782ac782f..976c2e6181a29d70c63fe970d7524cc8f1b1174b 100644
+index ea1ca44d67ebb6e7ea9d91a8b43a1886bba74913..a35a609036a20ff18ea2e6b22a113fe6e7fe3c06 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -562,7 +562,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider

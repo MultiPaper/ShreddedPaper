@@ -125,7 +125,7 @@ index 0000000000000000000000000000000000000000..051e74363aea1aff0a9d3da4300fca90
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 29c45c301f027a39dcb75a18b3158025d6ff0fae..d8620035f66ef7ec353cd72e451d5bd3b0a18bc4 100644
+index 75a8d7d43e42877fe376e6fb5b0e113f45169cee..9237f77018f1842a58a7f5c59ff514334924f2fa 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -66,6 +66,10 @@ public class ShreddedPaperChunkTicker {
@@ -140,7 +140,7 @@ index 29c45c301f027a39dcb75a18b3158025d6ff0fae..d8620035f66ef7ec353cd72e451d5bd3
  
              region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 7c7823b7cd733a02c1dfef24de28b8010c7dbe52..123ad0385d5de867abfbec293730d8277ec99e4d 100644
+index 6712bbbdaeb78d44d7174b8837c44be9882d3de2..3ad15aa8b6c564d45b3a535602450ad14a41820b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -176,6 +176,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;

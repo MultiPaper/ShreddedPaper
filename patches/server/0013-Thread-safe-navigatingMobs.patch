@@ -112,10 +112,10 @@ index 013b39ee4832743ef22e658550b2c63517f42b19..a9b6fdaaec268ea694e84e8467886777
  }
 \ No newline at end of file
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 720c7e4e7d637dcf61bc8da14cffc53b72501a7a..365401137a1d9b40beb86b099151fbe5c98b265f 100644
+index 5d59b9739b920bc975f088640c62ec60ce17c43b..26e533088a7195d9e398ca7e6a85f66583450a57 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -411,6 +411,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -414,6 +414,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public boolean pollTask() {

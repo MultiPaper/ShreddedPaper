@@ -100,7 +100,7 @@ index a9b6fdaaec268ea694e84e8467886777b49e1a6b..9b4c50b2d677b15e9dd1f923114496f5
  }
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 33fed1c16e45fc01934801fc57390f8315d00806..d9a89fec018030c2566a98f27bed7821bfcdcda8 100644
+index 96de60555c43b8e962b6ceab93b6a89f176645c1..75a8d7d43e42877fe376e6fb5b0e113f45169cee 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -68,6 +68,8 @@ public class ShreddedPaperChunkTicker {
@@ -337,7 +337,7 @@ index 8c134a642ccaf3530022f2e675a858d726e1dda4..f5154194df9e44f8bcf431029f4bbed6
              engine.executeIfPossible(() -> {
                  packetProcessing.push(listener); // Paper - detailed watchdog information
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 23d523d2e779adaf31239345af010b14e7debacd..f40f5b1bb97ef9dca92d480274b1098e2e0472db 100644
+index d2bb65f4eaca8bf6457b033482e696fe8962d7d3..0ee7a9f8ae8861e3e3073ff8a619f773fd520153 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,8 @@ import com.mojang.authlib.GameProfileRepository;
@@ -349,7 +349,7 @@ index 23d523d2e779adaf31239345af010b14e7debacd..f40f5b1bb97ef9dca92d480274b1098e
  import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.longs.LongIterator;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-@@ -1790,6 +1792,20 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1791,6 +1793,20 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
          // Paper end - Perf: Optimize time updates
          //MinecraftTimings.timeUpdateTimer.stopTiming(); // Spigot // Paper // Purpur
@@ -370,7 +370,7 @@ index 23d523d2e779adaf31239345af010b14e7debacd..f40f5b1bb97ef9dca92d480274b1098e
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
          Iterator iterator = this.getAllLevels().iterator(); // Paper - Throw exception on world create while being ticked; move down
-@@ -1840,7 +1856,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1841,7 +1857,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
          //this.profiler.popPush("connection"); // Purpur
          // MinecraftTimings.connectionTimer.startTiming(); // Spigot // Paper // Purpur

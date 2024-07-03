@@ -30,7 +30,7 @@ index 35e6420103b899b3cbbd6465fffce542cf036f6a..536d3bec3aeaf60812ae1767cca4db3a
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 3aba79c8e1fdf3a906dfb5238dc62853adc17e33..762e632ddfde46c57f5a60e061cee13e6765769c 100644
+index 812842b67bc3eb4c7facfdd0752f9e45723a4e80..a1c7f4d5355e819cd72d239886dbeca8a9dc2e3e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -74,6 +74,8 @@ public class ShreddedPaperChunkTicker {
@@ -43,7 +43,7 @@ index 3aba79c8e1fdf3a906dfb5238dc62853adc17e33..762e632ddfde46c57f5a60e061cee13e
  
              while (region.getInternalTaskQueue().executeTask()) ;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 26af30fc335a84d5733c4892aefb59908dcc6ec3..7142c6e43b84cd253f85c59bb268c3dbbd88f1f2 100644
+index 9e42ce6bd109687640ec1e4eef0252eae4efb8eb..e1560a58cc2e9570b9533e26156f322b8cdcc332 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -949,7 +949,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -212,7 +212,7 @@ index 28f4e0f7ee069f891b8ff1124902d4154ab15138..97742d2286468c55daf2076f6da1f31a
          this.spigotConfig.currentPrimedTnt = 0; // Spigot
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 4697e5aa538ac930b6b496eb815f4b57f8425f7e..a87bc013292b6d29125d12ba96f1d08a94f7a42e 100644
+index 38fd594b8184e4b2f11812f80e77a6d1d8df65ad..ad53a7b2e4e58837ca13b05828442125c9280469 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -197,7 +197,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {

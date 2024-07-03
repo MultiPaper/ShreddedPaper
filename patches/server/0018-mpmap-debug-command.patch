@@ -210,7 +210,7 @@ index 53dcfbdf38f007fc86064ac1a495288d5f25f598..89436f82a49d69f3bd21195bf44dfc4f
          commands.recalculatePermissibles();
      }
 diff --git a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
-index 957da64ddd0a56f457122a3f590b45e348f22382..7507624e1e40b902855ac846f64a39a23e5a3646 100644
+index 60444929e3e0fb6e53f6df2b41cbc52222d26600..d281fe5f75f6f99f869fa3cc8da4f1ff9f96a7bf 100644
 --- a/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 +++ b/src/main/java/net/minecraft/server/dedicated/DedicatedServer.java
 @@ -69,6 +69,7 @@ import org.bukkit.craftbukkit.util.TerminalConsoleWriterThread;
@@ -227,5 +227,5 @@ index 957da64ddd0a56f457122a3f590b45e348f22382..7507624e1e40b902855ac846f64a39a2
          // Purpur end
 +        ShreddedPaperCommands.registerCommands(this); // ShreddedPaper
          com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
- 
-         this.setPvpAllowed(dedicatedserverproperties.pvp);
+         gg.pufferfish.pufferfish.PufferfishConfig.load(); // Pufferfish
+         gg.pufferfish.pufferfish.PufferfishCommand.init(); // Pufferfish

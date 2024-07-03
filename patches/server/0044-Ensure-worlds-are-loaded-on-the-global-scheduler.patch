@@ -5,10 +5,10 @@ Subject: [PATCH] Ensure worlds are loaded on the global scheduler
 
 
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 37e5665fbeaf76126019f05ad35b559bfc320e8c..8a5318d30108fbc4bd619ea190ef66330cc30bd0 100644
+index cb5f6d6571ac9b5da9bf695280fbd0dbc55454be..5bc508995f11a7e5ee13b9288f3ad8b7816ba411 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -806,6 +806,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -807,6 +807,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
      // CraftBukkit start
      public void prepareLevels(ChunkProgressListener worldloadlistener, ServerLevel worldserver) {
          // WorldServer worldserver = this.overworld();

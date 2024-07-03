@@ -354,7 +354,7 @@ index 0000000000000000000000000000000000000000..f98e752296c522193f77d5886c0052a6
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 01904ed991aecab3a399d62c562195b84c713750..cd6a15211a4a1f898d753c2f1fc8afacc842e7f8 100644
+index 66d859000e610934560d022750c93026ebf057a1..ac239e3e29c4943d361b5245d96d31c5980b4967 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -20,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
@@ -414,7 +414,7 @@ index 01904ed991aecab3a399d62c562195b84c713750..cd6a15211a4a1f898d753c2f1fc8afac
  
          if (optional.isPresent() || !canCreatePortal) { // CraftBukkit
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 2e0967cdbc19887d89ae854261d49886fc494025..8dc4de6b00c5793988f641dcc01dfce1202c3d4e 100644
+index 41813b63f6ef5cfab455fad9477c1a5127d65cf3..db319c7cfeaa331c94158b42c7bea7212f890af0 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -6,6 +6,9 @@ import com.google.common.collect.Lists;
@@ -505,7 +505,7 @@ index 2e0967cdbc19887d89ae854261d49886fc494025..8dc4de6b00c5793988f641dcc01dfce1
          // CraftBukkit end
      }
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index 546273a048eeae9948176137344c05590c931b21..7bc113a5451901c811bd5c25d986c9aeabf7941e 100644
+index 667938f7a1fdfe29d59cc578379911c5aa703b82..e95c20639d5da73bab0d23acc67e81cd09e3e168 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
 @@ -3895,7 +3895,7 @@ public abstract class LivingEntity extends Entity implements Attackable {

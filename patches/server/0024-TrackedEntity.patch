@@ -29,7 +29,7 @@ index 81d6ae082047fdda6f2271a830e700fa90b9d0ac..bcec4b8ccde9be55e15a2222ef7dabf0
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 976c2e6181a29d70c63fe970d7524cc8f1b1174b..8ea36e3ade095e77dbc796f5e76d03276c947dec 100644
+index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..a14365b44e94d36d25121a45483bf9b35566ac10 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -42,6 +42,7 @@ import java.util.Set;

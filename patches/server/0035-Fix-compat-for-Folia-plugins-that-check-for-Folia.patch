@@ -18,7 +18,7 @@ index 0000000000000000000000000000000000000000..69db3090c24ab058549cdd8e78ca1beb
 +     for Folia plugins that have hard coded checks for Folia */
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index b6d5954ae9fbbcc52d9bd0bfb7b46d78f907b436..ee5eb2967ffd0b5aac88cffc7921b5a8fbade64f 100644
+index 0ee7a9f8ae8861e3e3073ff8a619f773fd520153..cb5f6d6571ac9b5da9bf695280fbd0dbc55454be 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -16,6 +16,7 @@ import com.mojang.datafixers.DataFixer;
@@ -29,7 +29,7 @@ index b6d5954ae9fbbcc52d9bd0bfb7b46d78f907b436..ee5eb2967ffd0b5aac88cffc7921b5a8
  import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.longs.LongIterator;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-@@ -1160,6 +1161,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1161,6 +1162,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              this.statusIcon = (ServerStatus.Favicon) this.loadStatusIcon().orElse(null); // CraftBukkit - decompile error
              this.status = this.buildServerStatus();
  
