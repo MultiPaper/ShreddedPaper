@@ -121,9 +121,18 @@ index d03e9227859d1432bea814407f88de14ece24db2..01904ed991aecab3a399d62c562195b8
          ChunkPos chunkcoordintpair = new ChunkPos(BlockPos.containing(d0, d1, d2));
  
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 2df36cae9539007ad9e9363890a421124ad45b28..d7519408d7280818d1e7f6e26e51affdeb5de65e 100644
+index 2df36cae9539007ad9e9363890a421124ad45b28..069febfbc303a6d2a365a3762b237f5c57cfb8a3 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2113,7 +2113,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+                 Entity entity = packet.getEntity(worldserver);
+ 
+                 if (entity != null) {
+-                    this.player.teleportTo(worldserver, entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot(), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE); // CraftBukkit
++                    this.player.getBukkitEntity().teleportAsync(new Location(worldserver.getWorld(), entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot()), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE); // CraftBukkit // ShreddedPaper - use teleportAsync
+                     return;
+                 }
+             }
 @@ -2981,19 +2981,27 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
          switch (packetplayinclientcommand_enumclientcommand) {
              case PERFORM_RESPAWN:
