@@ -300,10 +300,10 @@ index 24121a43aeb5e9bce013f30c92dddd15f99736c6..c234deec92e155336078cbbce1f726d8
              }
  
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..2e250604d22dde70fc1133d55b3730ff7c1e5776 100644
+index 2c82a48867ab347f21822576baa0368273242f82..143638f994a842472e827cb9b4efc160a7235aa4 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 +++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-@@ -17,6 +17,8 @@ import org.bukkit.plugin.IllegalPluginAccessException;
+@@ -19,6 +19,8 @@ import org.bukkit.plugin.IllegalPluginAccessException;
  import org.bukkit.plugin.Plugin;
  import org.bukkit.plugin.RegisteredListener;
  import org.jetbrains.annotations.NotNull;
@@ -312,7 +312,7 @@ index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..2e250604d22dde70fc1133d55b3730ff
  
  import java.lang.reflect.Method;
  import java.util.Arrays;
-@@ -51,7 +53,15 @@ class PaperEventManager {
+@@ -53,7 +55,15 @@ class PaperEventManager {
              }
  
              try {

@@ -606,6 +606,28 @@ index 0000000000000000000000000000000000000000..f98327c487394dd1e1a9798751810278
 +        this.value = value;
 +    }
 +}
+diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..2c82a48867ab347f21822576baa0368273242f82 100644
+--- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
++++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+@@ -4,6 +4,8 @@ import co.aikar.timings.TimedEventExecutor;
+ import com.destroystokyo.paper.event.server.ServerExceptionEvent;
+ import com.destroystokyo.paper.exception.ServerEventException;
+ import com.google.common.collect.Sets;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
++import io.papermc.paper.util.TickThread;
+ import org.bukkit.Server;
+ import org.bukkit.Warning;
+ import org.bukkit.event.Event;
+@@ -36,7 +38,7 @@ class PaperEventManager {
+ 
+     // SimplePluginManager
+     public void callEvent(@NotNull Event event) {
+-        if (event.isAsynchronous() && this.server.isPrimaryThread()) {
++        if (event.isAsynchronous() && (Thread.currentThread() instanceof TickThread || ShreddedPaperTickThread.isShreddedPaperTickThread())) {
+             throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
+         } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
+             throw new IllegalStateException(event.getEventName() + " may only be triggered synchronously.");
 diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
 index bdaf062f9b66ceab303a0807eca301342886a8ea..b7cd02acb6308d7c6af52f9c45ce0e13cf236fb3 100644
 --- a/src/main/java/io/papermc/paper/util/TickThread.java
