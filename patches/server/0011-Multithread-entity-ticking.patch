@@ -101,8 +101,33 @@ index c78cbec447032de9fe69748591bef6be300160ed..a161483eb74e4d0b3882fb1b6914f76b
      public void callEntitiesLoadEvent() {
          CraftEventFactory.callEntitiesLoadEvent(this.world, new ChunkPos(this.chunkX, this.chunkZ), this.getAllEntities());
      }
+diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+index 428994dda9fb445ab1bc0e261a7b8ad62c9adcd3..b17d31aa52ade535ebf572141e6dacc92dab5358 100644
+--- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
++++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+@@ -710,12 +710,14 @@ public class ServerChunkCache extends ChunkSource {
+             if (_pufferfish_spawnCountsReady.getAndSet(false)) {
+                 net.minecraft.server.MinecraftServer.getServer().mobSpawnExecutor.submit(() -> {
+                     int mapped = distanceManager.getNaturalSpawnChunkCount();
+-                    io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet.Iterator<Entity> objectiterator =
+-                            level.entityTickList.entities.iterator(io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet.ITERATOR_FLAG_SEE_ADDITIONS);
+-                    gg.pufferfish.pufferfish.util.IterableWrapper<Entity> wrappedIterator =
+-                            new gg.pufferfish.pufferfish.util.IterableWrapper<>(objectiterator);
+-                    lastSpawnState = NaturalSpawner.createState(mapped, wrappedIterator, this::getFullChunk, null, true);
+-                    objectiterator.finishedIterating();
++                    // ShreddedPaper start - use this.level.getAllEntities()
++                    // io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet.Iterator<Entity> objectiterator =
++                    //         level.entityTickList.entities.iterator(io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet.ITERATOR_FLAG_SEE_ADDITIONS);
++                    // gg.pufferfish.pufferfish.util.IterableWrapper<Entity> wrappedIterator =
++                    //         new gg.pufferfish.pufferfish.util.IterableWrapper<>(objectiterator);
++                    lastSpawnState = NaturalSpawner.createState(mapped, this.level.getAllEntities(), this::getFullChunk, null, true);
++                    // objectiterator.finishedIterating();
++                    // ShreddedPaper end - use this.level.getAllEntities()
+                     _pufferfish_spawnCountsReady.set(true);
+                 });
+             }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 2ff98096027d1398c72591772af5ee7cd837982a..713444b84fd910e9633f60d38ce759d69835cfcd 100644
+index 2ff98096027d1398c72591772af5ee7cd837982a..5bb5e7a7d203def5be163c54059e0f018eb79823 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -916,32 +916,32 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -173,6 +198,15 @@ index 2ff98096027d1398c72591772af5ee7cd837982a..713444b84fd910e9633f60d38ce759d6
          return !this.server.isSpawningAnimals() && (entity instanceof Animal || entity instanceof WaterAnimal) ? true : !this.server.areNpcsEnabled() && entity instanceof Npc;
      }
  
+@@ -2642,7 +2642,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+ 
+     @Override
+     public LevelEntityGetter<Entity> getEntities() {
+-        org.spigotmc.AsyncCatcher.catchOp("Chunk getEntities call"); // Spigot
++        // org.spigotmc.AsyncCatcher.catchOp("Chunk getEntities call"); // Spigot // ShreddedPaper - thread safe now
+         return this.entityLookup; // Paper - rewrite chunk system
+     }
+ 
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
 index f2e988b6fe9cc62c3fc167afac4a41a2e3fc8d75..28f4e0f7ee069f891b8ff1124902d4154ab15138 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
@@ -187,7 +221,7 @@ index f2e988b6fe9cc62c3fc167afac4a41a2e3fc8d75..28f4e0f7ee069f891b8ff1124902d415
              if (throwable instanceof ThreadDeath) throw throwable; // Paper
              // Paper start - Prevent block entity and entity crashes
 diff --git a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
-index 0c8c534fc69172387f188af5282accfed7597ac7..eb62ae65c933d5631b5669e3875ec07fa8c67d63 100644
+index 0c8c534fc69172387f188af5282accfed7597ac7..c98249af90de394cc1ada1c15e3f558edf86c765 100644
 --- a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
 @@ -1,5 +1,6 @@
@@ -197,7 +231,15 @@ index 0c8c534fc69172387f188af5282accfed7597ac7..eb62ae65c933d5631b5669e3875ec07f
  import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
-@@ -16,22 +17,26 @@ public class EntityTickList {
+@@ -9,29 +10,33 @@ import javax.annotation.Nullable;
+ import net.minecraft.world.entity.Entity;
+ 
+ public class EntityTickList {
+-    public final io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<Entity> entities = new io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<>(true); // Paper - rewrite this, always keep this updated - why would we EVER tick an entity that's not ticking? // Pufferfish - private->public
++    private final io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<Entity> entities = new io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet<>(true); // Paper - rewrite this, always keep this updated - why would we EVER tick an entity that's not ticking? // Pufferfish - private->public // ShreddedPaper - ensure private
+ 
+     private void ensureActiveIsNotIterated() {
+         // Paper - replace with better logic, do not delay removals
      }
  
      public void add(Entity entity) {
