@@ -18,12 +18,13 @@ index 536d3bec3aeaf60812ae1767cca4db3a76ca36cd..7d870c30cc5bb2e1da5f06622d495713
  import net.minecraft.world.entity.Mob;
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChangesBroadcaster.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChangesBroadcaster.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4ca4532c53c5b28833dcd9b6a1c4b5930b8fbf0c
+index 0000000000000000000000000000000000000000..ad7960c9a11cffc4b89a08dac45dd0056d12d668
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChangesBroadcaster.java
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,53 @@
 +package io.multipaper.shreddedpaper.threading;
 +
++import io.papermc.paper.util.TickThread;
 +import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 +import net.minecraft.server.level.ChunkHolder;
 +
@@ -60,6 +61,11 @@ index 0000000000000000000000000000000000000000..4ca4532c53c5b28833dcd9b6a1c4b593
 +            ReferenceOpenHashSet<ChunkHolder> copy = needsChangeBroadcasting.clone();
 +            needsChangeBroadcasting.clear();
 +            for (ChunkHolder holder : copy) {
++                if (!TickThread.isTickThreadFor(holder.newChunkHolder.world, holder.pos)) {
++                    // The changes will get picked up by the correct thread when it is ticked
++                    continue;
++                }
++
 +                holder.broadcastChanges(holder.getFullChunkNowUnchecked()); // LevelChunks are NEVER unloaded
 +                if (holder.needsBroadcastChanges()) {
 +                    // I DON'T want to KNOW what DUMB plugins might be doing.
@@ -153,7 +159,7 @@ index 422a95d0f042da32faaec97e40ec9330b7b627c7..88ac4e37e46e48e61238bb4e20fc7ca5
      // Paper end - optimise chunk tick iteration
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 26e533088a7195d9e398ca7e6a85f66583450a57..cc3e7b7a37f3551c2e2d4d04b565b29838724539 100644
+index a41816c6f0ca2d68a2eea25f513c8e10956d7813..69c1c5f5af8d8d13fb0802eb4b25c1708deeb52e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -15,6 +15,7 @@ import java.util.function.Supplier;

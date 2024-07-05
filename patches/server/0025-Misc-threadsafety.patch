@@ -1404,7 +1404,7 @@ index ac11f18690434922179b61ffcc3036dea025b0cb..efdac83c60651818f7d1829be8970cd1
              world.capturedBlockStates.clear();
              StructureGrowEvent structureEvent = null;
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
-index fa63a6cfcfcc4eee4503a82d85333c139c8c8b2b..36d4a9090569628234a0568eed88f86b1336c5e8 100644
+index fa63a6cfcfcc4eee4503a82d85333c139c8c8b2b..3e7e1e1f7e4cff93f11b35050af6368a6445da66 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
 @@ -4,6 +4,8 @@ import com.google.common.base.Preconditions;
@@ -1420,7 +1420,7 @@ index fa63a6cfcfcc4eee4503a82d85333c139c8c8b2b..36d4a9090569628234a0568eed88f86b
          }
          LevelAccessor access = this.getWorldHandle();
          CraftBlock block = this.getBlock();
-+        TickThread.ensureTickThread(this.world.getHandle(), this.position, "Async BlockState update");
++        TickThread.ensureTickThread(this.world.getHandle(), this.position, "BlockState update");
  
          if (block.getType() != this.getType()) {
              if (!force) {
