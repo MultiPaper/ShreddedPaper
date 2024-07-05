@@ -515,7 +515,7 @@ index 6542c67e753245cd131de872c28862f83e7ff2f3..f355833ee748e25af228ad9bd3dc0660
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.game.ClientGamePacketListener;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index e1560a58cc2e9570b9533e26156f322b8cdcc332..e602d3690325e816c1f4643fff625528c0b3e4ba 100644
+index a0790adc5e4fca98a785908adf3120abeaffe6d5..65c395063531b4d135cbc9fb0ca6e2debddde463 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -1403,6 +1403,27 @@ index ac11f18690434922179b61ffcc3036dea025b0cb..efdac83c60651818f7d1829be8970cd1
              List<BlockState> blocks = new ArrayList<>(world.capturedBlockStates.values());
              world.capturedBlockStates.clear();
              StructureGrowEvent structureEvent = null;
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
+index fa63a6cfcfcc4eee4503a82d85333c139c8c8b2b..36d4a9090569628234a0568eed88f86b1336c5e8 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
+@@ -4,6 +4,8 @@ import com.google.common.base.Preconditions;
+ import java.lang.ref.WeakReference;
+ import java.util.List;
+ import javax.annotation.Nullable;
++
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.world.level.LevelAccessor;
+ import org.bukkit.Chunk;
+@@ -214,6 +216,7 @@ public class CraftBlockState implements BlockState {
+         }
+         LevelAccessor access = this.getWorldHandle();
+         CraftBlock block = this.getBlock();
++        TickThread.ensureTickThread(this.world.getHandle(), this.position, "Async BlockState update");
+ 
+         if (block.getType() != this.getType()) {
+             if (!force) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 index 3ed19f30f1cab9df3b1bfdf0b0caf7882a77c5f7..bebe02d73ed34453ff521ec1d803935c0287604b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
