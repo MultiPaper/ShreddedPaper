@@ -108,10 +108,10 @@ index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index d03e9227859d1432bea814407f88de14ece24db2..01904ed991aecab3a399d62c562195b84c713750 100644
+index 9f52b195f58d98796e0f8c751380817afef46767..31cae66fcf04d8d6a1a30b8888e8154527a67b11 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -2171,6 +2171,8 @@ public class ServerPlayer extends Player {
+@@ -2175,6 +2175,8 @@ public class ServerPlayer extends Player {
      }
  
      public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, TeleportCause cause) {

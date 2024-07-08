@@ -380,7 +380,7 @@ index d2bb65f4eaca8bf6457b033482e696fe8962d7d3..0ee7a9f8ae8861e3e3073ff8a619f773
          //this.profiler.popPush("players"); // Purpur
          //MinecraftTimings.playerListTimer.startTiming(); // Spigot // Paper // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index c58cc51a5882dbdf60d846e7e829412f0acf7cc6..6712bbbdaeb78d44d7174b8837c44be9882d3de2 100644
+index 870f0ff5e8fc3f3d37b7a2a1256572aa4e4ba058..70b31e6483b6156002aba4d37208e5bf6303375d 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -31,6 +31,7 @@ import java.util.Objects;
@@ -425,7 +425,7 @@ index c58cc51a5882dbdf60d846e7e829412f0acf7cc6..6712bbbdaeb78d44d7174b8837c44be9
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..d03e9227859d1432bea814407f88de14ece24db2 100644
+index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..9f52b195f58d98796e0f8c751380817afef46767 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -16,8 +16,11 @@ import java.util.Optional;
@@ -465,7 +465,7 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..d03e9227859d1432bea814407f88de14
          BlockPos blockposition = world.getSharedSpawnPos();
  
          if (world.dimensionType().hasSkyLight() && world.serverLevelData.getGameType() != GameType.ADVENTURE) { // CraftBukkit
-@@ -522,28 +527,41 @@ public class ServerPlayer extends Player {
+@@ -522,28 +527,45 @@ public class ServerPlayer extends Player {
              int j1 = this.getCoprime(i1);
              int k1 = RandomSource.create().nextInt(i1);
  
@@ -494,28 +494,32 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..d03e9227859d1432bea814407f88de14
 +            });
 +            // ShreddedPaper end - run on region's thread
 +        }
-+
+ 
+-            while (!world.noCollision(this, this.getBoundingBox(), true) && this.getY() < (double) (world.getMaxBuildHeight() - 1)) { // Paper - make sure this loads chunks, we default to NOT loading now
+-                this.setPos(this.getX(), this.getY() + 1.0D, this.getZ());
+-            }
 +    }
 +
 +    // ShreddedPaper start - run on region's thread
 +    private void findSpawnLocation(ServerLevel world, BlockPos blockposition, int i, int i1, int j1, int k1, int l1, Runnable onComplete) {
++        if (l1 >= i1) {
++            return;
+         }
+ 
 +        int i2 = (k1 + j1 * l1) % i1;
 +        int j2 = i2 % (i * 2 + 1);
 +        int k2 = i2 / (i * 2 + 1);
 +        ShreddedPaper.ensureSync(world, new BlockPos(blockposition.getX() + j2 - i, 0, blockposition.getZ() + k2 - i), () -> {
 +            BlockPos blockposition1 = PlayerRespawnLogic.getOverworldRespawnPos(world, blockposition.getX() + j2 - i, blockposition.getZ() + k2 - i);
- 
--            while (!world.noCollision(this, this.getBoundingBox(), true) && this.getY() < (double) (world.getMaxBuildHeight() - 1)) { // Paper - make sure this loads chunks, we default to NOT loading now
--                this.setPos(this.getX(), this.getY() + 1.0D, this.getZ());
++
 +            if (blockposition1 != null) {
 +                this.moveTo(blockposition1, world.getSharedSpawnAngle(), 0.0F); // Paper - MC-200092 - fix first spawn pos yaw being ignored
 +                if (world.noCollision(this, this.getBoundingBox(), true)) { // Paper - make sure this loads chunks, we default to NOT loading now
 +                    onComplete.run();
 +                    return;
 +                }
-             }
--        }
- 
++            }
++
 +            this.findSpawnLocation(world, blockposition, i, i1, j1, k1, l1 + 1, onComplete);
 +        });
      }
