@@ -425,7 +425,7 @@ index 870f0ff5e8fc3f3d37b7a2a1256572aa4e4ba058..70b31e6483b6156002aba4d37208e5bf
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..9f52b195f58d98796e0f8c751380817afef46767 100644
+index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..ca36526379158b027b3ccebb78c0a0f4978a2c40 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -16,8 +16,11 @@ import java.util.Optional;
@@ -465,7 +465,7 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..9f52b195f58d98796e0f8c751380817a
          BlockPos blockposition = world.getSharedSpawnPos();
  
          if (world.dimensionType().hasSkyLight() && world.serverLevelData.getGameType() != GameType.ADVENTURE) { // CraftBukkit
-@@ -522,28 +527,45 @@ public class ServerPlayer extends Player {
+@@ -522,28 +527,46 @@ public class ServerPlayer extends Player {
              int j1 = this.getCoprime(i1);
              int k1 = RandomSource.create().nextInt(i1);
  
@@ -503,6 +503,7 @@ index 4a29e90ff2a0fe9c5be094400d79ab89e61c437d..9f52b195f58d98796e0f8c751380817a
 +    // ShreddedPaper start - run on region's thread
 +    private void findSpawnLocation(ServerLevel world, BlockPos blockposition, int i, int i1, int j1, int k1, int l1, Runnable onComplete) {
 +        if (l1 >= i1) {
++            onComplete.run();
 +            return;
          }
  
