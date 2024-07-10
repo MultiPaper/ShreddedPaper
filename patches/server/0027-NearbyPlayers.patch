@@ -189,10 +189,10 @@ index f164256d59b761264876ca0c85f812d101bfd5de..d7c8430ddd73b6de2119a3cd8be3d386
          }
      }
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index a14365b44e94d36d25121a45483bf9b35566ac10..422a95d0f042da32faaec97e40ec9330b7b627c7 100644
+index d0251435eadb1b2a478ae0e9d48e278e643b39f6..8af60eb241ed2315baa0c531e48a2ddcb04ae588 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -391,7 +391,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -394,7 +394,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          }
          final Object[] backingSet = inRange.getRawData();
          for (int i = 0, len = inRange.size(); i < len; i++) {
@@ -202,7 +202,7 @@ index a14365b44e94d36d25121a45483bf9b35566ac10..422a95d0f042da32faaec97e40ec9330
          }
      }
  
-@@ -408,7 +410,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -411,7 +413,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          }
          final Object[] backingSet = inRange.getRawData();
          for (int i = 0, len = inRange.size(); i < len; i++) {
@@ -213,7 +213,7 @@ index a14365b44e94d36d25121a45483bf9b35566ac10..422a95d0f042da32faaec97e40ec9330
      }
      // Paper end - per player mob count backoff
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index e602d3690325e816c1f4643fff625528c0b3e4ba..02667198b9020cc048fa62cfa88fd6fa75c39a99 100644
+index 65c395063531b4d135cbc9fb0ca6e2debddde463..c0f176f02ab5b325a9ffb2a5e59041fe77964f7f 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -611,7 +611,9 @@ public class ServerLevel extends Level implements WorldGenLevel {

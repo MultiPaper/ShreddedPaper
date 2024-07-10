@@ -36,7 +36,7 @@ index f076380621dc6a40663e4f703de458a1d9b87fd9..06d85ca406b57f54827dd59191018590
                      if (treeType != null) {
                          structureEvent = new StructureGrowEvent(location, treeType, false, null, blocks);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 02667198b9020cc048fa62cfa88fd6fa75c39a99..dc9a91136cfeaf18dd2a5618d3e9cbdc97f9ee5e 100644
+index c0f176f02ab5b325a9ffb2a5e59041fe77964f7f..0214eea8eb534d89fde283f34c4d73d6bb709a95 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1771,8 +1771,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -425,7 +425,7 @@ index ea8ef68cd005c96d6a31cce787c94c9771b398f7..efa605d6ff1adcb8e35ec095daa7aac7
              tileentity = (BlockEntity) this.blockEntities.get(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 3e43ca0b1d62323ca85e93e82bb2dfc3b2f56dfc..3f19b892430fe0d7a53cb5c4a7cd036f187fa6b3 100644
+index 88df30a5b926287726044b29a4c184b9b75e5666..05d1b46561f15db35d14dabe1685618f3e20cf6b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -875,13 +875,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {

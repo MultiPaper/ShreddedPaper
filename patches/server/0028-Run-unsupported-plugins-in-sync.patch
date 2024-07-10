@@ -330,7 +330,7 @@ index 2c82a48867ab347f21822576baa0368273242f82..143638f994a842472e827cb9b4efc160
                  Plugin plugin = registration.getPlugin();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index bd60758e8291821c66bd82a5d23682959b915136..3e43ca0b1d62323ca85e93e82bb2dfc3b2f56dfc 100644
+index e4557f9327d404b3d7eb98d63396ab2fff8987de..88df30a5b926287726044b29a4c184b9b75e5666 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
@@ -357,7 +357,7 @@ index bd60758e8291821c66bd82a5d23682959b915136..3e43ca0b1d62323ca85e93e82bb2dfc3
          });
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index 67d7eede1543599497cd31b7de308e1caf952a08..62b5f0f918118a8305f745ea9c1406fb8d2d8093 100644
+index 182632dca46fd36b1e24dd875dae965cc28b98b0..8576cc002f8302dc0836c8ac1bdf8e0f5ee2f59c 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 @@ -10,6 +10,7 @@ import java.util.Set;

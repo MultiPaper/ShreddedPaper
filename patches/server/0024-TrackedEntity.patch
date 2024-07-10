@@ -29,54 +29,10 @@ index 81d6ae082047fdda6f2271a830e700fa90b9d0ac..bcec4b8ccde9be55e15a2222ef7dabf0
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..a14365b44e94d36d25121a45483bf9b35566ac10 100644
+index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..8d202aa75cb5b9974365d99ced46f6262ea6b4dd 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -42,6 +42,7 @@ import java.util.Set;
- import java.util.concurrent.CancellationException;
- import java.util.concurrent.CompletableFuture;
- import java.util.concurrent.CompletionException;
-+import java.util.concurrent.ConcurrentHashMap;
- import java.util.concurrent.Executor;
- import java.util.concurrent.atomic.AtomicInteger;
- import java.util.function.BooleanSupplier;
-@@ -140,7 +141,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-     public final AtomicInteger tickingGenerated; // Paper - public
-     private final String storageName;
-     private final PlayerMap playerMap;
--    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap;
-+    public final ConcurrentHashMap<Integer, TrackedEntity> entityMap; // ShreddedPaper - use ConcurrentHashMap
-     private final Long2ByteMap chunkTypeCache;
-     private final Long2LongMap chunkSaveCooldowns;
-     private final Queue<Runnable> unloadQueue;
-@@ -254,7 +255,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-         // Paper - rewrite chunk system
-         this.tickingGenerated = new AtomicInteger();
-         this.playerMap = new PlayerMap();
--        this.entityMap = new Int2ObjectOpenHashMap();
-+        this.entityMap = new ConcurrentHashMap<>(); // ShreddedPaper - use ConcurrentHashMap
-         this.chunkTypeCache = new Long2ByteOpenHashMap();
-         this.chunkSaveCooldowns = new Long2LongOpenHashMap();
-         this.unloadQueue = Queues.newConcurrentLinkedQueue();
-@@ -1118,7 +1119,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-                         ServerPlayer entityplayer = (ServerPlayer) entity;
- 
-                         this.updatePlayerStatus(entityplayer, true);
--                        ObjectIterator objectiterator = this.entityMap.values().iterator();
-+                        Iterator<ChunkMap.TrackedEntity> objectiterator = this.entityMap.values().iterator(); // ShreddedPaper
- 
-                         while (objectiterator.hasNext()) {
-                             ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) objectiterator.next();
-@@ -1138,7 +1139,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-         org.spigotmc.AsyncCatcher.catchOp("entity untrack"); // Spigot
-         if (entity instanceof ServerPlayer entityplayer) {
-             this.updatePlayerStatus(entityplayer, false);
--            ObjectIterator objectiterator = this.entityMap.values().iterator();
-+            Iterator<ChunkMap.TrackedEntity> objectiterator = this.entityMap.values().iterator(); // ShreddedPaper
- 
-             while (objectiterator.hasNext()) {
-                 ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) objectiterator.next();
-@@ -1157,6 +1158,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1157,6 +1157,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
  
      // Paper start - optimised tracker
      private final void processTrackQueue() {
@@ -84,16 +40,7 @@ index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..a14365b44e94d36d25121a45483bf9b3
          //this.level.timings.tracker1.startTiming(); // Purpur
          try {
              for (TrackedEntity tracker : this.entityMap.values()) {
-@@ -1188,7 +1190,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-         // Paper end - optimized tracker
-         List<ServerPlayer> list = Lists.newArrayList();
-         List<ServerPlayer> list1 = this.level.players();
--        ObjectIterator objectiterator = this.entityMap.values().iterator();
-+        Iterator<ChunkMap.TrackedEntity> objectiterator = this.entityMap.values().iterator(); // ShreddedPaper
-         //this.level.timings.tracker1.startTiming(); // Paper // Purpur
- 
-         ChunkMap.TrackedEntity playerchunkmap_entitytracker;
-@@ -1336,7 +1338,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1336,7 +1337,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          // Paper start - use distance map to optimise tracker
          com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> lastTrackerCandidates;
  

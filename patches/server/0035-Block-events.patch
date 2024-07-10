@@ -95,7 +95,7 @@ index 9bd5b536563db858f9ad8ddee5b5e547cb91bc7b..eaf1d050a91c79711f385dc4fd43a7bf
  
              region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index dc9a91136cfeaf18dd2a5618d3e9cbdc97f9ee5e..013bc6153e17cf0b9965d16cb28b95afe4596e06 100644
+index 0214eea8eb534d89fde283f34c4d73d6bb709a95..0a6578181cf4731e9d7496e0190cc9cf0a2dde20 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -23,6 +23,7 @@ import java.io.Writer;
