@@ -1,0 +1,18 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sat, 20 Jul 2024 01:23:29 +0900
+Subject: [PATCH] Debug dependency list print
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
+index 18562ac2aa0f681ea47bd997ba5e18faa112538b..11652cfe7825fde94312c0105cc004660066eb15 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
+@@ -53,6 +53,7 @@ public class SynchronousPluginExecution {
+         TreeSet<String> pluginsToLock = cachedDependencyLists.computeIfAbsent(plugin.getName(), (name) -> {
+             TreeSet<String> dependencyList = new TreeSet<>(Comparator.naturalOrder());
+             fillPluginsToLock(plugin, dependencyList);
++            LOGGER.info("Dependency list calculated for " + plugin.getName() + ": " + dependencyList);
+             return dependencyList;
+         });
+ 
