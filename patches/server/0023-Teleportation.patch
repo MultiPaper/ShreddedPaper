@@ -350,7 +350,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..ab96dcb873758f9d92eecb62b473b84d
  
      public void sendPlayerPermissionLevel(ServerPlayer player) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..41813b63f6ef5cfab455fad9477c1a5127d65cf3 100644
+index d78a81ee3270082c9f791b81dd3ad60ecc30f2fe..d597f4b557ad462e6c3180e386065acdf698f28c 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
@@ -369,7 +369,7 @@ index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..41813b63f6ef5cfab455fad9477c1a51
  import net.minecraft.world.level.gameevent.DynamicGameEventListener;
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.level.levelgen.Heightmap;
-@@ -2139,6 +2141,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -2141,6 +2143,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      public void moveTo(double x, double y, double z, float yaw, float pitch) {
@@ -377,7 +377,7 @@ index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..41813b63f6ef5cfab455fad9477c1a51
          // Paper start - Fix Entity Teleportation and cancel velocity if teleported
          if (!preserveMotion) {
              this.deltaMovement = Vec3.ZERO;
-@@ -3796,6 +3799,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3798,6 +3801,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                      this.setDeltaMovement(shapedetectorshape.speed);
                      return this;
                  }
@@ -385,7 +385,7 @@ index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..41813b63f6ef5cfab455fad9477c1a51
                  this.unRide();
                  // CraftBukkit end
  
-@@ -3814,7 +3818,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -3816,7 +3820,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
                      // CraftBukkit start - Don't spawn the new entity if the current entity isn't spawned
                      if (this.inWorld) {
                          worldserver.addDuringTeleport(entity);

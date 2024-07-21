@@ -104,15 +104,17 @@ index 0000000000000000000000000000000000000000..7f3344a89ceab9c362c48eabc8ec4b14
 +
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..9b1b7cf31e2ded1b1b672f4e7514c4a77730c55e 100644
+index 69cb88e9ca80b0c6a051f9eefadfe6a6a952d31f..f148f45f2b3679126a2384ec925556b3a784c8ef 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -1,10 +1,12 @@
+@@ -1,5 +1,6 @@
  package io.multipaper.shreddedpaper.region;
  
 +import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQueue;
+ import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
  import net.minecraft.server.level.ServerLevel;
- import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.entity.Entity;
+@@ -7,6 +8,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
  
  import java.util.ArrayList;
  import java.util.List;
@@ -120,16 +122,16 @@ index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..9b1b7cf31e2ded1b1b672f4e7514c4a7
  import java.util.function.Consumer;
  
  public class LevelChunkRegion {
-@@ -12,6 +14,8 @@ public class LevelChunkRegion {
-     private final ServerLevel level;
+@@ -15,6 +17,8 @@ public class LevelChunkRegion {
      private final RegionPos regionPos;
      private final List<LevelChunk> levelChunks = new ArrayList<>(RegionPos.REGION_SIZE * RegionPos.REGION_SIZE);
+     private final IteratorSafeOrderedReferenceSet<Entity> tickingEntities = new IteratorSafeOrderedReferenceSet<>(); // Use IteratorSafeOrderedReferenceSet to maintain entity tick order
 +    private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
 +    private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -32,6 +36,14 @@ public class LevelChunkRegion {
+@@ -54,6 +58,14 @@ public class LevelChunkRegion {
          return level;
      }
  
@@ -144,7 +146,7 @@ index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..9b1b7cf31e2ded1b1b672f4e7514c4a7
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -50,8 +62,22 @@ public class LevelChunkRegion {
+@@ -72,8 +84,22 @@ public class LevelChunkRegion {
          }
      }
  
@@ -170,10 +172,10 @@ index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..9b1b7cf31e2ded1b1b672f4e7514c4a7
 +    }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..013b39ee4832743ef22e658550b2c63517f42b19 100644
+index 7a1e038d13c42265ec2c8c5beab9fea1631f7686..6ef8526f4bb7585169efa498a5ae06f404e14690 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -7,6 +7,7 @@ import io.multipaper.shreddedpaper.util.SimpleStampedLock;
+@@ -8,6 +8,7 @@ import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  
  import java.util.ArrayList;
  import java.util.List;
@@ -181,8 +183,8 @@ index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..013b39ee4832743ef22e658550b2c635
  import java.util.function.Consumer;
  
  public class LevelChunkRegionMap {
-@@ -57,4 +58,36 @@ public class LevelChunkRegionMap {
-         regionsCopy.forEach(consumer);
+@@ -78,4 +79,36 @@ public class LevelChunkRegionMap {
+         }
      }
  
 +    /**
@@ -368,18 +370,18 @@ index 0000000000000000000000000000000000000000..692dee8b14e70b2a1e9af885a7f75860
 +}
 +
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index bc81dc1c3b04e37be64642be72ea20bf36ccc36d..96de60555c43b8e962b6ceab93b6a89f176645c1 100644
+index 56bd2dea24afbda142602fd0c352feedc6f431dd..d556478dddee218971a3b1015872e86ebaaf6048 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -17,6 +17,7 @@ import io.multipaper.shreddedpaper.region.LevelChunkRegion;
+@@ -13,6 +13,7 @@ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.NaturalSpawner;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import io.multipaper.shreddedpaper.region.LevelChunkRegion;
++import org.bukkit.craftbukkit.entity.CraftEntity;
  
  import java.util.ArrayList;
  import java.util.List;
-+import java.util.Optional;
- import java.util.concurrent.CompletableFuture;
- 
- public class ShreddedPaperChunkTicker {
-@@ -58,8 +59,17 @@ public class ShreddedPaperChunkTicker {
+@@ -57,10 +58,26 @@ public class ShreddedPaperChunkTicker {
          try {
              currentlyTickingRegion.set(region);
  
@@ -389,27 +391,23 @@ index bc81dc1c3b04e37be64642be72ea20bf36ccc36d..96de60555c43b8e962b6ceab93b6a89f
 +
 +            while (region.getInternalTaskQueue().executeTask()) ;
 +
++            region.forEachTickingEntity(entity -> {
++                CraftEntity bukkitEntity = entity.getBukkitEntityRaw();
++                if (bukkitEntity != null && !entity.isRemoved()) { // Entity could have been removed by another entity's task
++                    bukkitEntity.taskScheduler.executeTick();
++                }
++            });
++
 +            region.tickTasks();
              region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+ 
+             region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
 +            while (region.getInternalTaskQueue().executeTask()) ;
 +
              if (region.isEmpty()) {
                  level.chunkSource.tickingRegions.remove(region.getRegionPos());
              }
-@@ -69,6 +79,12 @@ public class ShreddedPaperChunkTicker {
-     }
- 
-     private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
-+        chunk1.getChunkHolder().getEntityChunk().forEach(entity -> {
-+            if (!entity.isRemoved()) { // Entity could have been removed by another entity's task
-+                Optional.ofNullable(entity.getBukkitEntityRaw()).ifPresent(bukkit -> bukkit.taskScheduler.executeTick());
-+            }
-+        });
-+
-         // Start - Import the same variables as the original chunk ticking method to make copying new changes easier
-         int j = 1; // Inhabited time increment in ticks
-         boolean flag = level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !level.players().isEmpty(); // Should run mob spawning code
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 index d82795c57f15c6d96ad2e78dc5e715e194f467cc..cee763e641821090382ab1d20405d54052852bab 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
@@ -841,7 +839,7 @@ index b17d31aa52ade535ebf572141e6dacc92dab5358..7d5fd9be6133ae7b160096026aa4e125
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 5bb5e7a7d203def5be163c54059e0f018eb79823..31d4bd60331151a3512bbba43f518715651d71b6 100644
+index 9c6f9cc702b33b58bf2007bcfbc3cf38933244b3..0946438c4b471f739c25a9d58b11c51d60e9ee82 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -174,6 +174,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -897,6 +895,18 @@ index 43487a9ee202c5b0e5a416519939111f77b3059c..21d98fc8f006d1f445752f6ecd60e24d
          }
      }
  
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 459ed557262d2fed7cc49a7e68878cfe7ae73786..d78a81ee3270082c9f791b81dd3ad60ecc30f2fe 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -263,6 +263,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     }
+ 
+     // Paper start
++    @org.jetbrains.annotations.Nullable // ShreddedPaper - the point of this is that it can be null
+     public CraftEntity getBukkitEntityRaw() {
+         return this.bukkitEntity;
+     }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 index 01472ee224ac91ec4fbffdf82a0d92e0d1ab69c1..0e0a098f543e19a41b4bae73156ece970b9f7d50 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java

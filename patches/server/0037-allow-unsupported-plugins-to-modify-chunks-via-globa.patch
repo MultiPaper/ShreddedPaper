@@ -6,10 +6,10 @@ Subject: [PATCH]
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index eaf1d050a91c79711f385dc4fd43a7bf7f8a3688..6b36a01adbd890dc74571f24ad900ce919c05581 100644
+index 82447a7e4ab08ab0a333e8549c646170a9076fe9..9fb7fb9a80c4cb731b4e9086cdcaca854c3f36f1 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -22,11 +22,15 @@ import java.util.concurrent.CompletableFuture;
+@@ -21,11 +21,15 @@ import java.util.concurrent.CompletableFuture;
  
  public class ShreddedPaperChunkTicker {
  
@@ -25,7 +25,7 @@ index eaf1d050a91c79711f385dc4fd43a7bf7f8a3688..6b36a01adbd890dc74571f24ad900ce9
          level.chunkSource.tickingRegions.forEach(
                  region -> futures.add(tickRegion(level, region, spawnercreature_d))
          );
-@@ -37,6 +41,8 @@ public class ShreddedPaperChunkTicker {
+@@ -36,6 +40,8 @@ public class ShreddedPaperChunkTicker {
              }
          }
  

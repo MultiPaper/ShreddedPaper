@@ -5,11 +5,11 @@ Subject: [PATCH] Thread-safe redstoneUpdateInfos
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 124032e8f768821a7a2b7c9064f9d9343e920751..ea8578335ce13791848fa6529a1b4a77002c3d3b 100644
+index e9b4c7152d1f68cffd3f8122e620209f83a0a3b7..614385c6b9f74277a869cd080b39c8e1f84d91a5 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -12,9 +12,11 @@ import net.minecraft.server.level.ServerLevel;
- import net.minecraft.server.level.ServerPlayer;
+@@ -12,9 +12,11 @@ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.Mob;
  import net.minecraft.world.level.BlockEventData;
 +import net.minecraft.world.level.block.RedstoneTorchBlock;
@@ -18,8 +18,8 @@ index 124032e8f768821a7a2b7c9064f9d9343e920751..ea8578335ce13791848fa6529a1b4a77
  
 +import java.util.ArrayDeque;
  import java.util.ArrayList;
- import java.util.Collection;
  import java.util.List;
+ import java.util.concurrent.ConcurrentLinkedQueue;
 @@ -34,6 +36,7 @@ public class LevelChunkRegion {
      public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
      public final List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();

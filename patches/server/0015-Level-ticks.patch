@@ -125,11 +125,11 @@ index 0000000000000000000000000000000000000000..051e74363aea1aff0a9d3da4300fca90
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 75a8d7d43e42877fe376e6fb5b0e113f45169cee..9237f77018f1842a58a7f5c59ff514334924f2fa 100644
+index 50044760d4511ff2b75d8866faec22bf33bd2f94..824b4535b6afffbef92df8be166e51411415fcf0 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -66,6 +66,10 @@ public class ShreddedPaperChunkTicker {
-             while (region.getInternalTaskQueue().executeTask()) ;
+@@ -72,6 +72,10 @@ public class ShreddedPaperChunkTicker {
+             });
  
              region.tickTasks();
 +
@@ -138,9 +138,9 @@ index 75a8d7d43e42877fe376e6fb5b0e113f45169cee..9237f77018f1842a58a7f5c59ff51433
 +
              region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  
-             region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
+             region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 6712bbbdaeb78d44d7174b8837c44be9882d3de2..3ad15aa8b6c564d45b3a535602450ad14a41820b 100644
+index b668323532e0a456dd56e41a662f1fff4db29cca..ed81cf9e5bbe1a4a62cf79bb85a9a57c20b2e398 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -176,6 +176,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -165,7 +165,7 @@ index 6712bbbdaeb78d44d7174b8837c44be9882d3de2..3ad15aa8b6c564d45b3a535602450ad1
 @@ -706,8 +707,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
          // CraftBukkit end
          this.players = new CopyOnWriteArrayList<>(); // ShreddedPaper - thread-safe (players should not be changing worlds often, thus copy-on-write is sufficient)
-         this.entityTickList = new EntityTickList();
+         // this.entityTickList = new EntityTickList(); // ShreddedPaper - moved into each region
 -        this.blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
 -        this.fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
 +        this.blockTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier()); // ShreddedPaper

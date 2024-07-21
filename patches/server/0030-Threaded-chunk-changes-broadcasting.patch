@@ -4,18 +4,6 @@ Date: Thu, 30 May 2024 20:37:51 +0900
 Subject: [PATCH] Threaded chunk changes broadcasting
 
 
-diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 536d3bec3aeaf60812ae1767cca4db3a76ca36cd..7d870c30cc5bb2e1da5f06622d49571323fd23c7 100644
---- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
- import it.unimi.dsi.fastutil.objects.ObjectArrayList;
- import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
- import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
-+import net.minecraft.server.level.ChunkHolder;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.world.entity.Mob;
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChangesBroadcaster.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChangesBroadcaster.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..ad7960c9a11cffc4b89a08dac45dd0056d12d668
@@ -76,10 +64,10 @@ index 0000000000000000000000000000000000000000..ad7960c9a11cffc4b89a08dac45dd005
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 70ad27ec2b30343fd36164b54c9508e0dc18092a..9bd5b536563db858f9ad8ddee5b5e547cb91bc7b 100644
+index 644d6f781a224590e10e77ceacd33f137e9f6fac..627eaf4d0f9204a25d3b8524461a6723bb204065 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -63,6 +63,8 @@ public class ShreddedPaperChunkTicker {
+@@ -62,6 +62,8 @@ public class ShreddedPaperChunkTicker {
                  throw new IllegalStateException("Ticking region " + level.convertable.getLevelId() + " " + region.getRegionPos() + " outside of ShreddedPaperTickThread!");
              }
  
@@ -88,7 +76,7 @@ index 70ad27ec2b30343fd36164b54c9508e0dc18092a..9bd5b536563db858f9ad8ddee5b5e547
              while (region.getInternalTaskQueue().executeTask()) ;
  
              level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
-@@ -80,6 +82,8 @@ public class ShreddedPaperChunkTicker {
+@@ -88,6 +90,8 @@ public class ShreddedPaperChunkTicker {
  
              while (region.getInternalTaskQueue().executeTask()) ;
  
@@ -97,10 +85,10 @@ index 70ad27ec2b30343fd36164b54c9508e0dc18092a..9bd5b536563db858f9ad8ddee5b5e547
              if (region.isEmpty()) {
                  level.chunkSource.tickingRegions.remove(region.getRegionPos());
              }
-@@ -95,6 +99,8 @@ public class ShreddedPaperChunkTicker {
-             }
-         });
+@@ -97,6 +101,8 @@ public class ShreddedPaperChunkTicker {
+     }
  
+     private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
 +        if (chunk1.getChunkHolder().vanillaChunkHolder.needsBroadcastChanges()) ShreddedPaperChangesBroadcaster.add(chunk1.getChunkHolder().vanillaChunkHolder); // ShreddedPaper
 +
          // Start - Import the same variables as the original chunk ticking method to make copying new changes easier

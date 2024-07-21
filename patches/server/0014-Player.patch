@@ -5,21 +5,21 @@ Subject: [PATCH] Player
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 12ec698d2abd4cd0afe83bb8663dd8e2658eba9e..1ea6c7d88c6122451b3faffe1828b900a3085d8e 100644
+index c64860fcbe27451dc7db88c0c9b3bd04e9e5d1ac..7d07ac54e7aee282ae31c643dc27419fef5a1f68 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -1,8 +1,10 @@
- package io.multipaper.shreddedpaper.region;
+@@ -2,8 +2,10 @@ package io.multipaper.shreddedpaper.region;
  
  import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQueue;
+ import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
 +import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
  import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.Mob;
  import net.minecraft.world.level.chunk.LevelChunk;
- 
-@@ -20,6 +22,7 @@ public class LevelChunkRegion {
+@@ -22,6 +24,7 @@ public class LevelChunkRegion {
      private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
      private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
      private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
@@ -27,7 +27,7 @@ index 12ec698d2abd4cd0afe83bb8663dd8e2658eba9e..1ea6c7d88c6122451b3faffe1828b900
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -60,6 +63,22 @@ public class LevelChunkRegion {
+@@ -81,6 +84,22 @@ public class LevelChunkRegion {
          collection.addAll(this.navigatingMobs);
      }
  
@@ -50,7 +50,7 @@ index 12ec698d2abd4cd0afe83bb8663dd8e2658eba9e..1ea6c7d88c6122451b3faffe1828b900
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -94,6 +113,7 @@ public class LevelChunkRegion {
+@@ -115,6 +134,7 @@ public class LevelChunkRegion {
      }
  
      public boolean isEmpty() {
@@ -60,20 +60,18 @@ index 12ec698d2abd4cd0afe83bb8663dd8e2658eba9e..1ea6c7d88c6122451b3faffe1828b900
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index a9b6fdaaec268ea694e84e8467886777b49e1a6b..9b4c50b2d677b15e9dd1f923114496f597b2e4cf 100644
+index 5b0608c274b7b0c42ec7b66244eb3bf7024317e0..07735dcf7dbdef71f583d2e73722a549059872fe 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -3,7 +3,9 @@ package io.multipaper.shreddedpaper.region;
+@@ -3,6 +3,7 @@ package io.multipaper.shreddedpaper.region;
  import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.Mob;
-+import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.chunk.LevelChunk;
- import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
- import io.multipaper.shreddedpaper.util.SimpleStampedLock;
-@@ -125,4 +127,24 @@ public class LevelChunkRegionMap {
+@@ -146,4 +147,24 @@ public class LevelChunkRegionMap {
  
          return navigatingMobs;
      }
@@ -100,12 +98,12 @@ index a9b6fdaaec268ea694e84e8467886777b49e1a6b..9b4c50b2d677b15e9dd1f923114496f5
  }
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 96de60555c43b8e962b6ceab93b6a89f176645c1..75a8d7d43e42877fe376e6fb5b0e113f45169cee 100644
+index d556478dddee218971a3b1015872e86ebaaf6048..50044760d4511ff2b75d8866faec22bf33bd2f94 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -68,6 +68,8 @@ public class ShreddedPaperChunkTicker {
-             region.tickTasks();
-             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+@@ -76,6 +76,8 @@ public class ShreddedPaperChunkTicker {
+ 
+             region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
 +            region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
 +
@@ -380,7 +378,7 @@ index d2bb65f4eaca8bf6457b033482e696fe8962d7d3..0ee7a9f8ae8861e3e3073ff8a619f773
          //this.profiler.popPush("players"); // Purpur
          //MinecraftTimings.playerListTimer.startTiming(); // Spigot // Paper // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 870f0ff5e8fc3f3d37b7a2a1256572aa4e4ba058..70b31e6483b6156002aba4d37208e5bf6303375d 100644
+index 8e184db1d87978c6e553b453c28b2c5d7f46b757..b668323532e0a456dd56e41a662f1fff4db29cca 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -31,6 +31,7 @@ import java.util.Objects;
@@ -397,7 +395,7 @@ index 870f0ff5e8fc3f3d37b7a2a1256572aa4e4ba058..70b31e6483b6156002aba4d37208e5bf
          // CraftBukkit end
 -        this.players = Lists.newArrayList();
 +        this.players = new CopyOnWriteArrayList<>(); // ShreddedPaper - thread-safe (players should not be changing worlds often, thus copy-on-write is sufficient)
-         this.entityTickList = new EntityTickList();
+         // this.entityTickList = new EntityTickList(); // ShreddedPaper - moved into each region
          this.blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
          this.fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
 @@ -2783,6 +2784,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -416,10 +414,10 @@ index 870f0ff5e8fc3f3d37b7a2a1256572aa4e4ba058..70b31e6483b6156002aba4d37208e5bf
                  ServerLevel.this.updateSleepingPlayerList();
              }
  
-@@ -2902,6 +2905,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
- 
+@@ -2903,6 +2906,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
+             ServerLevel.this.chunkSource.tickingRegions.moveTickingEntity(entity); // ShreddedPaper - move ticking entity into the new region
 +            if (entity instanceof ServerPlayer serverPlayer) ServerLevel.this.chunkSource.tickingRegions.movePlayer(serverPlayer); // ShreddedPaper - move player into the new region
          }
      }

@@ -5,32 +5,29 @@ Subject: [PATCH] Thread-safe navigatingMobs
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 9b1b7cf31e2ded1b1b672f4e7514c4a77730c55e..12ec698d2abd4cd0afe83bb8663dd8e2658eba9e 100644
+index f148f45f2b3679126a2384ec925556b3a784c8ef..c64860fcbe27451dc7db88c0c9b3bd04e9e5d1ac 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -1,10 +1,13 @@
- package io.multipaper.shreddedpaper.region;
+@@ -2,8 +2,10 @@ package io.multipaper.shreddedpaper.region;
  
  import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQueue;
+ import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
 +import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
  import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.Entity;
 +import net.minecraft.world.entity.Mob;
  import net.minecraft.world.level.chunk.LevelChunk;
  
  import java.util.ArrayList;
-+import java.util.Collection;
- import java.util.List;
- import java.util.concurrent.ConcurrentLinkedQueue;
- import java.util.function.Consumer;
-@@ -16,6 +19,7 @@ public class LevelChunkRegion {
-     private final List<LevelChunk> levelChunks = new ArrayList<>(RegionPos.REGION_SIZE * RegionPos.REGION_SIZE);
+@@ -19,6 +21,7 @@ public class LevelChunkRegion {
+     private final IteratorSafeOrderedReferenceSet<Entity> tickingEntities = new IteratorSafeOrderedReferenceSet<>(); // Use IteratorSafeOrderedReferenceSet to maintain entity tick order
      private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
      private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
 +    private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -44,6 +48,18 @@ public class LevelChunkRegion {
+@@ -66,6 +69,18 @@ public class LevelChunkRegion {
          return internalTasks;
      }
  
@@ -49,7 +46,7 @@ index 9b1b7cf31e2ded1b1b672f4e7514c4a77730c55e..12ec698d2abd4cd0afe83bb8663dd8e2
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -78,6 +94,6 @@ public class LevelChunkRegion {
+@@ -100,6 +115,6 @@ public class LevelChunkRegion {
      }
  
      public boolean isEmpty() {
@@ -58,22 +55,23 @@ index 9b1b7cf31e2ded1b1b672f4e7514c4a77730c55e..12ec698d2abd4cd0afe83bb8663dd8e2
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 013b39ee4832743ef22e658550b2c63517f42b19..a9b6fdaaec268ea694e84e8467886777b49e1a6b 100644
+index 6ef8526f4bb7585169efa498a5ae06f404e14690..5b0608c274b7b0c42ec7b66244eb3bf7024317e0 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -1,8 +1,11 @@
+@@ -1,9 +1,12 @@
  package io.multipaper.shreddedpaper.region;
  
  import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 +import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.Entity;
 +import net.minecraft.world.entity.Mob;
  import net.minecraft.world.level.chunk.LevelChunk;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
  import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  
  import java.util.ArrayList;
-@@ -90,4 +93,36 @@ public class LevelChunkRegionMap {
+@@ -111,4 +114,36 @@ public class LevelChunkRegionMap {
          return runnable -> execute(regionPos, runnable);
      }
  
@@ -112,7 +110,7 @@ index 013b39ee4832743ef22e658550b2c63517f42b19..a9b6fdaaec268ea694e84e8467886777
  }
 \ No newline at end of file
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 5d59b9739b920bc975f088640c62ec60ce17c43b..26e533088a7195d9e398ca7e6a85f66583450a57 100644
+index 7d5fd9be6133ae7b160096026aa4e125141db5e3..a41816c6f0ca2d68a2eea25f513c8e10956d7813 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -414,6 +414,7 @@ public class ServerChunkCache extends ChunkSource {
@@ -124,7 +122,7 @@ index 5d59b9739b920bc975f088640c62ec60ce17c43b..26e533088a7195d9e398ca7e6a85f665
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 2555d09b1b44fb35f5a72f8d96d721166e0983ed..c58cc51a5882dbdf60d846e7e829412f0acf7cc6 100644
+index 0946438c4b471f739c25a9d58b11c51d60e9ee82..8e184db1d87978c6e553b453c28b2c5d7f46b757 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;

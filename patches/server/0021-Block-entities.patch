@@ -5,22 +5,23 @@ Subject: [PATCH] Block entities
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 35e6420103b899b3cbbd6465fffce542cf036f6a..536d3bec3aeaf60812ae1767cca4db3a76ca36cd 100644
+index 8797eac82cd6b221556fcd75b117068f4afdf684..905bd1a92fc07c1b4511a158a40efb857b78ed6d 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -4,9 +4,11 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
+@@ -5,10 +5,12 @@ import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
  import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 +import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.Mob;
 +import net.minecraft.world.level.block.entity.TickingBlockEntity;
  import net.minecraft.world.level.chunk.LevelChunk;
  
  import java.util.ArrayList;
-@@ -25,6 +27,8 @@ public class LevelChunkRegion {
+@@ -27,6 +29,8 @@ public class LevelChunkRegion {
      private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
      private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
      public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
@@ -30,12 +31,12 @@ index 35e6420103b899b3cbbd6465fffce542cf036f6a..536d3bec3aeaf60812ae1767cca4db3a
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 812842b67bc3eb4c7facfdd0752f9e45723a4e80..a1c7f4d5355e819cd72d239886dbeca8a9dc2e3e 100644
+index a33e68c626464fdb9efe67a2fb911f5d1683c06f..28e33ccfdf064a67185135da53e40ea575f6574a 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -74,6 +74,8 @@ public class ShreddedPaperChunkTicker {
+@@ -82,6 +82,8 @@ public class ShreddedPaperChunkTicker {
  
-             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+             region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
 +            level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
 +
@@ -43,7 +44,7 @@ index 812842b67bc3eb4c7facfdd0752f9e45723a4e80..a1c7f4d5355e819cd72d239886dbeca8
  
              while (region.getInternalTaskQueue().executeTask()) ;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 9e42ce6bd109687640ec1e4eef0252eae4efb8eb..e1560a58cc2e9570b9533e26156f322b8cdcc332 100644
+index a7237da07c72701613dcbff2240a38e761af0b8e..d84b674d7693f93ca2c1d04f2242dd5306331247 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -949,7 +949,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
