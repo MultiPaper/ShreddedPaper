@@ -5,7 +5,7 @@ Subject: [PATCH] Block events
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 905bd1a92fc07c1b4511a158a40efb857b78ed6d..e9b4c7152d1f68cffd3f8122e620209f83a0a3b7 100644
+index f92725d4da17326988809c382046fe4d20d6ba0f..b94453f7f06ec1c25dc01a72a719a74d8c1c4bc4 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -4,12 +4,14 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
@@ -31,7 +31,7 @@ index 905bd1a92fc07c1b4511a158a40efb857b78ed6d..e9b4c7152d1f68cffd3f8122e620209f
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -139,9 +142,21 @@ public class LevelChunkRegion {
+@@ -143,9 +146,21 @@ public class LevelChunkRegion {
          toRun.forEach(DelayedTask::run);
      }
  
@@ -55,7 +55,7 @@ index 905bd1a92fc07c1b4511a158a40efb857b78ed6d..e9b4c7152d1f68cffd3f8122e620209f
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 07735dcf7dbdef71f583d2e73722a549059872fe..3bb4bf614b4c89d8bc83a1cec2f940f08aafe8fd 100644
+index ae8581242d52b4422f95b8fd3581e9ae2b442ab1..bd9c18c72d8e99267c9e7541481ce10564e9f5e5 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 @@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerLevel;
@@ -63,10 +63,10 @@ index 07735dcf7dbdef71f583d2e73722a549059872fe..3bb4bf614b4c89d8bc83a1cec2f940f0
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.Mob;
 +import net.minecraft.world.level.BlockEventData;
+ import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.chunk.LevelChunk;
  import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
- import io.multipaper.shreddedpaper.util.SimpleStampedLock;
-@@ -167,4 +168,8 @@ public class LevelChunkRegionMap {
+@@ -183,4 +184,8 @@ public class LevelChunkRegionMap {
              getOrCreate(toRegion).addPlayer(player);
          }
      }

@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe navigatingMobs
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index f148f45f2b3679126a2384ec925556b3a784c8ef..c64860fcbe27451dc7db88c0c9b3bd04e9e5d1ac 100644
+index dbba4f212ed7971fde0c9a714f376d169937f23c..83ce4c66cd6c965f93253f4d57f7b082dcb747d7 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -2,8 +2,10 @@ package io.multipaper.shreddedpaper.region;
@@ -27,7 +27,7 @@ index f148f45f2b3679126a2384ec925556b3a784c8ef..c64860fcbe27451dc7db88c0c9b3bd04
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -66,6 +69,18 @@ public class LevelChunkRegion {
+@@ -70,6 +73,18 @@ public class LevelChunkRegion {
          return internalTasks;
      }
  
@@ -46,7 +46,7 @@ index f148f45f2b3679126a2384ec925556b3a784c8ef..c64860fcbe27451dc7db88c0c9b3bd04
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -100,6 +115,6 @@ public class LevelChunkRegion {
+@@ -104,6 +119,6 @@ public class LevelChunkRegion {
      }
  
      public boolean isEmpty() {
@@ -55,10 +55,10 @@ index f148f45f2b3679126a2384ec925556b3a784c8ef..c64860fcbe27451dc7db88c0c9b3bd04
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 6ef8526f4bb7585169efa498a5ae06f404e14690..5b0608c274b7b0c42ec7b66244eb3bf7024317e0 100644
+index af1f3ba71e44b4b49c106d1e45331641e030ec6c..9bb764ed50e337dc5e5e734372bd85411cf66274 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -1,9 +1,12 @@
+@@ -1,10 +1,13 @@
  package io.multipaper.shreddedpaper.region;
  
  import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -66,12 +66,13 @@ index 6ef8526f4bb7585169efa498a5ae06f404e14690..5b0608c274b7b0c42ec7b66244eb3bf7
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.world.entity.Entity;
 +import net.minecraft.world.entity.Mob;
+ import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.chunk.LevelChunk;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
  import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  
  import java.util.ArrayList;
-@@ -111,4 +114,36 @@ public class LevelChunkRegionMap {
+@@ -127,4 +130,36 @@ public class LevelChunkRegionMap {
          return runnable -> execute(regionPos, runnable);
      }
  

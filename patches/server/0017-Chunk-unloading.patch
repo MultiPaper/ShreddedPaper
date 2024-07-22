@@ -5,7 +5,7 @@ Subject: [PATCH] Chunk unloading
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 7d07ac54e7aee282ae31c643dc27419fef5a1f68..8797eac82cd6b221556fcd75b117068f4afdf684 100644
+index 022a3c389c2bbad66b11bc5309c94e4c25b945ec..d8487d9ea5bfa1748c417cec34ecea5a28fd845b 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -2,6 +2,7 @@ package io.multipaper.shreddedpaper.region;
@@ -24,7 +24,7 @@ index 7d07ac54e7aee282ae31c643dc27419fef5a1f68..8797eac82cd6b221556fcd75b117068f
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -135,6 +137,7 @@ public class LevelChunkRegion {
+@@ -139,6 +141,7 @@ public class LevelChunkRegion {
  
      public boolean isEmpty() {
          return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty()

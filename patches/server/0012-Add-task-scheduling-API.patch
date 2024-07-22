@@ -104,7 +104,7 @@ index 0000000000000000000000000000000000000000..7f3344a89ceab9c362c48eabc8ec4b14
 +
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 69cb88e9ca80b0c6a051f9eefadfe6a6a952d31f..f148f45f2b3679126a2384ec925556b3a784c8ef 100644
+index ca770af388ece94c702fdcdcc883e0118d5d959d..dbba4f212ed7971fde0c9a714f376d169937f23c 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,5 +1,6 @@
@@ -131,7 +131,7 @@ index 69cb88e9ca80b0c6a051f9eefadfe6a6a952d31f..f148f45f2b3679126a2384ec925556b3
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -54,6 +58,14 @@ public class LevelChunkRegion {
+@@ -58,6 +62,14 @@ public class LevelChunkRegion {
          return level;
      }
  
@@ -146,7 +146,7 @@ index 69cb88e9ca80b0c6a051f9eefadfe6a6a952d31f..f148f45f2b3679126a2384ec925556b3
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -72,8 +84,22 @@ public class LevelChunkRegion {
+@@ -76,8 +88,22 @@ public class LevelChunkRegion {
          }
      }
  
@@ -172,10 +172,10 @@ index 69cb88e9ca80b0c6a051f9eefadfe6a6a952d31f..f148f45f2b3679126a2384ec925556b3
 +    }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 7a1e038d13c42265ec2c8c5beab9fea1631f7686..6ef8526f4bb7585169efa498a5ae06f404e14690 100644
+index a7c9025433f0b0e260a1ff69022b7938dda6b541..af1f3ba71e44b4b49c106d1e45331641e030ec6c 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -8,6 +8,7 @@ import io.multipaper.shreddedpaper.util.SimpleStampedLock;
+@@ -9,6 +9,7 @@ import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  
  import java.util.ArrayList;
  import java.util.List;
@@ -183,7 +183,7 @@ index 7a1e038d13c42265ec2c8c5beab9fea1631f7686..6ef8526f4bb7585169efa498a5ae06f4
  import java.util.function.Consumer;
  
  public class LevelChunkRegionMap {
-@@ -78,4 +79,36 @@ public class LevelChunkRegionMap {
+@@ -94,4 +95,36 @@ public class LevelChunkRegionMap {
          }
      }
  
@@ -896,7 +896,7 @@ index 43487a9ee202c5b0e5a416519939111f77b3059c..21d98fc8f006d1f445752f6ecd60e24d
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 459ed557262d2fed7cc49a7e68878cfe7ae73786..d78a81ee3270082c9f791b81dd3ad60ecc30f2fe 100644
+index 46f2e1c0251ff22cb9ef880cae49d6d2663f4881..3bea6b6333abc6b044ca8e01c4c66bde472d5614 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -263,6 +263,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess

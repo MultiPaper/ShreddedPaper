@@ -5,7 +5,7 @@ Subject: [PATCH] Player
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index c64860fcbe27451dc7db88c0c9b3bd04e9e5d1ac..7d07ac54e7aee282ae31c643dc27419fef5a1f68 100644
+index 83ce4c66cd6c965f93253f4d57f7b082dcb747d7..022a3c389c2bbad66b11bc5309c94e4c25b945ec 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -2,8 +2,10 @@ package io.multipaper.shreddedpaper.region;
@@ -27,7 +27,7 @@ index c64860fcbe27451dc7db88c0c9b3bd04e9e5d1ac..7d07ac54e7aee282ae31c643dc27419f
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -81,6 +84,22 @@ public class LevelChunkRegion {
+@@ -85,6 +88,22 @@ public class LevelChunkRegion {
          collection.addAll(this.navigatingMobs);
      }
  
@@ -50,7 +50,7 @@ index c64860fcbe27451dc7db88c0c9b3bd04e9e5d1ac..7d07ac54e7aee282ae31c643dc27419f
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -115,6 +134,7 @@ public class LevelChunkRegion {
+@@ -119,6 +138,7 @@ public class LevelChunkRegion {
      }
  
      public boolean isEmpty() {
@@ -60,7 +60,7 @@ index c64860fcbe27451dc7db88c0c9b3bd04e9e5d1ac..7d07ac54e7aee282ae31c643dc27419f
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 5b0608c274b7b0c42ec7b66244eb3bf7024317e0..07735dcf7dbdef71f583d2e73722a549059872fe 100644
+index 9bb764ed50e337dc5e5e734372bd85411cf66274..ae8581242d52b4422f95b8fd3581e9ae2b442ab1 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 @@ -3,6 +3,7 @@ package io.multipaper.shreddedpaper.region;
@@ -70,8 +70,8 @@ index 5b0608c274b7b0c42ec7b66244eb3bf7024317e0..07735dcf7dbdef71f583d2e73722a549
 +import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.Mob;
- import net.minecraft.world.level.chunk.LevelChunk;
-@@ -146,4 +147,24 @@ public class LevelChunkRegionMap {
+ import net.minecraft.world.level.ChunkPos;
+@@ -162,4 +163,24 @@ public class LevelChunkRegionMap {
  
          return navigatingMobs;
      }

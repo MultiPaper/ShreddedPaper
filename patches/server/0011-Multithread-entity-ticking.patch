@@ -5,7 +5,7 @@ Subject: [PATCH] Multithread entity ticking
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..69cb88e9ca80b0c6a051f9eefadfe6a6a952d31f 100644
+index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..ca770af388ece94c702fdcdcc883e0118d5d959d 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,6 +1,8 @@
@@ -25,16 +25,20 @@ index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..69cb88e9ca80b0c6a051f9eefadfe6a6
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -28,6 +31,25 @@ public class LevelChunkRegion {
+@@ -28,6 +31,29 @@ public class LevelChunkRegion {
          }
      }
  
 +    public synchronized void addTickingEntity(Entity entity) {
-+        tickingEntities.add(entity);
++        if (!tickingEntities.add(entity)) {
++            throw new IllegalStateException("Tried to add an entity that was already in the ticking list: " + entity);
++        }
 +    }
 +
 +    public synchronized void removeTickingEntity(Entity entity) {
-+        tickingEntities.remove(entity);
++        if (!tickingEntities.remove(entity)) {
++            throw new IllegalStateException("Tried to remove an entity that wasn't in the ticking list: " + entity);
++        }
 +    }
 +
 +    public synchronized void forEachTickingEntity(Consumer<Entity> action) {
@@ -52,36 +56,52 @@ index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..69cb88e9ca80b0c6a051f9eefadfe6a6
          return level;
      }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..7a1e038d13c42265ec2c8c5beab9fea1631f7686 100644
+index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..a7c9025433f0b0e260a1ff69022b7938dda6b541 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -2,6 +2,7 @@ package io.multipaper.shreddedpaper.region;
+@@ -2,6 +2,8 @@ package io.multipaper.shreddedpaper.region;
  
  import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
  import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.entity.Entity;
++import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.chunk.LevelChunk;
  import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  
-@@ -57,4 +58,24 @@ public class LevelChunkRegionMap {
+@@ -57,4 +59,39 @@ public class LevelChunkRegionMap {
          regionsCopy.forEach(consumer);
      }
  
 +    public void addTickingEntity(Entity entity) {
++        if (entity.previousTickingChunkPosRegion != null) {
++            throw new IllegalStateException("Entity has already been added to a ticking list " + entity);
++        }
++
 +        entity.previousTickingChunkPosRegion = entity.chunkPosition();
 +        getOrCreate(RegionPos.forChunk(entity.chunkPosition())).addTickingEntity(entity);
 +    }
 +
 +    public void removeTickingEntity(Entity entity) {
-+        getOrCreate(RegionPos.forChunk(entity.chunkPosition())).removeTickingEntity(entity);
++        if (entity.previousTickingChunkPosRegion == null) {
++            throw new IllegalStateException("Entity has not been added to a ticking list " + entity);
++        }
++
++        getOrCreate(RegionPos.forChunk(entity.previousTickingChunkPosRegion)).removeTickingEntity(entity);
++        entity.previousTickingChunkPosRegion = null;
 +    }
 +
 +    public void moveTickingEntity(Entity entity) {
++        if (entity.previousTickingChunkPosRegion == null) {
++            // Not ticking, ignore
++            return;
++        }
++
++        ChunkPos newChunkPos = entity.chunkPosition();
 +        RegionPos fromRegion = RegionPos.forChunk(entity.previousTickingChunkPosRegion);
-+        RegionPos toRegion = RegionPos.forChunk(entity.chunkPosition());
++        RegionPos toRegion = RegionPos.forChunk(newChunkPos);
 +
 +        if (!fromRegion.equals(toRegion)) {
-+            entity.previousTickingChunkPosRegion = entity.chunkPosition();
++            entity.previousTickingChunkPosRegion = newChunkPos;
 +            getOrCreate(fromRegion).removeTickingEntity(entity);
 +            getOrCreate(toRegion).addTickingEntity(entity);
 +        }
@@ -301,14 +321,14 @@ index 2ff98096027d1398c72591772af5ee7cd837982a..9c6f9cc702b33b58bf2007bcfbc3cf38
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..459ed557262d2fed7cc49a7e68878cfe7ae73786 100644
+index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..46f2e1c0251ff22cb9ef880cae49d6d2663f4881 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -339,6 +339,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      public double xOld;
      public double yOld;
      public double zOld;
-+    public ChunkPos previousTickingChunkPosRegion; // ShreddedPaper
++    public @Nullable ChunkPos previousTickingChunkPosRegion; // ShreddedPaper
      public float maxUpStep; // Purpur
      public boolean noPhysics;
      public final RandomSource random;
