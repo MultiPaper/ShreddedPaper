@@ -6,7 +6,7 @@ Subject: [PATCH] Run unsupported plugins in sync
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..593c40c5726d6a958c59178cf8e48e1209bb2330
+index 0000000000000000000000000000000000000000..4b74c5797832d47f6280233a2d5ac2f8c82c2053
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 @@ -0,0 +1,181 @@
@@ -151,7 +151,7 @@ index 0000000000000000000000000000000000000000..593c40c5726d6a958c59178cf8e48e12
 +    private static boolean fillPluginsToLock(Plugin plugin, TreeSet<String> pluginsToLock) {
 +        if (pluginsToLock.contains(plugin.getName())) {
 +            // Cyclic graphhhh
-+            return false;
++            return true;
 +        }
 +
 +        if (plugin.getDescription().isFoliaSupported()) {
