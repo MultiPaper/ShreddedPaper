@@ -6,10 +6,10 @@ Subject: [PATCH] Run unsupported plugins in sync
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..18562ac2aa0f681ea47bd997ba5e18faa112538b
+index 0000000000000000000000000000000000000000..593c40c5726d6a958c59178cf8e48e1209bb2330
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,181 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
@@ -33,7 +33,7 @@ index 0000000000000000000000000000000000000000..18562ac2aa0f681ea47bd997ba5e18fa
 +
 +    private static final Logger LOGGER = LogUtils.getClassLogger();
 +
-+    private static final Map<String, TreeSet<String>> cachedDependencyLists = new ConcurrentHashMap<>(); // Does not support dynamic plugin reloading, but oh well
++    private static final Map<String, List<String>> cachedDependencyLists = new ConcurrentHashMap<>(); // Does not support dynamic plugin reloading, but oh well
 +    private static final Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 +
 +    private static final ThreadLocal<WeakReference<Plugin>> currentPlugin = new ThreadLocal<>();
@@ -62,11 +62,16 @@ index 0000000000000000000000000000000000000000..18562ac2aa0f681ea47bd997ba5e18fa
 +        }
 +
 +        // Lock the plugins in a predictable order to prevent deadlocks
-+        TreeSet<String> pluginsToLock = cachedDependencyLists.computeIfAbsent(plugin.getName(), (name) -> {
-+            TreeSet<String> dependencyList = new TreeSet<>(Comparator.naturalOrder());
-+            fillPluginsToLock(plugin, dependencyList);
-+            return dependencyList;
-+        });
++        List<String> pluginsToLock = cachedDependencyLists.get(plugin.getName());
++
++        if (pluginsToLock == null) {
++            // computeIfAbsent requires an expensive synchronized call even if the value is already present, so check with a get first
++            pluginsToLock = cachedDependencyLists.computeIfAbsent(plugin.getName(), (name) -> {
++                TreeSet<String> dependencyList = new TreeSet<>(Comparator.naturalOrder());
++                fillPluginsToLock(plugin, dependencyList);
++                return new ArrayList<>(dependencyList);
++            });
++        }
 +
 +        lock(pluginsToLock);
 +
@@ -84,10 +89,17 @@ index 0000000000000000000000000000000000000000..18562ac2aa0f681ea47bd997ba5e18fa
 +    }
 +
 +    private static ReentrantLock getLock(String plugin) {
-+        return locks.computeIfAbsent(plugin, (name) -> new ReentrantLock());
++        ReentrantLock lock = locks.get(plugin);
++
++        if (lock == null) {
++            // computeIfAbsent requires an expensive synchronized call even if the value is already present, so check with a get first
++            lock = locks.computeIfAbsent(plugin, (name) -> new ReentrantLock());
++        }
++
++        return lock;
 +    }
 +
-+    private static void lock(Set<String> pluginsToLock) {
++    private static void lock(List<String> pluginsToLock) {
 +        List<String> locksToAcquire = new ArrayList<>(pluginsToLock); // Must be a list as we can hold the same lock multiple times due to recursion
 +
 +        if (!heldPluginLocks.get().isEmpty()) {
@@ -136,23 +148,23 @@ index 0000000000000000000000000000000000000000..18562ac2aa0f681ea47bd997ba5e18fa
 +        return success;
 +    }
 +
-+    private static void fillPluginsToLock(Plugin plugin, TreeSet<String> pluginsToLock) {
++    private static boolean fillPluginsToLock(Plugin plugin, TreeSet<String> pluginsToLock) {
 +        if (pluginsToLock.contains(plugin.getName())) {
 +            // Cyclic graphhhh
-+            return;
++            return false;
 +        }
 +
 +        if (plugin.getDescription().isFoliaSupported()) {
 +            // Multi-thread safe plugin, we don't need to lock it
-+            return;
++            return false;
 +        }
 +
-+        pluginsToLock.add(plugin.getName());
++        boolean hasDependency = false;
 +
 +        for (String depend : plugin.getDescription().getDepend()) {
 +            Plugin dependPlugin = plugin.getServer().getPluginManager().getPlugin(depend);
 +            if (dependPlugin != null) {
-+                fillPluginsToLock(dependPlugin, pluginsToLock);
++                hasDependency |= fillPluginsToLock(dependPlugin, pluginsToLock);
 +            } else {
 +                LOGGER.warn("Could not find dependency " + depend + " for plugin " + plugin.getName() + " even though it is a required dependency - this code shouldn't've been able to be run!");
 +            }
@@ -161,9 +173,17 @@ index 0000000000000000000000000000000000000000..18562ac2aa0f681ea47bd997ba5e18fa
 +        for (String softDepend : plugin.getDescription().getSoftDepend()) {
 +            Plugin softDependPlugin = plugin.getServer().getPluginManager().getPlugin(softDepend);
 +            if (softDependPlugin != null) {
-+                fillPluginsToLock(softDependPlugin, pluginsToLock);
++                hasDependency |= fillPluginsToLock(softDependPlugin, pluginsToLock);
 +            }
 +        }
++
++        if (!hasDependency) {
++            // Only add our own plugin if we have no dependencies to lock
++            // If we have a dependency, there's no point in locking this plugin by itself as we'll always be locking the dependency anyway
++            pluginsToLock.add(plugin.getName());
++        }
++
++        return true;
 +    }
 +
 +    public interface RunnableWithException {
@@ -330,7 +350,7 @@ index 2c82a48867ab347f21822576baa0368273242f82..143638f994a842472e827cb9b4efc160
                  Plugin plugin = registration.getPlugin();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index e4557f9327d404b3d7eb98d63396ab2fff8987de..88df30a5b926287726044b29a4c184b9b75e5666 100644
+index dc3c49ea458d334560dd3f99b66eaf969c888353..16bb57ab327230429fd3cbd822e7fcc28b329fbe 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
@@ -357,7 +377,7 @@ index e4557f9327d404b3d7eb98d63396ab2fff8987de..88df30a5b926287726044b29a4c184b9
          });
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index 182632dca46fd36b1e24dd875dae965cc28b98b0..8576cc002f8302dc0836c8ac1bdf8e0f5ee2f59c 100644
+index 8bdb226269e931d31d3876a10f24f4e7810d4aae..99fad810a700952b15f71ca89d984ccd64e6a697 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 @@ -10,6 +10,7 @@ import java.util.Set;
