@@ -5,10 +5,10 @@ Subject: [PATCH] NearbyPlayers
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 28e33ccfdf064a67185135da53e40ea575f6574a..644d6f781a224590e10e77ceacd33f137e9f6fac 100644
+index 1b7bd6f07b86c42eb845bcfb8fab3a1f64bf3a5a..858bf20d73d787b6b91e75be7a45f15a6df82f7b 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -116,7 +116,9 @@ public class ShreddedPaperChunkTicker {
+@@ -118,7 +118,9 @@ public class ShreddedPaperChunkTicker {
          boolean spawn = false;
          boolean tick = false;
          for (int itr = 0, len = playersNearby.size(); itr < len; ++itr) {
@@ -18,7 +18,7 @@ index 28e33ccfdf064a67185135da53e40ea575f6574a..644d6f781a224590e10e77ceacd33f13
              if (player.isSpectator()) {
                  continue;
              }
-@@ -127,6 +129,7 @@ public class ShreddedPaperChunkTicker {
+@@ -129,6 +131,7 @@ public class ShreddedPaperChunkTicker {
              if (spawn & tick) {
                  break;
              }
@@ -189,10 +189,10 @@ index f164256d59b761264876ca0c85f812d101bfd5de..d7c8430ddd73b6de2119a3cd8be3d386
          }
      }
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index d0251435eadb1b2a478ae0e9d48e278e643b39f6..8af60eb241ed2315baa0c531e48a2ddcb04ae588 100644
+index 5a30be9262cbfee7180c24a240031197f487a85a..82cd5ed4ee168020c9d69d5d78511ff152a90173 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -394,7 +394,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -395,7 +395,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          }
          final Object[] backingSet = inRange.getRawData();
          for (int i = 0, len = inRange.size(); i < len; i++) {
@@ -202,7 +202,7 @@ index d0251435eadb1b2a478ae0e9d48e278e643b39f6..8af60eb241ed2315baa0c531e48a2ddc
          }
      }
  
-@@ -411,7 +413,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -412,7 +414,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          }
          final Object[] backingSet = inRange.getRawData();
          for (int i = 0, len = inRange.size(); i < len; i++) {
@@ -213,7 +213,7 @@ index d0251435eadb1b2a478ae0e9d48e278e643b39f6..8af60eb241ed2315baa0c531e48a2ddc
      }
      // Paper end - per player mob count backoff
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 39b4bb058243417b88f63ac5b696448e586ad96e..dbb60ade9d3754066d45477bf2d9ef9b8a1820ff 100644
+index 816033587253fcfa34bd52896d64cca5532b9206..cfc8b7657d2ead4e8865558c0af393d43139d760 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -611,7 +611,9 @@ public class ServerLevel extends Level implements WorldGenLevel {

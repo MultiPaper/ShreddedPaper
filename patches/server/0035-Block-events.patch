@@ -5,7 +5,7 @@ Subject: [PATCH] Block events
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index f92725d4da17326988809c382046fe4d20d6ba0f..b94453f7f06ec1c25dc01a72a719a74d8c1c4bc4 100644
+index c0862da4c1b378734817c44d9c4de868b79c500d..579e8133eafee5d00fe3e33cf2551e97f7c8afeb 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -4,12 +4,14 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
@@ -23,7 +23,7 @@ index f92725d4da17326988809c382046fe4d20d6ba0f..b94453f7f06ec1c25dc01a72a719a74d
  import net.minecraft.world.level.block.entity.TickingBlockEntity;
  import net.minecraft.world.level.chunk.LevelChunk;
  
-@@ -31,6 +33,7 @@ public class LevelChunkRegion {
+@@ -33,6 +35,7 @@ public class LevelChunkRegion {
      public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
      public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
      public final List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
@@ -31,7 +31,7 @@ index f92725d4da17326988809c382046fe4d20d6ba0f..b94453f7f06ec1c25dc01a72a719a74d
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -143,9 +146,21 @@ public class LevelChunkRegion {
+@@ -161,9 +164,21 @@ public class LevelChunkRegion {
          toRun.forEach(DelayedTask::run);
      }
  
@@ -55,7 +55,7 @@ index f92725d4da17326988809c382046fe4d20d6ba0f..b94453f7f06ec1c25dc01a72a719a74d
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index ae8581242d52b4422f95b8fd3581e9ae2b442ab1..bd9c18c72d8e99267c9e7541481ce10564e9f5e5 100644
+index ca18cc81c45ea31ab5696d391ad3499d0735c8cb..7af6575cb82000aa78526720f618c4872a86b1d5 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 @@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerLevel;
@@ -66,7 +66,7 @@ index ae8581242d52b4422f95b8fd3581e9ae2b442ab1..bd9c18c72d8e99267c9e7541481ce105
  import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.chunk.LevelChunk;
  import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
-@@ -183,4 +184,8 @@ public class LevelChunkRegionMap {
+@@ -218,4 +219,8 @@ public class LevelChunkRegionMap {
              getOrCreate(toRegion).addPlayer(player);
          }
      }
@@ -77,7 +77,7 @@ index ae8581242d52b4422f95b8fd3581e9ae2b442ab1..bd9c18c72d8e99267c9e7541481ce105
  }
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 627eaf4d0f9204a25d3b8524461a6723bb204065..82447a7e4ab08ab0a333e8549c646170a9076fe9 100644
+index d5f0acade30d8f64a2db2c3aba195b89fd52643b..45aec6415085ddde6a4a929398ae211e810eacf8 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -82,6 +82,8 @@ public class ShreddedPaperChunkTicker {
@@ -88,9 +88,9 @@ index 627eaf4d0f9204a25d3b8524461a6723bb204065..82447a7e4ab08ab0a333e8549c646170
 +
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
-             level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
+             region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index d98cae9c61dc1832cb73b6acfdd5f49bc70ed286..6c0dd6ab9d10ec4e39da1944d96687c2d4b405e4 100644
+index f8d784c7e95c5c3c0478c8740a4df529874fb49a..dc5727ffb9a1e3fb7699b8f9dbb3b93abeeedd7a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -23,6 +23,7 @@ import java.io.Writer;

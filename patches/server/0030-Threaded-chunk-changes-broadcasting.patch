@@ -64,7 +64,7 @@ index 0000000000000000000000000000000000000000..ad7960c9a11cffc4b89a08dac45dd005
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 644d6f781a224590e10e77ceacd33f137e9f6fac..627eaf4d0f9204a25d3b8524461a6723bb204065 100644
+index 858bf20d73d787b6b91e75be7a45f15a6df82f7b..d5f0acade30d8f64a2db2c3aba195b89fd52643b 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -62,6 +62,8 @@ public class ShreddedPaperChunkTicker {
@@ -76,7 +76,7 @@ index 644d6f781a224590e10e77ceacd33f137e9f6fac..627eaf4d0f9204a25d3b8524461a6723
              while (region.getInternalTaskQueue().executeTask()) ;
  
              level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
-@@ -88,6 +90,8 @@ public class ShreddedPaperChunkTicker {
+@@ -90,6 +92,8 @@ public class ShreddedPaperChunkTicker {
  
              while (region.getInternalTaskQueue().executeTask()) ;
  
@@ -85,7 +85,7 @@ index 644d6f781a224590e10e77ceacd33f137e9f6fac..627eaf4d0f9204a25d3b8524461a6723
              if (region.isEmpty()) {
                  level.chunkSource.tickingRegions.remove(region.getRegionPos());
              }
-@@ -97,6 +101,8 @@ public class ShreddedPaperChunkTicker {
+@@ -99,6 +103,8 @@ public class ShreddedPaperChunkTicker {
      }
  
      private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
@@ -134,10 +134,10 @@ index 0e0c3a010d5cfaa0c15bcb38c4e3b1a8d7ad39a1..8da6278f841e0ac032ae74ed75b7689d
      // Paper end - optimise chunk tick iteration
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 8af60eb241ed2315baa0c531e48a2ddcb04ae588..db14df2f214e60dd5f450b8fc42ed786ae2bda89 100644
+index 82cd5ed4ee168020c9d69d5d78511ff152a90173..7c5ca2e6f007fab36ce19e342bf9b434992b5b62 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -248,7 +248,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -249,7 +249,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      public final io.papermc.paper.util.player.NearbyPlayers nearbyPlayers;
      // Paper end
      // Paper start - optimise chunk tick iteration

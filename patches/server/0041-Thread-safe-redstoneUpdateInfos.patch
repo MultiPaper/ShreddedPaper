@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe redstoneUpdateInfos
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index e9b4c7152d1f68cffd3f8122e620209f83a0a3b7..614385c6b9f74277a869cd080b39c8e1f84d91a5 100644
+index 579e8133eafee5d00fe3e33cf2551e97f7c8afeb..f02798596b46762c9557ba563f874e22b8147f13 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -12,9 +12,11 @@ import net.minecraft.server.level.ServerPlayer;
@@ -19,8 +19,8 @@ index e9b4c7152d1f68cffd3f8122e620209f83a0a3b7..614385c6b9f74277a869cd080b39c8e1
 +import java.util.ArrayDeque;
  import java.util.ArrayList;
  import java.util.List;
- import java.util.concurrent.ConcurrentLinkedQueue;
-@@ -34,6 +36,7 @@ public class LevelChunkRegion {
+ import java.util.Set;
+@@ -36,6 +38,7 @@ public class LevelChunkRegion {
      public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
      public final List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();

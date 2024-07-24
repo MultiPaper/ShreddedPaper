@@ -272,7 +272,7 @@ index 0000000000000000000000000000000000000000..28bb91a25b7e473f4e2af48561e6b108
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e643b39f6 100644
+index e2a162f0331e939ddfe1a3b9c9108f289b16b502..5a30be9262cbfee7180c24a240031197f487a85a 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -13,6 +13,7 @@ import com.mojang.datafixers.DataFixer;
@@ -281,9 +281,9 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
  import com.mojang.serialization.JsonOps;
 +import io.multipaper.shreddedpaper.util.Int2ObjectMapWrapper;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
- import it.unimi.dsi.fastutil.longs.Long2ByteMap;
-@@ -42,6 +43,7 @@ import java.util.Set;
+@@ -43,6 +44,7 @@ import java.util.Set;
  import java.util.concurrent.CancellationException;
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.CompletionException;
@@ -291,7 +291,7 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
  import java.util.concurrent.Executor;
  import java.util.concurrent.atomic.AtomicInteger;
  import java.util.function.BooleanSupplier;
-@@ -140,7 +142,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -141,7 +143,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      public final AtomicInteger tickingGenerated; // Paper - public
      private final String storageName;
      private final PlayerMap playerMap;
@@ -301,17 +301,17 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
      private final Long2ByteMap chunkTypeCache;
      private final Long2LongMap chunkSaveCooldowns;
      private final Queue<Runnable> unloadQueue;
-@@ -254,7 +257,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -255,7 +258,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          // Paper - rewrite chunk system
          this.tickingGenerated = new AtomicInteger();
          this.playerMap = new PlayerMap();
--        this.entityMap = new Int2ObjectOpenHashMap();
+-        this.entityMap = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap()); // ShreddedPaper - synchronize
 +        this.entityConcurrentMap = new ConcurrentHashMap<>(); // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
 +        this.entityMap = new Int2ObjectMapWrapper(this.entityConcurrentMap); // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
          this.chunkTypeCache = new Long2ByteOpenHashMap();
          this.chunkSaveCooldowns = new Long2LongOpenHashMap();
          this.unloadQueue = Queues.newConcurrentLinkedQueue();
-@@ -1091,9 +1095,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1092,9 +1096,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      public void addEntity(Entity entity) {
          org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot
          // Paper start - ignore and warn about illegal addEntity calls instead of crashing server
@@ -323,7 +323,7 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
              return;
          }
          // Paper end - ignore and warn about illegal addEntity calls instead of crashing server
-@@ -1106,19 +1110,19 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1107,20 +1111,20 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              if (i != 0) {
                  int j = entitytypes.updateInterval();
  
@@ -336,6 +336,7 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
                      entity.tracker = playerchunkmap_entitytracker; // Paper - Fast access to tracker
 -                    this.entityMap.put(entity.getId(), playerchunkmap_entitytracker);
 +                    this.entityConcurrentMap.put(entity.getId(), playerchunkmap_entitytracker); // ShreddedPaper - use entityConcurrentMap
+                     this.level.getChunkSource().tickingRegions.addTrackedEntity(entity); // ShreddedPaper
                      playerchunkmap_entitytracker.updatePlayers(entity.getPlayersInTrackRange()); // Paper - don't search all players
                      if (entity instanceof ServerPlayer) {
                          ServerPlayer entityplayer = (ServerPlayer) entity;
@@ -346,7 +347,7 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
  
                          while (objectiterator.hasNext()) {
                              ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) objectiterator.next();
-@@ -1138,7 +1142,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1140,7 +1144,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          org.spigotmc.AsyncCatcher.catchOp("entity untrack"); // Spigot
          if (entity instanceof ServerPlayer entityplayer) {
              this.updatePlayerStatus(entityplayer, false);
@@ -355,16 +356,16 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
  
              while (objectiterator.hasNext()) {
                  ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) objectiterator.next();
-@@ -1147,7 +1151,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-             }
+@@ -1150,7 +1154,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          }
  
+         this.level.getChunkSource().tickingRegions.removeTrackedEntity(entity); // ShreddedPaper
 -        ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) this.entityMap.remove(entity.getId());
 +        ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) this.entityConcurrentMap.remove(entity.getId()); // ShreddedPaper - use entityConcurrentMap
  
          if (playerchunkmap_entitytracker1 != null) {
              playerchunkmap_entitytracker1.broadcastRemoved();
-@@ -1160,7 +1164,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1163,7 +1167,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          if (true) return; // ShreddedPaper - handle ourselves
          //this.level.timings.tracker1.startTiming(); // Purpur
          try {
@@ -373,7 +374,7 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
                  // update tracker entry
                  tracker.updatePlayers(tracker.entity.getPlayersInTrackRange());
              }
-@@ -1171,7 +1175,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1174,7 +1178,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
  
          //this.level.timings.tracker2.startTiming(); // Purpur
          try {
@@ -382,7 +383,7 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
                  tracker.serverEntity.sendChanges();
              }
          } finally {
-@@ -1189,7 +1193,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1192,7 +1196,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          // Paper end - optimized tracker
          List<ServerPlayer> list = Lists.newArrayList();
          List<ServerPlayer> list1 = this.level.players();
@@ -391,7 +392,7 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
          //this.level.timings.tracker1.startTiming(); // Paper // Purpur
  
          ChunkMap.TrackedEntity playerchunkmap_entitytracker;
-@@ -1218,7 +1222,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1221,7 +1225,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          //this.level.timings.tracker1.stopTiming(); // Paper // Purpur
  
          if (!list.isEmpty()) {
@@ -400,26 +401,8 @@ index 8d202aa75cb5b9974365d99ced46f6262ea6b4dd..d0251435eadb1b2a478ae0e9d48e278e
  
              //this.level.timings.tracker2.startTiming(); // Paper // Purpur
              while (objectiterator.hasNext()) {
-@@ -1231,7 +1235,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-     }
- 
-     public void broadcast(Entity entity, Packet<?> packet) {
--        ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) this.entityMap.get(entity.getId());
-+        ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) this.entityConcurrentMap.get(entity.getId()); // ShreddedPaper - use entityConcurrentMap
- 
-         if (playerchunkmap_entitytracker != null) {
-             playerchunkmap_entitytracker.broadcast(packet);
-@@ -1240,7 +1244,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-     }
- 
-     protected void broadcastAndSend(Entity entity, Packet<?> packet) {
--        ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) this.entityMap.get(entity.getId());
-+        ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) this.entityConcurrentMap.get(entity.getId()); // ShreddedPaper - use entityConcurrentMap
- 
-         if (playerchunkmap_entitytracker != null) {
-             playerchunkmap_entitytracker.broadcastAndSend(packet);
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index dff0e7b08b973a1b29f916e63d3e4778d6c56cdc..224cae0c2560f60ac68112ee35de0d8b18796fea 100644
+index eb27ea55c02b586ca2a7d97e6caf39fb81459056..de8fd467abdc826d21179084a5669bd97c03850d 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -8,6 +8,7 @@ import net.minecraft.nbt.NbtUtils;
@@ -430,78 +413,3 @@ index dff0e7b08b973a1b29f916e63d3e4778d6c56cdc..224cae0c2560f60ac68112ee35de0d8b
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EntityType;
  import net.minecraft.world.entity.LivingEntity;
-@@ -114,7 +115,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
-              */
-             // Send position and velocity updates to nearby players on every tick while the TNT is in water.
-             // This does pretty well at keeping their clients in sync with the server.
--            net.minecraft.server.level.ChunkMap.TrackedEntity ete = ((net.minecraft.server.level.ServerLevel)this.level()).getChunkSource().chunkMap.entityMap.get(this.getId());
-+            net.minecraft.server.level.ChunkMap.TrackedEntity ete = ((ServerLevel)this.level()).getChunkSource().chunkMap.entityConcurrentMap.get(this.getId()); // ShreddedPaper - use entityConcurrentMap
-             if (ete != null) {
-                 net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket velocityPacket = new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(this);
-                 net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket positionPacket = new net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket(this);
-diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index bd60758e8291821c66bd82a5d23682959b915136..e4557f9327d404b3d7eb98d63396ab2fff8987de 100644
---- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-+++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -2004,7 +2004,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
-         if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
- 
-         ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(CraftSound.bukkitToMinecraftHolder(sound), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
--        ChunkMap.TrackedEntity entityTracker = this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId());
-+        ChunkMap.TrackedEntity entityTracker = this.getHandle().getChunkSource().chunkMap.entityConcurrentMap.get(entity.getEntityId()); // ShreddedPaper - use entityConcurrentMap
-         if (entityTracker != null) {
-             entityTracker.broadcastAndSend(packet);
-         }
-@@ -2016,7 +2016,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
-         if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
- 
-         ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(Holder.direct(SoundEvent.createVariableRangeEvent(new ResourceLocation(sound))), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
--        ChunkMap.TrackedEntity entityTracker = this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId());
-+        ChunkMap.TrackedEntity entityTracker = this.getHandle().getChunkSource().chunkMap.entityConcurrentMap.get(entity.getEntityId()); // ShreddedPaper - use entityConcurrentMap
-         if (entityTracker != null) {
-             entityTracker.broadcastAndSend(packet);
-         }
-diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index 67d7eede1543599497cd31b7de308e1caf952a08..182632dca46fd36b1e24dd875dae965cc28b98b0 100644
---- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-+++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-@@ -724,7 +724,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
-         ImmutableSet.Builder<Player> players = ImmutableSet.builder();
- 
-         ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
--        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
-+        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityConcurrentMap.get(this.getEntityId()); // ShreddedPaper - use entityConcurrentMap
- 
-         if (entityTracker != null) {
-             for (ServerPlayerConnection connection : entityTracker.seenBy) {
-@@ -1028,7 +1028,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
-         }
- 
-         ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
--        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
-+        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityConcurrentMap.get(this.getEntityId()); // ShreddedPaper - use entityConcurrentMap
- 
-         if (entityTracker == null) {
-             return;
-diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index c12484e13ff2b06b9bad7c5b2bbf9e82c1cbc989..940f2716afc37684f92a7bd2b2bea6e0b9bbe6a7 100644
---- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-+++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-@@ -2052,7 +2052,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
-     private void unregisterEntity(Entity other) {
-         // Paper end
-         ChunkMap tracker = ((ServerLevel) this.getHandle().level()).getChunkSource().chunkMap;
--        ChunkMap.TrackedEntity entry = tracker.entityMap.get(other.getId());
-+        ChunkMap.TrackedEntity entry = tracker.entityConcurrentMap.get(other.getId()); // ShreddedPaper - use entityConcurrentMap
-         if (entry != null) {
-             entry.removePlayer(this.getHandle());
-         }
-@@ -2149,7 +2149,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
-             if (original != null) otherPlayer.setUUID(original); // Paper - uuid override
-         }
- 
--        ChunkMap.TrackedEntity entry = tracker.entityMap.get(other.getId());
-+        ChunkMap.TrackedEntity entry = tracker.entityConcurrentMap.get(other.getId()); // ShreddedPaper - use entityConcurrentMap
-         if (entry != null && !entry.seenBy.contains(this.getHandle().connection)) {
-             entry.updatePlayer(this.getHandle());
-         }
