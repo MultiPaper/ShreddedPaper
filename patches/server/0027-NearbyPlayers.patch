@@ -189,10 +189,10 @@ index f164256d59b761264876ca0c85f812d101bfd5de..d7c8430ddd73b6de2119a3cd8be3d386
          }
      }
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 5a30be9262cbfee7180c24a240031197f487a85a..82cd5ed4ee168020c9d69d5d78511ff152a90173 100644
+index 47285b5d6f4b02a8179bbd9dca47eeeeda2f15d4..5add8126631f68f05bf38b9318d9426ecf5b5c92 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -395,7 +395,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -394,7 +394,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          }
          final Object[] backingSet = inRange.getRawData();
          for (int i = 0, len = inRange.size(); i < len; i++) {
@@ -202,7 +202,7 @@ index 5a30be9262cbfee7180c24a240031197f487a85a..82cd5ed4ee168020c9d69d5d78511ff1
          }
      }
  
-@@ -412,7 +414,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -411,7 +413,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          }
          final Object[] backingSet = inRange.getRawData();
          for (int i = 0, len = inRange.size(); i < len; i++) {

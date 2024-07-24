@@ -5,7 +5,7 @@ Subject: [PATCH] TrackedEntity
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index f92725d4da17326988809c382046fe4d20d6ba0f..c0862da4c1b378734817c44d9c4de868b79c500d 100644
+index df58cb10406efd793b2af82d794acf9b0bc9f8f6..b74877dffcd557fb9000b86ab90b1973ad719a62 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -15,6 +15,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
@@ -47,6 +47,14 @@ index f92725d4da17326988809c382046fe4d20d6ba0f..c0862da4c1b378734817c44d9c4de868
      public ServerLevel getLevel() {
          return level;
      }
+@@ -151,6 +169,7 @@ public class LevelChunkRegion {
+                 && navigatingMobs.isEmpty()
+                 && players.isEmpty()
+                 && unloadQueue.isEmpty()
++                && trackedEntities.isEmpty()
+                 ;
+     }
+ }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 index ae8581242d52b4422f95b8fd3581e9ae2b442ab1..ca18cc81c45ea31ab5696d391ad3499d0735c8cb 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
@@ -133,27 +141,10 @@ index 81d6ae082047fdda6f2271a830e700fa90b9d0ac..47ce846fca69623bebea70ffc6b35d32
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..e2a162f0331e939ddfe1a3b9c9108f289b16b502 100644
+index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..eafb5522d02e91b76a8cd30981fd18d6bdbdb93c 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -14,6 +14,7 @@ import com.mojang.logging.LogUtils;
- import com.mojang.serialization.DataResult;
- import com.mojang.serialization.JsonOps;
- import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
- import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
- import it.unimi.dsi.fastutil.longs.Long2ByteMap;
- import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap;
-@@ -254,7 +255,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-         // Paper - rewrite chunk system
-         this.tickingGenerated = new AtomicInteger();
-         this.playerMap = new PlayerMap();
--        this.entityMap = new Int2ObjectOpenHashMap();
-+        this.entityMap = Int2ObjectMaps.synchronize(new Int2ObjectOpenHashMap()); // ShreddedPaper - synchronize
-         this.chunkTypeCache = new Long2ByteOpenHashMap();
-         this.chunkSaveCooldowns = new Long2LongOpenHashMap();
-         this.unloadQueue = Queues.newConcurrentLinkedQueue();
-@@ -1113,6 +1114,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1113,6 +1113,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
  
                      entity.tracker = playerchunkmap_entitytracker; // Paper - Fast access to tracker
                      this.entityMap.put(entity.getId(), playerchunkmap_entitytracker);
@@ -161,7 +152,7 @@ index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..e2a162f0331e939ddfe1a3b9c9108f28
                      playerchunkmap_entitytracker.updatePlayers(entity.getPlayersInTrackRange()); // Paper - don't search all players
                      if (entity instanceof ServerPlayer) {
                          ServerPlayer entityplayer = (ServerPlayer) entity;
-@@ -1147,6 +1149,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1147,6 +1148,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              }
          }
  
@@ -169,7 +160,7 @@ index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..e2a162f0331e939ddfe1a3b9c9108f28
          ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) this.entityMap.remove(entity.getId());
  
          if (playerchunkmap_entitytracker1 != null) {
-@@ -1157,6 +1160,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1157,6 +1159,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
  
      // Paper start - optimised tracker
      private final void processTrackQueue() {
@@ -177,7 +168,7 @@ index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..e2a162f0331e939ddfe1a3b9c9108f28
          //this.level.timings.tracker1.startTiming(); // Purpur
          try {
              for (TrackedEntity tracker : this.entityMap.values()) {
-@@ -1230,7 +1234,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1230,7 +1233,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      }
  
      public void broadcast(Entity entity, Packet<?> packet) {
@@ -186,7 +177,7 @@ index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..e2a162f0331e939ddfe1a3b9c9108f28
  
          if (playerchunkmap_entitytracker != null) {
              playerchunkmap_entitytracker.broadcast(packet);
-@@ -1239,7 +1243,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1239,7 +1242,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      }
  
      protected void broadcastAndSend(Entity entity, Packet<?> packet) {
@@ -195,7 +186,7 @@ index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..e2a162f0331e939ddfe1a3b9c9108f28
  
          if (playerchunkmap_entitytracker != null) {
              playerchunkmap_entitytracker.broadcastAndSend(packet);
-@@ -1336,7 +1340,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1336,7 +1339,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          // Paper start - use distance map to optimise tracker
          com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> lastTrackerCandidates;
  

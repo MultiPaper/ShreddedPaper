@@ -5,7 +5,7 @@ Subject: [PATCH] Player
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 83ce4c66cd6c965f93253f4d57f7b082dcb747d7..022a3c389c2bbad66b11bc5309c94e4c25b945ec 100644
+index e5958afe48725f82c8493f43fd101632ba5d350b..2f2032af3369f1ec019dd029ab4a13cbdc98f382 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -2,8 +2,10 @@ package io.multipaper.shreddedpaper.region;
@@ -50,12 +50,11 @@ index 83ce4c66cd6c965f93253f4d57f7b082dcb747d7..022a3c389c2bbad66b11bc5309c94e4c
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -119,6 +138,7 @@ public class LevelChunkRegion {
-     }
- 
-     public boolean isEmpty() {
--        return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty();
-+        return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty()
+@@ -124,6 +143,6 @@ public class LevelChunkRegion {
+                 && scheduledTasks.isEmpty()
+                 && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled()
+                 && navigatingMobs.isEmpty()
+-                ;
 +                && players.isEmpty();
      }
  }

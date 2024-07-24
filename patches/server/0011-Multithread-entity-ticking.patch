@@ -5,7 +5,7 @@ Subject: [PATCH] Multithread entity ticking
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..ca770af388ece94c702fdcdcc883e0118d5d959d 100644
+index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..ea45d119640d42d4d22d3db0e5c7d2456e1b64e4 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,6 +1,8 @@
@@ -55,6 +55,17 @@ index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..ca770af388ece94c702fdcdcc883e011
      public ServerLevel getLevel() {
          return level;
      }
+@@ -51,7 +77,9 @@ public class LevelChunkRegion {
+     }
+ 
+     public boolean isEmpty() {
+-        return levelChunks.isEmpty();
++        return levelChunks.isEmpty()
++                && tickingEntities.size() == 0
++                ;
+     }
+ 
+ }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..a7c9025433f0b0e260a1ff69022b7938dda6b541 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java

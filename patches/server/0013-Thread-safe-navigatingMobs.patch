@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe navigatingMobs
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index dbba4f212ed7971fde0c9a714f376d169937f23c..83ce4c66cd6c965f93253f4d57f7b082dcb747d7 100644
+index a31559ba6d385f961d08d12a4cbe62a53b766ab2..e5958afe48725f82c8493f43fd101632ba5d350b 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -2,8 +2,10 @@ package io.multipaper.shreddedpaper.region;
@@ -46,12 +46,12 @@ index dbba4f212ed7971fde0c9a714f376d169937f23c..83ce4c66cd6c965f93253f4d57f7b082
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -104,6 +119,6 @@ public class LevelChunkRegion {
-     }
- 
-     public boolean isEmpty() {
--        return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled();
-+        return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty();
+@@ -108,6 +123,7 @@ public class LevelChunkRegion {
+                 && tickingEntities.size() == 0
+                 && scheduledTasks.isEmpty()
+                 && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled()
++                && navigatingMobs.isEmpty()
+                 ;
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java

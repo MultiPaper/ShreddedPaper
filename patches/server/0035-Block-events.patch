@@ -5,7 +5,7 @@ Subject: [PATCH] Block events
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index c0862da4c1b378734817c44d9c4de868b79c500d..579e8133eafee5d00fe3e33cf2551e97f7c8afeb 100644
+index b74877dffcd557fb9000b86ab90b1973ad719a62..e15c82dc5eca72688b7e3e217a498ebf1b140904 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -4,12 +4,14 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
@@ -31,7 +31,7 @@ index c0862da4c1b378734817c44d9c4de868b79c500d..579e8133eafee5d00fe3e33cf2551e97
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -161,9 +164,21 @@ public class LevelChunkRegion {
+@@ -161,6 +164,16 @@ public class LevelChunkRegion {
          toRun.forEach(DelayedTask::run);
      }
  
@@ -46,12 +46,14 @@ index c0862da4c1b378734817c44d9c4de868b79c500d..579e8133eafee5d00fe3e33cf2551e97
 +    }
 +
      public boolean isEmpty() {
-         return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty()
+         return levelChunks.isEmpty()
+                 && tickingEntities.size() == 0
+@@ -170,6 +183,7 @@ public class LevelChunkRegion {
                  && players.isEmpty()
--                && unloadQueue.isEmpty();
-+                && unloadQueue.isEmpty()
+                 && unloadQueue.isEmpty()
+                 && trackedEntities.isEmpty()
 +                && blockEvents.isEmpty()
-+                ;
+                 ;
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java

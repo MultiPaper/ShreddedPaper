@@ -5,7 +5,7 @@ Subject: [PATCH] Chunk unloading
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 022a3c389c2bbad66b11bc5309c94e4c25b945ec..d8487d9ea5bfa1748c417cec34ecea5a28fd845b 100644
+index 2f2032af3369f1ec019dd029ab4a13cbdc98f382..0998863d9a24c37a684a2372921749d2453de1d8 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -2,6 +2,7 @@ package io.multipaper.shreddedpaper.region;
@@ -24,13 +24,14 @@ index 022a3c389c2bbad66b11bc5309c94e4c25b945ec..d8487d9ea5bfa1748c417cec34ecea5a
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -139,6 +141,7 @@ public class LevelChunkRegion {
- 
-     public boolean isEmpty() {
-         return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled() && navigatingMobs.isEmpty()
+@@ -143,6 +145,8 @@ public class LevelChunkRegion {
+                 && scheduledTasks.isEmpty()
+                 && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled()
+                 && navigatingMobs.isEmpty()
 -                && players.isEmpty();
 +                && players.isEmpty()
-+                && unloadQueue.isEmpty();
++                && unloadQueue.isEmpty()
++                ;
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java

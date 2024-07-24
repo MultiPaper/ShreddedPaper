@@ -104,7 +104,7 @@ index 0000000000000000000000000000000000000000..7f3344a89ceab9c362c48eabc8ec4b14
 +
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index ca770af388ece94c702fdcdcc883e0118d5d959d..dbba4f212ed7971fde0c9a714f376d169937f23c 100644
+index ea45d119640d42d4d22d3db0e5c7d2456e1b64e4..a31559ba6d385f961d08d12a4cbe62a53b766ab2 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,5 +1,6 @@
@@ -146,12 +146,10 @@ index ca770af388ece94c702fdcdcc883e0118d5d959d..dbba4f212ed7971fde0c9a714f376d16
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -76,8 +88,22 @@ public class LevelChunkRegion {
+@@ -76,10 +88,26 @@ public class LevelChunkRegion {
          }
      }
  
--    public boolean isEmpty() {
--        return levelChunks.isEmpty();
 +    public void tickTasks() {
 +        if (scheduledTasks.isEmpty()) return;
 +
@@ -165,11 +163,16 @@ index ca770af388ece94c702fdcdcc883e0118d5d959d..dbba4f212ed7971fde0c9a714f376d16
 +
 +        scheduledTasks.removeAll(toRun);
 +        toRun.forEach(DelayedTask::run);
-     }
- 
-+    public boolean isEmpty() {
-+        return levelChunks.isEmpty() && scheduledTasks.isEmpty() && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled();
 +    }
++
+     public boolean isEmpty() {
+         return levelChunks.isEmpty()
+                 && tickingEntities.size() == 0
++                && scheduledTasks.isEmpty()
++                && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled()
+                 ;
+     }
+-
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 index a7c9025433f0b0e260a1ff69022b7938dda6b541..af1f3ba71e44b4b49c106d1e45331641e030ec6c 100644

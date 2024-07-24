@@ -134,10 +134,10 @@ index 0e0c3a010d5cfaa0c15bcb38c4e3b1a8d7ad39a1..8da6278f841e0ac032ae74ed75b7689d
      // Paper end - optimise chunk tick iteration
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 82cd5ed4ee168020c9d69d5d78511ff152a90173..7c5ca2e6f007fab36ce19e342bf9b434992b5b62 100644
+index 5add8126631f68f05bf38b9318d9426ecf5b5c92..c1685818a6b87c0d652be0b2acccdccea059c859 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -249,7 +249,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -248,7 +248,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      public final io.papermc.paper.util.player.NearbyPlayers nearbyPlayers;
      // Paper end
      // Paper start - optimise chunk tick iteration
