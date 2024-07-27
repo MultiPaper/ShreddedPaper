@@ -141,7 +141,7 @@ index 81d6ae082047fdda6f2271a830e700fa90b9d0ac..47ce846fca69623bebea70ffc6b35d32
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..eafb5522d02e91b76a8cd30981fd18d6bdbdb93c 100644
+index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..3b77035237ec9267f48f403021db75c7ffd51be4 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -1113,6 +1113,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -152,14 +152,14 @@ index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..eafb5522d02e91b76a8cd30981fd18d6
                      playerchunkmap_entitytracker.updatePlayers(entity.getPlayersInTrackRange()); // Paper - don't search all players
                      if (entity instanceof ServerPlayer) {
                          ServerPlayer entityplayer = (ServerPlayer) entity;
-@@ -1147,6 +1148,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-             }
-         }
- 
-+        this.level.getChunkSource().tickingRegions.removeTrackedEntity(entity); // ShreddedPaper
+@@ -1150,6 +1151,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) this.entityMap.remove(entity.getId());
  
          if (playerchunkmap_entitytracker1 != null) {
++            this.level.getChunkSource().tickingRegions.removeTrackedEntity(entity); // ShreddedPaper - only remove if it actually existed
+             playerchunkmap_entitytracker1.broadcastRemoved();
+         }
+         entity.tracker = null; // Paper - We're no longer tracked
 @@ -1157,6 +1159,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
  
      // Paper start - optimised tracker
