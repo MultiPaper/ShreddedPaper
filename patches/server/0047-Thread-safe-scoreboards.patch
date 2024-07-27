@@ -50,7 +50,7 @@ index 9464054912e19fc78dd965b71fce20a18564b351..0304ebb48563f4e337855eb091b2c1a8
      private Component playerPrefix = CommonComponents.EMPTY;
      private Component playerSuffix = CommonComponents.EMPTY;
 diff --git a/src/main/java/net/minecraft/world/scores/Scoreboard.java b/src/main/java/net/minecraft/world/scores/Scoreboard.java
-index 121b57ec018bffc05904e7596e0963e2bb545dc1..42ce61f80a4438805d9d607820272e90e9a49add 100644
+index 121b57ec018bffc05904e7596e0963e2bb545dc1..2af1dcad557607800e3742fd2866885481f4835c 100644
 --- a/src/main/java/net/minecraft/world/scores/Scoreboard.java
 +++ b/src/main/java/net/minecraft/world/scores/Scoreboard.java
 @@ -15,6 +15,7 @@ import java.util.EnumMap;
@@ -106,5 +106,13 @@ index 121b57ec018bffc05904e7596e0963e2bb545dc1..42ce61f80a4438805d9d607820272e90
 -    public void setDisplayObjective(DisplaySlot slot, @Nullable Objective objective) {
 +    public synchronized void setDisplayObjective(DisplaySlot slot, @Nullable Objective objective) { // ShreddedPaper
          this.displayObjectives.put(slot, objective);
+     }
+ 
+@@ -251,6 +252,7 @@ public class Scoreboard {
+ 
+     @Nullable
+     public PlayerTeam getPlayerTeam(String name) {
++        if (name == null) return null; // ShreddedPaper
+         return this.teamsByName.get(name);
      }
  
