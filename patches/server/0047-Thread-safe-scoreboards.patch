@@ -1,0 +1,110 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sat, 27 Jul 2024 14:11:39 +0900
+Subject: [PATCH] Thread-safe scoreboards
+
+
+diff --git a/src/main/java/net/minecraft/server/ServerScoreboard.java b/src/main/java/net/minecraft/server/ServerScoreboard.java
+index f180001493146ef0d54079a8b2b47ad7decc24ca..775666dbf839d184bd50b0cb91a79658b298522d 100644
+--- a/src/main/java/net/minecraft/server/ServerScoreboard.java
++++ b/src/main/java/net/minecraft/server/ServerScoreboard.java
+@@ -7,6 +7,8 @@ import java.util.List;
+ import java.util.Objects;
+ import java.util.Optional;
+ import java.util.Set;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.CopyOnWriteArrayList;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.nbt.CompoundTag;
+@@ -31,8 +33,8 @@ import net.minecraft.world.scores.ScoreboardSaveData;
+ public class ServerScoreboard extends Scoreboard {
+ 
+     private final MinecraftServer server;
+-    private final Set<Objective> trackedObjectives = Sets.newHashSet();
+-    private final List<Runnable> dirtyListeners = Lists.newArrayList();
++    private final Set<Objective> trackedObjectives = ConcurrentHashMap.newKeySet(); // ShreddedPaper
++    private final List<Runnable> dirtyListeners = new CopyOnWriteArrayList<>(); // ShreddedPaper - rarely modified, thus CopyOnWriteArrayList suffices
+ 
+     public ServerScoreboard(MinecraftServer server) {
+         this.server = server;
+diff --git a/src/main/java/net/minecraft/world/scores/PlayerTeam.java b/src/main/java/net/minecraft/world/scores/PlayerTeam.java
+index 9464054912e19fc78dd965b71fce20a18564b351..0304ebb48563f4e337855eb091b2c1a8f6cbd590 100644
+--- a/src/main/java/net/minecraft/world/scores/PlayerTeam.java
++++ b/src/main/java/net/minecraft/world/scores/PlayerTeam.java
+@@ -3,6 +3,7 @@ package net.minecraft.world.scores;
+ import com.google.common.collect.Sets;
+ import java.util.Collection;
+ import java.util.Set;
++import java.util.concurrent.ConcurrentHashMap;
+ import javax.annotation.Nullable;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.network.chat.CommonComponents;
+@@ -17,7 +18,7 @@ public class PlayerTeam extends Team {
+     private static final int BIT_SEE_INVISIBLES = 1;
+     private final Scoreboard scoreboard;
+     private final String name;
+-    private final Set<String> players = Sets.newHashSet();
++    private final Set<String> players = ConcurrentHashMap.newKeySet(); // ShreddedPaper
+     private Component displayName;
+     private Component playerPrefix = CommonComponents.EMPTY;
+     private Component playerSuffix = CommonComponents.EMPTY;
+diff --git a/src/main/java/net/minecraft/world/scores/Scoreboard.java b/src/main/java/net/minecraft/world/scores/Scoreboard.java
+index 121b57ec018bffc05904e7596e0963e2bb545dc1..42ce61f80a4438805d9d607820272e90e9a49add 100644
+--- a/src/main/java/net/minecraft/world/scores/Scoreboard.java
++++ b/src/main/java/net/minecraft/world/scores/Scoreboard.java
+@@ -15,6 +15,7 @@ import java.util.EnumMap;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Objects;
++import java.util.concurrent.ConcurrentHashMap;
+ import java.util.function.Consumer;
+ import javax.annotation.Nullable;
+ import net.minecraft.core.HolderLookup;
+@@ -31,12 +32,12 @@ import org.slf4j.Logger;
+ public class Scoreboard {
+     public static final String HIDDEN_SCORE_PREFIX = "#";
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private final Object2ObjectMap<String, Objective> objectivesByName = new Object2ObjectOpenHashMap<>(16, 0.5F);
+-    private final Reference2ObjectMap<ObjectiveCriteria, List<Objective>> objectivesByCriteria = new Reference2ObjectOpenHashMap<>();
+-    private final Map<String, PlayerScores> playerScores = new Object2ObjectOpenHashMap<>(16, 0.5F);
++    private final Map<String, Objective> objectivesByName = new ConcurrentHashMap<>(); // ShreddedPaper
++    private final Map<ObjectiveCriteria, List<Objective>> objectivesByCriteria = new ConcurrentHashMap<>(); // ShreddedPaper
++    private final Map<String, PlayerScores> playerScores = new ConcurrentHashMap<>(); // ShreddedPaper
+     private final Map<DisplaySlot, Objective> displayObjectives = new EnumMap<>(DisplaySlot.class);
+-    private final Object2ObjectMap<String, PlayerTeam> teamsByName = new Object2ObjectOpenHashMap<>();
+-    private final Object2ObjectMap<String, PlayerTeam> teamsByPlayer = new Object2ObjectOpenHashMap<>();
++    private final Map<String, PlayerTeam> teamsByName = new ConcurrentHashMap<>(); // ShreddedPaper
++    private final Map<String, PlayerTeam> teamsByPlayer = new ConcurrentHashMap<>(); // ShreddedPaper
+ 
+     @Nullable
+     public Objective getObjective(@Nullable String name) {
+@@ -88,7 +89,7 @@ public class Scoreboard {
+             }
+ 
+             @Override
+-            public void set(int score) {
++            public void set(int newScoreValue) { // ShreddedPaper compile error - rename to newScoreValue
+                 if (!bl) {
+                     throw new IllegalStateException("Cannot modify read-only score");
+                 } else {
+@@ -101,8 +102,8 @@ public class Scoreboard {
+                         }
+                     }
+ 
+-                    if (score != score.value()) {
+-                        score.value(score);
++                    if (newScoreValue != score.value()) { // ShreddedPaper compile error - rename to newScoreValue
++                        score.value(newScoreValue); // ShreddedPaper compile error - rename to newScoreValue
+                         bl = true;
+                     }
+ 
+@@ -240,7 +241,7 @@ public class Scoreboard {
+         this.onObjectiveRemoved(objective);
+     }
+ 
+-    public void setDisplayObjective(DisplaySlot slot, @Nullable Objective objective) {
++    public synchronized void setDisplayObjective(DisplaySlot slot, @Nullable Objective objective) { // ShreddedPaper
+         this.displayObjectives.put(slot, objective);
+     }
+ 
