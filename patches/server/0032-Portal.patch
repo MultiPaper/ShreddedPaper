@@ -6,7 +6,7 @@ Subject: [PATCH] Portal
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperDimensionChanger.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperDimensionChanger.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..f98e752296c522193f77d5886c0052a6a4e53671
+index 0000000000000000000000000000000000000000..3da4655448755a1af37bb4e5a5fdc7dcebc9437e
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperDimensionChanger.java
 @@ -0,0 +1,343 @@
@@ -284,7 +284,7 @@ index 0000000000000000000000000000000000000000..f98e752296c522193f77d5886c0052a6
 +            PlayerList playerlist = serverPlayer.server.getPlayerList();
 +
 +            playerlist.sendPlayerPermissionLevel(serverPlayer);
-+            this.destinationWorld.removePlayerImmediately(serverPlayer, Entity.RemovalReason.CHANGED_DIMENSION);
++            serverPlayer.serverLevel().removePlayerImmediately(serverPlayer, Entity.RemovalReason.CHANGED_DIMENSION);
 +            serverPlayer.unsetRemoved();
 +            serverPlayer.portalPos = io.papermc.paper.util.MCUtil.toBlockPosition(exit); // Purpur
 +
