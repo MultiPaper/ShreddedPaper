@@ -33,4 +33,11 @@ multithreading:
   # for single server instances.
   allow-unsupported-plugins-to-modify-chunks-via-global-scheduler: true
 
+# ShreddedPaper's optimizations settings
+optimizations:
+  
+  # Check entity activation range less often. Spigot does this every tick
+  # unnecessarily. Set to '0' to disable.
+  entity-activation-check-frequency: 20
+
 ```
