@@ -417,6 +417,26 @@ index cb308808906a8cdb127df8284e106e00553473ca..e0bce00aa34e283bacbeb32a5a7e4e5b
                  pointer.level().getCraftServer().getPluginManager().callEvent(event);
              }
  
+diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
+index b6d8d471d045263f9455e8fd738c680891c0b1e5..4dc0b2d15ff2c0a84df08186d2a8e29d30136dac 100644
+--- a/src/main/java/net/minecraft/network/Connection.java
++++ b/src/main/java/net/minecraft/network/Connection.java
+@@ -61,6 +61,7 @@ import net.minecraft.network.protocol.login.ClientboundLoginDisconnectPacket;
+ import net.minecraft.network.protocol.login.LoginProtocols;
+ import net.minecraft.network.protocol.status.ClientStatusPacketListener;
+ import net.minecraft.network.protocol.status.StatusProtocols;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.RunningOnDifferentThreadException;
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
+ import net.minecraft.util.Mth;
+@@ -341,6 +342,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+ 
+     private static void syncAfterConfigurationChange(ChannelFuture future) {
+         try {
++            if (TickThread.isTickThread()) MinecraftServer.getServer().managedBlock(future::isDone); // ShreddedPaper - don't block main thread
+             future.syncUninterruptibly();
+         } catch (Exception exception) {
+             if (exception instanceof ClosedChannelException) {
 diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
 index 472b9494f8a34a8ba90d6a2936b0db7530a229ad..0e0c3a010d5cfaa0c15bcb38c4e3b1a8d7ad39a1 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
@@ -515,7 +535,7 @@ index 6542c67e753245cd131de872c28862f83e7ff2f3..f355833ee748e25af228ad9bd3dc0660
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.game.ClientGamePacketListener;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index a0790adc5e4fca98a785908adf3120abeaffe6d5..65c395063531b4d135cbc9fb0ca6e2debddde463 100644
+index 4d943e008e5bc40a11153b929dfa6994fa15ff88..816033587253fcfa34bd52896d64cca5532b9206 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -1447,7 +1467,7 @@ index 3ed19f30f1cab9df3b1bfdf0b0caf7882a77c5f7..bebe02d73ed34453ff521ec1d803935c
          return true;
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 940f2716afc37684f92a7bd2b2bea6e0b9bbe6a7..0f4860c3a2d6d2a3c1e8e68c02c1bc571578eead 100644
+index 27ff2b3037a90ee94bea767c285f2454e545aad2..494920321af0098e390d6b2669403acc97dab984 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -3501,7 +3501,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
