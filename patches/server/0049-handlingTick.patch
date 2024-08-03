@@ -27,10 +27,10 @@ index 3ebb70ecb854ba0172148e48a07578dc9c90d853..783ec3ddae8829237bfdb3a3b79f8bd8
  
              region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 731a34922c5091a65953d54be693c5ca2fc4204a..5da08a6c232b042c4298c7808fe6bad8ba58fa2d 100644
+index 9bbdb5c895c40aaceacc42cd94314bb2068e9d0a..221d5e8e49acc9b21f994e3ced03432b561570bf 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -213,7 +213,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -209,7 +209,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      protected final Raids raids;
      // private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents; // ShreddedPaper - moved into each region
      private final ThreadLocal<List<BlockEventData>> blockEventsToRescheduleThreadLocal; // ShreddedPaper
@@ -39,7 +39,7 @@ index 731a34922c5091a65953d54be693c5ca2fc4204a..5da08a6c232b042c4298c7808fe6bad8
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
-@@ -840,7 +840,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -836,7 +836,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      public void tick(BooleanSupplier shouldKeepTicking) {
          //ProfilerFiller gameprofilerfiller = this.getProfiler(); // Purpur
  
@@ -48,7 +48,7 @@ index 731a34922c5091a65953d54be693c5ca2fc4204a..5da08a6c232b042c4298c7808fe6bad8
          TickRateManager tickratemanager = this.tickRateManager();
          boolean flag = tickratemanager.runsNormally();
  
-@@ -909,7 +909,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -905,7 +905,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              // this.timings.doSounds.stopTiming(); // Spigot // Purpur
          }
  
@@ -57,7 +57,7 @@ index 731a34922c5091a65953d54be693c5ca2fc4204a..5da08a6c232b042c4298c7808fe6bad8
          //gameprofilerfiller.pop(); // Purpur
          boolean flag1 = !paperConfig().unsupportedSettings.disableWorldTickingWhenEmpty || !this.players.isEmpty() || !this.getForcedChunks().isEmpty(); // CraftBukkit - this prevents entity cleanup, other issues on servers with no players // Paper - restore this
  
-@@ -1227,7 +1227,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1223,7 +1223,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      }
  
      public boolean isHandlingTick() {
