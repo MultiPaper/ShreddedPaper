@@ -5,10 +5,10 @@ Subject: [PATCH] Thread-safe alternate redstone handler
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 0a6578181cf4731e9d7496e0190cc9cf0a2dde20..062f16519c52cd24c6f67fa622655b1bad0a7ac8 100644
+index b43ada46378da14050d91a73e861c16093a5e4b1..731a34922c5091a65953d54be693c5ca2fc4204a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -231,7 +231,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -232,7 +232,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      public final UUID uuid;
      public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
      public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
@@ -17,7 +17,7 @@ index 0a6578181cf4731e9d7496e0190cc9cf0a2dde20..062f16519c52cd24c6f67fa622655b1b
      public boolean hasRidableMoveEvent = false; // Purpur
  
      public LevelChunk getChunkIfLoaded(int x, int z) {
-@@ -2763,7 +2763,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2769,7 +2769,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      // Paper start - optimize redstone (Alternate Current)
      @Override
      public alternate.current.wire.WireHandler getWireHandler() {

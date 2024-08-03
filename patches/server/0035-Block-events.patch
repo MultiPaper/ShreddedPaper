@@ -5,10 +5,10 @@ Subject: [PATCH] Block events
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index b74877dffcd557fb9000b86ab90b1973ad719a62..e15c82dc5eca72688b7e3e217a498ebf1b140904 100644
+index b74877dffcd557fb9000b86ab90b1973ad719a62..e5a94f8d19caa370f866fdcb7938af2139ae42b3 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -4,12 +4,14 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
+@@ -4,20 +4,25 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
  import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
  import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -23,7 +23,18 @@ index b74877dffcd557fb9000b86ab90b1973ad719a62..e15c82dc5eca72688b7e3e217a498ebf
  import net.minecraft.world.level.block.entity.TickingBlockEntity;
  import net.minecraft.world.level.chunk.LevelChunk;
  
-@@ -33,6 +35,7 @@ public class LevelChunkRegion {
+ import java.util.ArrayList;
++import java.util.Collection;
+ import java.util.List;
+ import java.util.Set;
+ import java.util.concurrent.ConcurrentLinkedQueue;
+ import java.util.function.Consumer;
++import java.util.function.Predicate;
++import java.util.function.Supplier;
+ 
+ public class LevelChunkRegion {
+ 
+@@ -33,6 +38,7 @@ public class LevelChunkRegion {
      public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
      public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
      public final List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
@@ -31,24 +42,34 @@ index b74877dffcd557fb9000b86ab90b1973ad719a62..e15c82dc5eca72688b7e3e217a498ebf
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -161,6 +164,16 @@ public class LevelChunkRegion {
+@@ -161,6 +167,26 @@ public class LevelChunkRegion {
          toRun.forEach(DelayedTask::run);
      }
  
 +    public synchronized void addBlockEvent(BlockEventData blockEvent) {
-+        blockEvents.add(blockEvent);
++        this.blockEvents.add(blockEvent);
 +    }
 +
-+    public synchronized List<BlockEventData> takeBlockEvents() {
-+        List<BlockEventData> retValue = blockEvents.isEmpty() ? List.of() : new ArrayList<>(blockEvents);
-+        blockEvents.clear();
-+        return retValue;
++    public synchronized void addAllBlockEvents(Collection<BlockEventData> blockEvents) {
++        this.blockEvents.addAll(blockEvents);
++    }
++
++    public boolean hasBlockEvents() {
++        return !this.blockEvents.isEmpty();
++    }
++
++    public synchronized BlockEventData removeFirstBlockEvent() {
++        return this.blockEvents.removeFirst();
++    }
++
++    public synchronized void removeBlockEventsIf(Predicate<BlockEventData> predicate) {
++        this.blockEvents.removeIf(predicate);
 +    }
 +
      public boolean isEmpty() {
          return levelChunks.isEmpty()
                  && tickingEntities.size() == 0
-@@ -170,6 +183,7 @@ public class LevelChunkRegion {
+@@ -170,6 +196,7 @@ public class LevelChunkRegion {
                  && players.isEmpty()
                  && unloadQueue.isEmpty()
                  && trackedEntities.isEmpty()
@@ -57,10 +78,10 @@ index b74877dffcd557fb9000b86ab90b1973ad719a62..e15c82dc5eca72688b7e3e217a498ebf
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index ca18cc81c45ea31ab5696d391ad3499d0735c8cb..7af6575cb82000aa78526720f618c4872a86b1d5 100644
+index ca18cc81c45ea31ab5696d391ad3499d0735c8cb..276ab3ecbef4de1624412eb47537bf9e92b4ed98 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerLevel;
+@@ -6,10 +6,12 @@ import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.Mob;
@@ -68,7 +89,12 @@ index ca18cc81c45ea31ab5696d391ad3499d0735c8cb..7af6575cb82000aa78526720f618c487
  import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.chunk.LevelChunk;
  import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
-@@ -218,4 +219,8 @@ public class LevelChunkRegionMap {
+ import io.multipaper.shreddedpaper.util.SimpleStampedLock;
++import net.minecraft.world.level.levelgen.structure.BoundingBox;
+ 
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -218,4 +220,22 @@ public class LevelChunkRegionMap {
              getOrCreate(toRegion).addPlayer(player);
          }
      }
@@ -76,26 +102,48 @@ index ca18cc81c45ea31ab5696d391ad3499d0735c8cb..7af6575cb82000aa78526720f618c487
 +    public void addBlockEvent(BlockEventData blockEvent) {
 +        getOrCreate(RegionPos.forBlockPos(blockEvent.pos())).addBlockEvent(blockEvent);
 +    }
++
++    public void forEachRegion(BoundingBox box, Consumer<LevelChunkRegion> consumer) {
++        RegionPos minPos = RegionPos.forBlockPos(box.minX(), box.minZ(), box.minZ());
++        RegionPos maxPos = RegionPos.forBlockPos(box.maxX(), box.maxZ(), box.maxZ());
++
++        for (int x = minPos.x; x <= maxPos.x; x++) {
++            for (int z = minPos.z; z <= maxPos.z; z++) {
++                LevelChunkRegion region = get(new RegionPos(x, z));
++                if (region != null) {
++                    consumer.accept(region);
++                }
++            }
++        }
++    }
  }
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index d5f0acade30d8f64a2db2c3aba195b89fd52643b..45aec6415085ddde6a4a929398ae211e810eacf8 100644
+index d5f0acade30d8f64a2db2c3aba195b89fd52643b..f32aecd69d929c005ca8226054c218c7dd37e6fc 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -82,6 +82,8 @@ public class ShreddedPaperChunkTicker {
  
              region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  
-+            level.runBlockEvents(region.takeBlockEvents());
++            level.runBlockEvents(region);
 +
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
              region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index f8d784c7e95c5c3c0478c8740a4df529874fb49a..dc5727ffb9a1e3fb7699b8f9dbb3b93abeeedd7a 100644
+index f8d784c7e95c5c3c0478c8740a4df529874fb49a..b43ada46378da14050d91a73e861c16093a5e4b1 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -23,6 +23,7 @@ import java.io.Writer;
+@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.region.LevelChunkRegion;
+ import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+@@ -23,6 +24,7 @@ import java.io.Writer;
  import java.nio.file.Files;
  import java.nio.file.Path;
  import java.util.ArrayList;
@@ -103,7 +151,29 @@ index f8d784c7e95c5c3c0478c8740a4df529874fb49a..dc5727ffb9a1e3fb7699b8f9dbb3b93a
  import java.util.Comparator;
  import java.util.Iterator;
  import java.util.List;
-@@ -903,7 +904,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -209,8 +211,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     final Set<Mob> navigatingMobs;
+     final ThreadLocal<Boolean> isUpdatingNavigations = ThreadLocal.withInitial(() -> false); // ShreddedPaper - make thread local
+     protected final Raids raids;
+-    private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents;
+-    private final List<BlockEventData> blockEventsToReschedule;
++    // private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents; // ShreddedPaper - moved into each region
++    private final ThreadLocal<List<BlockEventData>> blockEventsToRescheduleThreadLocal; // ShreddedPaper
+     private boolean handlingTick;
+     private final List<CustomSpawner> customSpawners;
+     @Nullable
+@@ -717,8 +719,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+         this.fluidTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier()); // ShreddedPaper
+         this.pathTypesByPosCache = new PathTypeCache();
+         this.navigatingMobs = new ObjectOpenHashSet();
+-        this.blockEvents = new ObjectLinkedOpenHashSet();
+-        this.blockEventsToReschedule = new ArrayList(64);
++        // this.blockEvents = new ObjectLinkedOpenHashSet(); // ShreddedPaper - moved into each region
++        this.blockEventsToRescheduleThreadLocal = ThreadLocal.withInitial(() -> new ArrayList(64)); // ShreddedPaper
+         this.dragonParts = new Int2ObjectOpenHashMap();
+         this.tickTime = flag1;
+         this.server = minecraftserver;
+@@ -903,7 +905,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          //gameprofilerfiller.popPush("blockEvents"); // Purpur
          if (flag) {
              // this.timings.doSounds.startTiming(); // Spigot // Purpur
@@ -112,7 +182,7 @@ index f8d784c7e95c5c3c0478c8740a4df529874fb49a..dc5727ffb9a1e3fb7699b8f9dbb3b93a
              // this.timings.doSounds.stopTiming(); // Spigot // Purpur
          }
  
-@@ -2044,25 +2045,25 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2044,25 +2046,26 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      @Override
      public void blockEvent(BlockPos pos, Block block, int type, int data) {
@@ -122,13 +192,14 @@ index f8d784c7e95c5c3c0478c8740a4df529874fb49a..dc5727ffb9a1e3fb7699b8f9dbb3b93a
  
 -    private void runBlockEvents() {
 -        this.blockEventsToReschedule.clear();
-+    public void runBlockEvents(List<BlockEventData> blockEvents) { // ShreddedPaper
-+        // this.blockEventsToReschedule.clear(); // ShreddedPaper
++    public void runBlockEvents(LevelChunkRegion region) { // ShreddedPaper
++        List<BlockEventData> blockEventsToReschedule = blockEventsToRescheduleThreadLocal.get(); // ShreddedPaper
++        blockEventsToReschedule.clear(); // ShreddedPaper
  
 -        while (!this.blockEvents.isEmpty()) {
 -            BlockEventData blockactiondata = (BlockEventData) this.blockEvents.removeFirst();
-+        for (int i = 0; i < blockEvents.size(); i++) { // ShreddedPaper
-+            BlockEventData blockactiondata = (BlockEventData) blockEvents.get(i); // ShreddedPaper
++        while (region.hasBlockEvents()) { // ShreddedPaper
++            BlockEventData blockactiondata = (BlockEventData) region.removeFirstBlockEvent(); // ShreddedPaper
  
              if (this.shouldTickBlocksAt(blockactiondata.pos())) {
                  if (this.doBlockEvent(blockactiondata)) {
@@ -136,12 +207,28 @@ index f8d784c7e95c5c3c0478c8740a4df529874fb49a..dc5727ffb9a1e3fb7699b8f9dbb3b93a
                  }
              } else {
 -                this.blockEventsToReschedule.add(blockactiondata);
-+                this.chunkSource.tickingRegions.addBlockEvent(blockactiondata); // ShreddedPaper
++                blockEventsToReschedule.add(blockactiondata); // ShreddedPaper
              }
          }
  
 -        this.blockEvents.addAll(this.blockEventsToReschedule);
-+        // this.blockEvents.addAll(this.blockEventsToReschedule); // ShreddedPaper
++        region.addAllBlockEvents(blockEventsToReschedule); // ShreddedPaper
      }
  
      private boolean doBlockEvent(BlockEventData event) {
+@@ -2546,9 +2549,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
+ 
+     @VisibleForTesting
+     public void clearBlockEvents(BoundingBox box) {
+-        this.blockEvents.removeIf((blockactiondata) -> {
+-            return box.isInside(blockactiondata.pos());
++        // ShreddedPaper start - moved blockEvents into regions
++        this.getLevel().getChunkSource().tickingRegions.forEachRegion(box, region -> {
++            region.removeBlockEventsIf((blockactiondata) -> {
++                return box.isInside(blockactiondata.pos());
++            });
+         });
++        // ShreddedPaper end - moved blockEvents into regions
+     }
+ 
+     @Override
