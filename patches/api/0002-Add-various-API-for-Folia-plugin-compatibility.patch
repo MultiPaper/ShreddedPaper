@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ProdPreva1l <prod.preva1l@gmail.com>
+Date: Wed, 5 Jun 2024 20:44:50 +1000
+Subject: [PATCH] Add various API for Folia plugin compatibility
+
+
+diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServerInitEvent.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServerInitEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d991df9523676ab7ba90f45ecae3ea9dac5b55d6
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedServerInitEvent.java
+@@ -0,0 +1,24 @@
++package io.papermc.paper.threadedregions;
++
++import org.bukkit.event.Event;
++import org.bukkit.event.HandlerList;
++import org.jetbrains.annotations.ApiStatus;
++import org.jetbrains.annotations.NotNull;
++
++public class RegionizedServerInitEvent extends Event {
++    private static final HandlerList HANDLER_LIST = new HandlerList();
++
++    @ApiStatus.Internal
++    public RegionizedServerInitEvent() {
++        super();
++    }
++
++    @Override
++    public @NotNull HandlerList getHandlers() {
++        return HANDLER_LIST;
++    }
++
++    public static @NotNull HandlerList getHandlerList() {
++        return HANDLER_LIST;
++    }
++}
+\ No newline at end of file
+diff --git a/src/main/java/org/bukkit/Bukkit.java b/src/main/java/org/bukkit/Bukkit.java
+index bb09c468ab1261ea4eaf59012d30a2e45199caf7..85f557db3be4b9b688c4e2f35b37bc2dab2efcb5 100644
+--- a/src/main/java/org/bukkit/Bukkit.java
++++ b/src/main/java/org/bukkit/Bukkit.java
+@@ -2908,6 +2908,14 @@ public final class Bukkit {
+         return server.isOwnedByCurrentRegion(entity);
+     }
+     // Paper end - Folia region threading API
++    // ShreddedPaper start - region threading API
++    /**
++     * Returns whether the current thread is ticking the global region.
++     */
++    public static boolean isGlobalTickThread() {
++        return server.isGlobalTickThread();
++    }
++    // ShreddedPaper end - region threading API
+ 
+     @NotNull
+     public static Server.Spigot spigot() {
+diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
+index 36d8ce7a21513600ab10b7e6f47c9f1d2cc51947..0c7c8b2f454f665e351dcd5d7230009aeca401a6 100644
+--- a/src/main/java/org/bukkit/Server.java
++++ b/src/main/java/org/bukkit/Server.java
+@@ -2558,6 +2558,12 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+      */
+     boolean isOwnedByCurrentRegion(@NotNull Entity entity);
+     // Paper end - Folia region threading API
++    // ShreddedPaper start - region threading API
++    /**
++     * Returns whether the current thread is ticking the global region.
++     */
++    public boolean isGlobalTickThread();
++    // ShreddedPaper end - region threading API
+ 
+     // Purpur start
+     /**
