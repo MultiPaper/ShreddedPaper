@@ -5,76 +5,77 @@ Subject: [PATCH] Player
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index e5958afe48725f82c8493f43fd101632ba5d350b..2f2032af3369f1ec019dd029ab4a13cbdc98f382 100644
+index a31559ba6d385f961d08d12a4cbe62a53b766ab2..0a6cb829f89af7c8c6efd08c5f06051302e1afd4 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -2,8 +2,10 @@ package io.multipaper.shreddedpaper.region;
+@@ -2,7 +2,10 @@ package io.multipaper.shreddedpaper.region;
  
  import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQueue;
  import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
 +import it.unimi.dsi.fastutil.objects.ObjectArrayList;
- import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
++import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
  import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.Mob;
  import net.minecraft.world.level.chunk.LevelChunk;
-@@ -22,6 +24,7 @@ public class LevelChunkRegion {
+ 
+@@ -19,6 +22,7 @@ public class LevelChunkRegion {
+     private final IteratorSafeOrderedReferenceSet<Entity> tickingEntities = new IteratorSafeOrderedReferenceSet<>(); // Use IteratorSafeOrderedReferenceSet to maintain entity tick order
      private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
      private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
-     private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
 +    private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -85,6 +88,22 @@ public class LevelChunkRegion {
-         collection.addAll(this.navigatingMobs);
+@@ -70,6 +74,22 @@ public class LevelChunkRegion {
+         return internalTasks;
      }
  
 +    public synchronized void addPlayer(ServerPlayer player) {
-+        if (!players.add(player)) {
++        if (!this.players.add(player)) {
 +            throw new IllegalStateException("Tried to add a player that was already in the region: " + player.getUUID());
 +        }
 +    }
 +
 +    public synchronized void removePlayer(ServerPlayer player) {
-+        if (!players.remove(player)) {
++        if (!this.players.remove(player)) {
 +            throw new IllegalStateException("Tried to remove a player that wasn't in the region: " + player.getUUID());
 +        }
 +    }
 +
 +    public synchronized List<ServerPlayer> getPlayers() {
-+        return players.isEmpty() ? List.of() : new ObjectArrayList<>(players);
++        return this.players.isEmpty() ? List.of() : new ObjectArrayList<>(this.players);
 +    }
 +
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -124,6 +143,6 @@ public class LevelChunkRegion {
+@@ -108,6 +128,6 @@ public class LevelChunkRegion {
+                 && tickingEntities.size() == 0
                  && scheduledTasks.isEmpty()
                  && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled()
-                 && navigatingMobs.isEmpty()
 -                ;
 +                && players.isEmpty();
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index 9bb764ed50e337dc5e5e734372bd85411cf66274..ae8581242d52b4422f95b8fd3581e9ae2b442ab1 100644
+index af1f3ba71e44b4b49c106d1e45331641e030ec6c..bff6f98036e74a9716649b71a60c9f9d7d5278d3 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -3,6 +3,7 @@ package io.multipaper.shreddedpaper.region;
+@@ -2,6 +2,7 @@ package io.multipaper.shreddedpaper.region;
+ 
  import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
- import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.Mob;
  import net.minecraft.world.level.ChunkPos;
-@@ -162,4 +163,24 @@ public class LevelChunkRegionMap {
- 
-         return navigatingMobs;
+ import net.minecraft.world.level.chunk.LevelChunk;
+@@ -127,4 +128,23 @@ public class LevelChunkRegionMap {
+         return runnable -> execute(regionPos, runnable);
      }
-+
+ 
+-}
+\ No newline at end of file
 +    public void addPlayer(ServerPlayer player) {
 +        player.previousChunkPosRegion = player.chunkPosition();
 +        getOrCreate(RegionPos.forChunk(player.chunkPosition())).addPlayer(player);
@@ -94,8 +95,7 @@ index 9bb764ed50e337dc5e5e734372bd85411cf66274..ae8581242d52b4422f95b8fd3581e9ae
 +            getOrCreate(toRegion).addPlayer(player);
 +        }
 +    }
- }
-\ No newline at end of file
++}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 index d556478dddee218971a3b1015872e86ebaaf6048..50044760d4511ff2b75d8866faec22bf33bd2f94 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
@@ -377,10 +377,10 @@ index d2bb65f4eaca8bf6457b033482e696fe8962d7d3..0ee7a9f8ae8861e3e3073ff8a619f773
          //this.profiler.popPush("players"); // Purpur
          //MinecraftTimings.playerListTimer.startTiming(); // Spigot // Paper // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 8e184db1d87978c6e553b453c28b2c5d7f46b757..b668323532e0a456dd56e41a662f1fff4db29cca 100644
+index 0946438c4b471f739c25a9d58b11c51d60e9ee82..b4b3e6fc2c584cce4ad8344b1b16b99da5cda53e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -31,6 +31,7 @@ import java.util.Objects;
+@@ -30,6 +30,7 @@ import java.util.Objects;
  import java.util.Optional;
  import java.util.Set;
  import java.util.UUID;
@@ -388,7 +388,7 @@ index 8e184db1d87978c6e553b453c28b2c5d7f46b757..b668323532e0a456dd56e41a662f1fff
  import java.util.concurrent.Executor;
  import java.util.function.BooleanSupplier;
  import java.util.function.Function;
-@@ -703,7 +704,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -702,7 +703,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          this.convertable = convertable_conversionsession;
          this.uuid = WorldUUID.getUUID(convertable_conversionsession.levelDirectory.path().toFile());
          // CraftBukkit end
@@ -397,7 +397,7 @@ index 8e184db1d87978c6e553b453c28b2c5d7f46b757..b668323532e0a456dd56e41a662f1fff
          // this.entityTickList = new EntityTickList(); // ShreddedPaper - moved into each region
          this.blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
          this.fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
-@@ -2783,6 +2784,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2782,6 +2783,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              // ServerLevel.this.getChunkSource().addEntity(entity); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
              if (entity instanceof ServerPlayer entityplayer) {
                  ServerLevel.this.players.add(entityplayer);
@@ -405,7 +405,7 @@ index 8e184db1d87978c6e553b453c28b2c5d7f46b757..b668323532e0a456dd56e41a662f1fff
                  ServerLevel.this.updateSleepingPlayerList();
              }
  
-@@ -2864,6 +2866,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2863,6 +2865,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer entityplayer) {
                  ServerLevel.this.players.remove(entityplayer);
@@ -413,7 +413,7 @@ index 8e184db1d87978c6e553b453c28b2c5d7f46b757..b668323532e0a456dd56e41a662f1fff
                  ServerLevel.this.updateSleepingPlayerList();
              }
  
-@@ -2903,6 +2906,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2902,6 +2905,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
              ServerLevel.this.chunkSource.tickingRegions.moveTickingEntity(entity); // ShreddedPaper - move ticking entity into the new region

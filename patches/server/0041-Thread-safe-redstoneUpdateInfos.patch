@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe redstoneUpdateInfos
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index e5a94f8d19caa370f866fdcb7938af2139ae42b3..13c4c7e291d1dd3db71b5c7445cdcd6672a78adc 100644
+index 99680a983da4c64b709cae624348992cdc83e7f3..ee00dd2ea0d2143cbc8282a34ad25a08b0bdd1b4 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -12,9 +12,11 @@ import net.minecraft.server.level.ServerPlayer;
@@ -21,8 +21,8 @@ index e5a94f8d19caa370f866fdcb7938af2139ae42b3..13c4c7e291d1dd3db71b5c7445cdcd66
  import java.util.Collection;
  import java.util.List;
 @@ -39,6 +41,7 @@ public class LevelChunkRegion {
-     public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
      public final List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
+     private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
 +    public ArrayDeque<RedstoneTorchBlock.Toggle> redstoneUpdateInfos;
  

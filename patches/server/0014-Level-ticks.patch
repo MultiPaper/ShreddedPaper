@@ -140,10 +140,10 @@ index 50044760d4511ff2b75d8866faec22bf33bd2f94..824b4535b6afffbef92df8be166e5141
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index b668323532e0a456dd56e41a662f1fff4db29cca..ed81cf9e5bbe1a4a62cf79bb85a9a57c20b2e398 100644
+index b4b3e6fc2c584cce4ad8344b1b16b99da5cda53e..f4ad4a15d7928df49af3412146b48607cc90131f 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -176,6 +176,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
+@@ -175,6 +175,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
  import org.bukkit.event.server.MapInitializeEvent;
  import org.bukkit.event.weather.LightningStrikeEvent;
  import org.bukkit.event.world.TimeSkipEvent;
@@ -151,7 +151,7 @@ index b668323532e0a456dd56e41a662f1fff4db29cca..ed81cf9e5bbe1a4a62cf79bb85a9a57c
  import io.multipaper.shreddedpaper.region.RegionPos;
  import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
  // CraftBukkit end
-@@ -202,8 +203,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -201,8 +202,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
      private final SleepStatus sleepStatus;
      private int emptyTime;
      private final PortalForcer portalForcer;
@@ -161,8 +161,8 @@ index b668323532e0a456dd56e41a662f1fff4db29cca..ed81cf9e5bbe1a4a62cf79bb85a9a57c
 +    public final LevelTicksRegionProxy<Fluid> fluidTicks; // ShreddedPaper
      private final PathTypeCache pathTypesByPosCache;
      final Set<Mob> navigatingMobs;
-     final ThreadLocal<Boolean> isUpdatingNavigations = ThreadLocal.withInitial(() -> false); // ShreddedPaper - make thread local
-@@ -706,8 +707,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     volatile boolean isUpdatingNavigations;
+@@ -705,8 +706,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
          // CraftBukkit end
          this.players = new CopyOnWriteArrayList<>(); // ShreddedPaper - thread-safe (players should not be changing worlds often, thus copy-on-write is sufficient)
          // this.entityTickList = new EntityTickList(); // ShreddedPaper - moved into each region
@@ -173,7 +173,7 @@ index b668323532e0a456dd56e41a662f1fff4db29cca..ed81cf9e5bbe1a4a62cf79bb85a9a57c
          this.pathTypesByPosCache = new PathTypeCache();
          this.navigatingMobs = new ObjectOpenHashSet();
          this.blockEvents = new ObjectLinkedOpenHashSet();
-@@ -1412,23 +1413,25 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1411,23 +1412,25 @@ public class ServerLevel extends Level implements WorldGenLevel {
          this.emptyTime = 0;
      }
  

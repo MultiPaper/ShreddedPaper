@@ -5,10 +5,10 @@ Subject: [PATCH] TrackedEntity
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index df58cb10406efd793b2af82d794acf9b0bc9f8f6..b74877dffcd557fb9000b86ab90b1973ad719a62 100644
+index e86b3cad388da57a7b7e924c58d7306d81120edc..5bfa53a156467841f6aca61027b459c24f78fcf8 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-@@ -15,6 +15,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
+@@ -14,6 +14,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
  
  import java.util.ArrayList;
  import java.util.List;
@@ -16,15 +16,15 @@ index df58cb10406efd793b2af82d794acf9b0bc9f8f6..b74877dffcd557fb9000b86ab90b1973
  import java.util.concurrent.ConcurrentLinkedQueue;
  import java.util.function.Consumer;
  
-@@ -24,6 +25,7 @@ public class LevelChunkRegion {
+@@ -23,6 +24,7 @@ public class LevelChunkRegion {
      private final RegionPos regionPos;
      private final List<LevelChunk> levelChunks = new ArrayList<>(RegionPos.REGION_SIZE * RegionPos.REGION_SIZE);
      private final IteratorSafeOrderedReferenceSet<Entity> tickingEntities = new IteratorSafeOrderedReferenceSet<>(); // Use IteratorSafeOrderedReferenceSet to maintain entity tick order
 +    private final Set<Entity> trackedEntities = new ObjectOpenHashSet<>();
      private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
      private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
-     private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
-@@ -70,6 +72,22 @@ public class LevelChunkRegion {
+     private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
+@@ -68,6 +70,22 @@ public class LevelChunkRegion {
          }
      }
  
@@ -47,8 +47,8 @@ index df58cb10406efd793b2af82d794acf9b0bc9f8f6..b74877dffcd557fb9000b86ab90b1973
      public ServerLevel getLevel() {
          return level;
      }
-@@ -151,6 +169,7 @@ public class LevelChunkRegion {
-                 && navigatingMobs.isEmpty()
+@@ -136,6 +154,7 @@ public class LevelChunkRegion {
+                 && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled()
                  && players.isEmpty()
                  && unloadQueue.isEmpty()
 +                && trackedEntities.isEmpty()
@@ -56,10 +56,10 @@ index df58cb10406efd793b2af82d794acf9b0bc9f8f6..b74877dffcd557fb9000b86ab90b1973
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index ae8581242d52b4422f95b8fd3581e9ae2b442ab1..ca18cc81c45ea31ab5696d391ad3499d0735c8cb 100644
+index bff6f98036e74a9716649b71a60c9f9d7d5278d3..52c7ce154c4cef680143f635d99d162bdac569c4 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-@@ -99,6 +99,41 @@ public class LevelChunkRegionMap {
+@@ -96,6 +96,41 @@ public class LevelChunkRegionMap {
          }
      }
  
@@ -196,10 +196,10 @@ index a35a609036a20ff18ea2e6b22a113fe6e7fe3c06..3b77035237ec9267f48f403021db75c7
              this.lastTrackerCandidates = newTrackerCandidates;
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index d84b674d7693f93ca2c1d04f2242dd5306331247..4d943e008e5bc40a11153b929dfa6994fa15ff88 100644
+index 811db68a0a0b6c7003b8acb3a47c5d82210901b7..b4006514748802fea02ddf67ece7c0dd4828ba4b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -2911,6 +2911,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2910,6 +2910,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
              ServerLevel.this.chunkSource.tickingRegions.moveTickingEntity(entity); // ShreddedPaper - move ticking entity into the new region

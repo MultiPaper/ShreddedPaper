@@ -350,7 +350,7 @@ index 900891527ca401858d9c2678ae154928e5f64b08..ab96dcb873758f9d92eecb62b473b84d
  
      public void sendPlayerPermissionLevel(ServerPlayer player) {
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index d78a81ee3270082c9f791b81dd3ad60ecc30f2fe..d597f4b557ad462e6c3180e386065acdf698f28c 100644
+index 3bea6b6333abc6b044ca8e01c4c66bde472d5614..ca7a2d41f3b3fb2af1c9ef5dddaf938118618351 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;

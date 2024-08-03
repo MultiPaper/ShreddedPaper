@@ -5,7 +5,7 @@ Subject: [PATCH] Block events
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index b74877dffcd557fb9000b86ab90b1973ad719a62..e5a94f8d19caa370f866fdcb7938af2139ae42b3 100644
+index f01db70a4dcb249b5cbe5764257c480e3c630a8d..99680a983da4c64b709cae624348992cdc83e7f3 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -4,20 +4,25 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
@@ -35,9 +35,9 @@ index b74877dffcd557fb9000b86ab90b1973ad719a62..e5a94f8d19caa370f866fdcb7938af21
  public class LevelChunkRegion {
  
 @@ -33,6 +38,7 @@ public class LevelChunkRegion {
-     public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
      public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
      public final List<TickingBlockEntity> pendingBlockEntityTickers = new ReferenceArrayList<>();
+     private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
 +    private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
@@ -70,15 +70,15 @@ index b74877dffcd557fb9000b86ab90b1973ad719a62..e5a94f8d19caa370f866fdcb7938af21
          return levelChunks.isEmpty()
                  && tickingEntities.size() == 0
 @@ -170,6 +196,7 @@ public class LevelChunkRegion {
-                 && players.isEmpty()
                  && unloadQueue.isEmpty()
                  && trackedEntities.isEmpty()
+                 && navigatingMobs.isEmpty()
 +                && blockEvents.isEmpty()
                  ;
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
-index ca18cc81c45ea31ab5696d391ad3499d0735c8cb..276ab3ecbef4de1624412eb47537bf9e92b4ed98 100644
+index 80acf2a25921c7b674d0758c0c29a7352746726b..2bed5af3238c07d2eefb272a752fd2feebf28344 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegionMap.java
 @@ -6,10 +6,12 @@ import net.minecraft.server.level.ServerLevel;
@@ -94,11 +94,10 @@ index ca18cc81c45ea31ab5696d391ad3499d0735c8cb..276ab3ecbef4de1624412eb47537bf9e
  
  import java.util.ArrayList;
  import java.util.List;
-@@ -218,4 +220,22 @@ public class LevelChunkRegionMap {
-             getOrCreate(toRegion).addPlayer(player);
+@@ -199,6 +201,24 @@ public class LevelChunkRegionMap {
          }
      }
-+
+ 
 +    public void addBlockEvent(BlockEventData blockEvent) {
 +        getOrCreate(RegionPos.forBlockPos(blockEvent.pos())).addBlockEvent(blockEvent);
 +    }
@@ -116,8 +115,10 @@ index ca18cc81c45ea31ab5696d391ad3499d0735c8cb..276ab3ecbef4de1624412eb47537bf9e
 +            }
 +        }
 +    }
- }
-\ No newline at end of file
++
+     public List<Mob> collectRelevantNavigatingMobs(RegionPos regionPos) {
+         if (!level.chunkScheduler.getRegionLocker().hasLock(regionPos)) {
+             // We care about the navigating mobs in at least this region, ensure it's locked
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 index d5f0acade30d8f64a2db2c3aba195b89fd52643b..f32aecd69d929c005ca8226054c218c7dd37e6fc 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
@@ -132,7 +133,7 @@ index d5f0acade30d8f64a2db2c3aba195b89fd52643b..f32aecd69d929c005ca8226054c218c7
  
              region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index f8d784c7e95c5c3c0478c8740a4df529874fb49a..b43ada46378da14050d91a73e861c16093a5e4b1 100644
+index 772c1ff243d9f677f7234b4e9765503abfdc9c99..1c13a9f2d57ea6d9e7bfe327af35d016ceeea36f 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;

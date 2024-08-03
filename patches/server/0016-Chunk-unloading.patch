@@ -5,7 +5,7 @@ Subject: [PATCH] Chunk unloading
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 2f2032af3369f1ec019dd029ab4a13cbdc98f382..0998863d9a24c37a684a2372921749d2453de1d8 100644
+index 0a6cb829f89af7c8c6efd08c5f06051302e1afd4..88fd9775db97671fb40a311e729aee038eaaf6d4 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -2,6 +2,7 @@ package io.multipaper.shreddedpaper.region;
@@ -16,18 +16,18 @@ index 2f2032af3369f1ec019dd029ab4a13cbdc98f382..0998863d9a24c37a684a2372921749d2
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
  import net.minecraft.server.level.ServerLevel;
-@@ -25,6 +26,7 @@ public class LevelChunkRegion {
+@@ -23,6 +24,7 @@ public class LevelChunkRegion {
+     private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
      private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
-     private final ObjectOpenHashSet<Mob> navigatingMobs = new ObjectOpenHashSet<>();
      private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
 +    public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
-@@ -143,6 +145,8 @@ public class LevelChunkRegion {
+@@ -128,6 +130,8 @@ public class LevelChunkRegion {
+                 && tickingEntities.size() == 0
                  && scheduledTasks.isEmpty()
                  && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled()
-                 && navigatingMobs.isEmpty()
 -                && players.isEmpty();
 +                && players.isEmpty()
 +                && unloadQueue.isEmpty()
