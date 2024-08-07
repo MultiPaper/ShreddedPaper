@@ -6,14 +6,16 @@ Subject: [PATCH] Run unsupported plugins in sync
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4b74c5797832d47f6280233a2d5ac2f8c82c2053
+index 0000000000000000000000000000000000000000..9ad9e19bcd29cb94c4395d48f1c78a6dd9758bc6
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
-@@ -0,0 +1,181 @@
+@@ -0,0 +1,197 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
 +import io.papermc.paper.util.TickThread;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
 +import org.bukkit.plugin.Plugin;
 +import org.slf4j.Logger;
 +import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
@@ -27,6 +29,7 @@ index 0000000000000000000000000000000000000000..4b74c5797832d47f6280233a2d5ac2f8
 +import java.util.Set;
 +import java.util.TreeSet;
 +import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.TimeUnit;
 +import java.util.concurrent.locks.ReentrantLock;
 +
 +public class SynchronousPluginExecution {
@@ -119,8 +122,21 @@ index 0000000000000000000000000000000000000000..4b74c5797832d47f6280233a2d5ac2f8
 +        }
 +
 +        for (String plugin : locksToAcquire) {
-+            getLock(plugin).lock();
++            acquireLockBlocking(getLock(plugin));
 +            heldPluginLocks.get().add(plugin);
++        }
++    }
++
++    private static void acquireLockBlocking(ReentrantLock lock) {
++        try {
++            while (!lock.tryLock(100_000, TimeUnit.NANOSECONDS)) {
++                // Run tasks while waiting for the lock to be released
++                for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
++                    while (level.chunkSource.mainThreadProcessor.pollTask());
++                }
++            }
++        } catch (InterruptedException e) {
++            throw new RuntimeException(e);
 +        }
 +    }
 +
