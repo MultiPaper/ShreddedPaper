@@ -190,7 +190,7 @@ index a41816c6f0ca2d68a2eea25f513c8e10956d7813..69c1c5f5af8d8d13fb0802eb4b25c170
                  //this.level.timings.broadcastChunkUpdates.stopTiming(); // Paper - timing // Purpur
              // Paper - optimise chunk tick iteration
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
-index 7424246750d6ceca1acd5d9ebfd48f0d66504c5d..5e24cac1328c81988302b0b7597fd27afd412e9b 100644
+index 7424246750d6ceca1acd5d9ebfd48f0d66504c5d..0a1e3784a26c5b0058b80455e0b0a357d4f25e91 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 @@ -3,6 +3,9 @@ package net.minecraft.server.level;
@@ -211,16 +211,14 @@ index 7424246750d6ceca1acd5d9ebfd48f0d66504c5d..5e24cac1328c81988302b0b7597fd27a
  import net.minecraft.world.phys.BlockHitResult;
  import org.slf4j.Logger;
  
-@@ -467,6 +471,15 @@ public class ServerPlayerGameMode {
+@@ -467,6 +471,13 @@ public class ServerPlayerGameMode {
                  }
                  // Paper end - Trigger bee_nest_destroyed trigger in the correct place
  
 +                // ShreddedPaper start - broadcast block changes immediately if on the wrong thread
-+                if (!ShreddedPaperChunkTicker.isCurrentlyTickingRegion(this.level, RegionPos.forBlockPos(pos))) {
-+                    LevelChunk levelChunk = this.level.getChunkIfLoaded(pos);
-+                    if (levelChunk != null) {
-+                        levelChunk.getChunkHolder().vanillaChunkHolder.broadcastChanges(levelChunk);
-+                    }
++                LevelChunk levelChunk = this.level.getChunkIfLoaded(pos);
++                if (levelChunk != null) {
++                    levelChunk.getChunkHolder().vanillaChunkHolder.broadcastChanges(levelChunk);
 +                }
 +                // ShreddedPaper end - broadcast block changes immediately if on the wrong thread
 +
