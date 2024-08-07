@@ -134,7 +134,7 @@ index 0e0c3a010d5cfaa0c15bcb38c4e3b1a8d7ad39a1..8da6278f841e0ac032ae74ed75b7689d
      // Paper end - optimise chunk tick iteration
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 5add8126631f68f05bf38b9318d9426ecf5b5c92..c1685818a6b87c0d652be0b2acccdccea059c859 100644
+index d2062ac18f7445d2424cd90a327d0e357c396b1c..81f081a2038e8d094f22608584ab33460c4fde13 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -248,7 +248,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -189,3 +189,41 @@ index a41816c6f0ca2d68a2eea25f513c8e10956d7813..69c1c5f5af8d8d13fb0802eb4b25c170
              // Paper end - optimise chunk tick iteration
                  //this.level.timings.broadcastChunkUpdates.stopTiming(); // Paper - timing // Purpur
              // Paper - optimise chunk tick iteration
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+index 7424246750d6ceca1acd5d9ebfd48f0d66504c5d..5e24cac1328c81988302b0b7597fd27afd412e9b 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -3,6 +3,9 @@ package net.minecraft.server.level;
+ import com.mojang.logging.LogUtils;
+ import java.util.Objects;
+ import javax.annotation.Nullable;
++
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+@@ -26,6 +29,7 @@ import net.minecraft.world.level.block.TrapDoorBlock;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
++import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.phys.BlockHitResult;
+ import org.slf4j.Logger;
+ 
+@@ -467,6 +471,15 @@ public class ServerPlayerGameMode {
+                 }
+                 // Paper end - Trigger bee_nest_destroyed trigger in the correct place
+ 
++                // ShreddedPaper start - broadcast block changes immediately if on the wrong thread
++                if (!ShreddedPaperChunkTicker.isCurrentlyTickingRegion(this.level, RegionPos.forBlockPos(pos))) {
++                    LevelChunk levelChunk = this.level.getChunkIfLoaded(pos);
++                    if (levelChunk != null) {
++                        levelChunk.getChunkHolder().vanillaChunkHolder.broadcastChanges(levelChunk);
++                    }
++                }
++                // ShreddedPaper end - broadcast block changes immediately if on the wrong thread
++
+                 return true;
+                 // CraftBukkit end
+             }

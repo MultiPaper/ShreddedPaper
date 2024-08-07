@@ -36,7 +36,7 @@ index f076380621dc6a40663e4f703de458a1d9b87fd9..06d85ca406b57f54827dd59191018590
                      if (treeType != null) {
                          structureEvent = new StructureGrowEvent(location, treeType, false, null, blocks);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index c0f176f02ab5b325a9ffb2a5e59041fe77964f7f..0214eea8eb534d89fde283f34c4d73d6bb709a95 100644
+index dd8eacf63fe2a970ea7c6d5f03197bf271565e2f..772c1ff243d9f677f7234b4e9765503abfdc9c99 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1771,8 +1771,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -60,10 +60,10 @@ index c0f176f02ab5b325a9ffb2a5e59041fe77964f7f..0214eea8eb534d89fde283f34c4d73d6
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
-index 7424246750d6ceca1acd5d9ebfd48f0d66504c5d..fcfd4fb1e3d7e17a6039dc6bc85414dc1614be08 100644
+index 5e24cac1328c81988302b0b7597fd27afd412e9b..aa8f069554c0659555572be0357d08df00f2534b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
-@@ -420,7 +420,7 @@ public class ServerPlayerGameMode {
+@@ -424,7 +424,7 @@ public class ServerPlayerGameMode {
              } else {
                  // CraftBukkit start
                  org.bukkit.block.BlockState state = bblock.getState();
@@ -72,7 +72,7 @@ index 7424246750d6ceca1acd5d9ebfd48f0d66504c5d..fcfd4fb1e3d7e17a6039dc6bc85414dc
                  // CraftBukkit end
                  BlockState iblockdata1 = block.playerWillDestroy(this.level, pos, iblockdata, this.player);
                  boolean flag = this.level.removeBlock(pos, false);
-@@ -448,8 +448,8 @@ public class ServerPlayerGameMode {
+@@ -452,8 +452,8 @@ public class ServerPlayerGameMode {
                      // return true; // CraftBukkit
                  }
                  // CraftBukkit start
@@ -425,7 +425,7 @@ index ea8ef68cd005c96d6a31cce787c94c9771b398f7..efa605d6ff1adcb8e35ec095daa7aac7
              tileentity = (BlockEntity) this.blockEntities.get(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 88df30a5b926287726044b29a4c184b9b75e5666..05d1b46561f15db35d14dabe1685618f3e20cf6b 100644
+index 16bb57ab327230429fd3cbd822e7fcc28b329fbe..3723dd028800c81f3f392657f1b209884864c5ba 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -875,13 +875,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
