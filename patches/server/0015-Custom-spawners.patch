@@ -3,7 +3,6 @@ From: PureGero <puregero@gmail.com>
 Date: Sat, 18 May 2024 09:52:50 +0900
 Subject: [PATCH] Custom spawners
 
-S
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index f4ad4a15d7928df49af3412146b48607cc90131f..51877888cdb6bc28ec578bb2f7e1819ec46cdc3e 100644
@@ -19,7 +18,7 @@ index f4ad4a15d7928df49af3412146b48607cc90131f..51877888cdb6bc28ec578bb2f7e1819e
  
      }
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/VillageSiege.java b/src/main/java/net/minecraft/world/entity/ai/village/VillageSiege.java
-index 36dec6cd78a0990ba3c09a4a748c259ef5c0a2ff..f787d3d1b4a70a5041e06ed8acc9af8abbc83490 100644
+index 36dec6cd78a0990ba3c09a4a748c259ef5c0a2ff..cc5be862fe53ab8c301c318d4e13f432575321f3 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/VillageSiege.java
 +++ b/src/main/java/net/minecraft/world/entity/ai/village/VillageSiege.java
 @@ -17,6 +17,7 @@ import net.minecraft.world.level.CustomSpawner;
@@ -30,7 +29,7 @@ index 36dec6cd78a0990ba3c09a4a748c259ef5c0a2ff..f787d3d1b4a70a5041e06ed8acc9af8a
  
  public class VillageSiege implements CustomSpawner {
  
-@@ -110,6 +111,7 @@ public class VillageSiege implements CustomSpawner {
+@@ -110,11 +111,12 @@ public class VillageSiege implements CustomSpawner {
          Vec3 vec3d = this.findRandomSpawnPos(world, new BlockPos(this.spawnX, this.spawnY, this.spawnZ));
  
          if (vec3d != null) {
@@ -38,6 +37,12 @@ index 36dec6cd78a0990ba3c09a4a748c259ef5c0a2ff..f787d3d1b4a70a5041e06ed8acc9af8a
              Zombie entityzombie;
  
              try {
+                 entityzombie = new Zombie(world);
+-                entityzombie.finalizeSpawn(world, world.getCurrentDifficultyAt(entityzombie.blockPosition()), MobSpawnType.EVENT, (SpawnGroupData) null);
++                entityzombie.finalizeSpawn(world, world.getCurrentDifficultyAt(new BlockPos((int) vec3d.x, (int) vec3d.y, (int) vec3d.z)), MobSpawnType.EVENT, (SpawnGroupData) null); // ShreddedPaper - use zombie's planned position, not 0,0
+             } catch (Exception exception) {
+                 VillageSiege.LOGGER.warn("Failed to create zombie for village siege at {}", vec3d, exception);
+                 com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(exception); // Paper - ServerExceptionEvent
 @@ -123,6 +125,7 @@ public class VillageSiege implements CustomSpawner {
  
              entityzombie.moveTo(vec3d.x, vec3d.y, vec3d.z, world.random.nextFloat() * 360.0F, 0.0F);
