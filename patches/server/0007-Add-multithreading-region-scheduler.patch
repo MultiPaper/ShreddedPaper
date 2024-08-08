@@ -629,7 +629,7 @@ index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..2c82a48867ab347f21822576baa03682
          } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
              throw new IllegalStateException(event.getEventName() + " may only be triggered synchronously.");
 diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
-index bdaf062f9b66ceab303a0807eca301342886a8ea..b7cd02acb6308d7c6af52f9c45ce0e13cf236fb3 100644
+index bdaf062f9b66ceab303a0807eca301342886a8ea..313f30948c9ebd09094c1623bfe2c3594f30077c 100644
 --- a/src/main/java/io/papermc/paper/util/TickThread.java
 +++ b/src/main/java/io/papermc/paper/util/TickThread.java
 @@ -1,5 +1,6 @@
@@ -639,16 +639,111 @@ index bdaf062f9b66ceab303a0807eca301342886a8ea..b7cd02acb6308d7c6af52f9c45ce0e13
  import net.minecraft.core.BlockPos;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ServerLevel;
-@@ -12,6 +13,8 @@ import net.minecraft.world.level.Level;
+@@ -12,6 +13,11 @@ import net.minecraft.world.level.Level;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import org.bukkit.Bukkit;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Set;
  import java.util.concurrent.atomic.AtomicInteger;
  
  public class TickThread extends Thread {
-@@ -110,50 +113,84 @@ public class TickThread extends Thread {
+@@ -35,56 +41,77 @@ public class TickThread extends Thread {
+         ensureTickThread(reason);
+     }
+ 
++    // ShreddedPaper start
++    public static void failedTickThreadCheck(final String reason, final String extraData) {
++        if (!isTickThread()) {
++            MinecraftServer.LOGGER.error(Thread.currentThread().getName() + " tried to run a task async: " + reason);
++        } else {
++            MinecraftServer.LOGGER.error(Thread.currentThread().getName() + " tried to run a task from the wrong thread: " + reason);
++        }
++        MinecraftServer.LOGGER.error("Extra data: " + extraData);
++        MinecraftServer.LOGGER.error("Server Version: " + Bukkit.getVersion());
++        MinecraftServer.LOGGER.error("Region locks currently held (regionSize=" + RegionPos.REGION_SIZE + " chunks): " + getCurrentLocksHeld());
++        MinecraftServer.LOGGER.error("Stack trace:", new Throwable());
++        throw new IllegalStateException(reason);
++    }
++
++    private static List<String> getCurrentLocksHeld() {
++        List<String> strings = new ArrayList<>();
++
++        for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
++            Set<RegionPos> regions = level.chunkScheduler.getRegionLocker().getLockedRegions();
++            if (!regions.isEmpty()) {
++                strings.add(level.convertable.getLevelId() + "=" + regions.stream().map(region -> "[" + region.x + "," + region.z + "]").toList());
++            }
++        }
++
++        return strings;
++    }
++    // ShreddedPaper end
++
+     /**
+      * @deprecated
+      */
+     @Deprecated
+     public static void ensureTickThread(final String reason) {
+         if (!isTickThread()) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, null);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final BlockPos pos, final String reason) {
+         if (!isTickThreadFor(world, pos)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", pos=" + pos);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final ChunkPos pos, final String reason) {
+         if (!isTickThreadFor(world, pos)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", chunkpos=" + pos);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final int chunkX, final int chunkZ, final String reason) {
+         if (!isTickThreadFor(world, chunkX, chunkZ)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", chunkpos=[" + chunkX + "," + chunkZ + "]");
+         }
+     }
+ 
+     public static void ensureTickThread(final Entity entity, final String reason) {
+         if (!isTickThreadFor(entity)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "entity=" + entity);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final AABB aabb, final String reason) {
+         if (!isTickThreadFor(world, aabb)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", aabb=" + aabb);
+         }
+     }
+ 
+     public static void ensureTickThread(final ServerLevel world, final double blockX, final double blockZ, final String reason) {
+         if (!isTickThreadFor(world, blockX, blockZ)) {
+-            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
+-            throw new IllegalStateException(reason);
++            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", x=" + (int) blockX + " y=? z=" + (int) blockZ);
+         }
+     }
+ 
+@@ -110,50 +137,84 @@ public class TickThread extends Thread {
      }
  
      public static boolean isTickThread() {

@@ -105,112 +105,6 @@ index 758c155c23d95c3cc952cb14f864c703f9b45127..6b83f09f9862e298cad009b3e3a38447
                  if (saveStat != null) {
                      ++saved;
                      needsFlush = flush;
-diff --git a/src/main/java/io/papermc/paper/util/TickThread.java b/src/main/java/io/papermc/paper/util/TickThread.java
-index b7cd02acb6308d7c6af52f9c45ce0e13cf236fb3..313f30948c9ebd09094c1623bfe2c3594f30077c 100644
---- a/src/main/java/io/papermc/paper/util/TickThread.java
-+++ b/src/main/java/io/papermc/paper/util/TickThread.java
-@@ -15,6 +15,9 @@ import net.minecraft.world.phys.Vec3;
- import org.bukkit.Bukkit;
- import io.multipaper.shreddedpaper.region.RegionPos;
- 
-+import java.util.ArrayList;
-+import java.util.List;
-+import java.util.Set;
- import java.util.concurrent.atomic.AtomicInteger;
- 
- public class TickThread extends Thread {
-@@ -38,56 +41,77 @@ public class TickThread extends Thread {
-         ensureTickThread(reason);
-     }
- 
-+    // ShreddedPaper start
-+    public static void failedTickThreadCheck(final String reason, final String extraData) {
-+        if (!isTickThread()) {
-+            MinecraftServer.LOGGER.error(Thread.currentThread().getName() + " tried to run a task async: " + reason);
-+        } else {
-+            MinecraftServer.LOGGER.error(Thread.currentThread().getName() + " tried to run a task from the wrong thread: " + reason);
-+        }
-+        MinecraftServer.LOGGER.error("Extra data: " + extraData);
-+        MinecraftServer.LOGGER.error("Server Version: " + Bukkit.getVersion());
-+        MinecraftServer.LOGGER.error("Region locks currently held (regionSize=" + RegionPos.REGION_SIZE + " chunks): " + getCurrentLocksHeld());
-+        MinecraftServer.LOGGER.error("Stack trace:", new Throwable());
-+        throw new IllegalStateException(reason);
-+    }
-+
-+    private static List<String> getCurrentLocksHeld() {
-+        List<String> strings = new ArrayList<>();
-+
-+        for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
-+            Set<RegionPos> regions = level.chunkScheduler.getRegionLocker().getLockedRegions();
-+            if (!regions.isEmpty()) {
-+                strings.add(level.convertable.getLevelId() + "=" + regions.stream().map(region -> "[" + region.x + "," + region.z + "]").toList());
-+            }
-+        }
-+
-+        return strings;
-+    }
-+    // ShreddedPaper end
-+
-     /**
-      * @deprecated
-      */
-     @Deprecated
-     public static void ensureTickThread(final String reason) {
-         if (!isTickThread()) {
--            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
--            throw new IllegalStateException(reason);
-+            failedTickThreadCheck(reason, null);
-         }
-     }
- 
-     public static void ensureTickThread(final ServerLevel world, final BlockPos pos, final String reason) {
-         if (!isTickThreadFor(world, pos)) {
--            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
--            throw new IllegalStateException(reason);
-+            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", pos=" + pos);
-         }
-     }
- 
-     public static void ensureTickThread(final ServerLevel world, final ChunkPos pos, final String reason) {
-         if (!isTickThreadFor(world, pos)) {
--            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
--            throw new IllegalStateException(reason);
-+            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", chunkpos=" + pos);
-         }
-     }
- 
-     public static void ensureTickThread(final ServerLevel world, final int chunkX, final int chunkZ, final String reason) {
-         if (!isTickThreadFor(world, chunkX, chunkZ)) {
--            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
--            throw new IllegalStateException(reason);
-+            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", chunkpos=[" + chunkX + "," + chunkZ + "]");
-         }
-     }
- 
-     public static void ensureTickThread(final Entity entity, final String reason) {
-         if (!isTickThreadFor(entity)) {
--            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
--            throw new IllegalStateException(reason);
-+            failedTickThreadCheck(reason, "entity=" + entity);
-         }
-     }
- 
-     public static void ensureTickThread(final ServerLevel world, final AABB aabb, final String reason) {
-         if (!isTickThreadFor(world, aabb)) {
--            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
--            throw new IllegalStateException(reason);
-+            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", aabb=" + aabb);
-         }
-     }
- 
-     public static void ensureTickThread(final ServerLevel world, final double blockX, final double blockZ, final String reason) {
-         if (!isTickThreadFor(world, blockX, blockZ)) {
--            MinecraftServer.LOGGER.error("Thread " + Thread.currentThread().getName() + " failed main thread check: " + reason, new Throwable());
--            throw new IllegalStateException(reason);
-+            failedTickThreadCheck(reason, "world=" + world.convertable.getLevelId() + ", x=" + (int) blockX + " y=? z=" + (int) blockZ);
-         }
-     }
- 
 diff --git a/src/main/java/net/minecraft/core/dispenser/BoatDispenseItemBehavior.java b/src/main/java/net/minecraft/core/dispenser/BoatDispenseItemBehavior.java
 index 6df0db8b4cdab23494ea34236949ece4989110a3..28a62457a0a02c81055af711105b306f446b3fb5 100644
 --- a/src/main/java/net/minecraft/core/dispenser/BoatDispenseItemBehavior.java
@@ -535,7 +429,7 @@ index 6542c67e753245cd131de872c28862f83e7ff2f3..f355833ee748e25af228ad9bd3dc0660
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.game.ClientGamePacketListener;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 4d943e008e5bc40a11153b929dfa6994fa15ff88..816033587253fcfa34bd52896d64cca5532b9206 100644
+index 50efb1673b263ca4af72084652ff0a69e86a3255..81b5fb387d98b53cec30b15dd4485f06189faee3 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
