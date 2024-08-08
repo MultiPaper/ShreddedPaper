@@ -527,6 +527,19 @@ index 069febfbc303a6d2a365a3762b237f5c57cfb8a3..98b3f8b4be0030812b2bc8c6e4b2c3aa
      }
  
      private void updateSignText(ServerboundSignUpdatePacket packet, List<FilteredText> signText) {
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index baf3d669b0f33f6ea3691f32362901a0fa754fd1..85014099f0932d1217c549e7fd0d35d2085b3667 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -1458,7 +1458,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     }
+ 
+     protected BlockPos getOnPos(float offset) {
+-        if (this.mainSupportingBlockPos.isPresent() && this.level().getChunkIfLoadedImmediately(this.mainSupportingBlockPos.get()) != null) { // Paper - ensure no loads
++        if (this.mainSupportingBlockPos.isPresent() && this.level().getChunkIfLoadedImmediately(this.mainSupportingBlockPos.get()) != null && TickThread.isTickThreadFor((ServerLevel) this.level(), this.mainSupportingBlockPos.get())) { // Paper - ensure no loads // ShreddedPaper - ensure same region
+             BlockPos blockposition = (BlockPos) this.mainSupportingBlockPos.get();
+ 
+             if (offset <= 1.0E-5F) {
 diff --git a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java b/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java
 index c6f193339fdcbcc938d4eafdcad0b112cf1698d5..256fbdc2a287a8232c8ecb9d0e06290a141a49ee 100644
 --- a/src/main/java/net/minecraft/world/entity/ai/village/poi/PoiManager.java
