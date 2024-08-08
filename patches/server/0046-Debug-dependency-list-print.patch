@@ -5,10 +5,10 @@ Subject: [PATCH] Debug dependency list print
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
-index 9ad9e19bcd29cb94c4395d48f1c78a6dd9758bc6..c625c04eb6286f842c6705446c5c5e3868192c16 100644
+index 3625ee53f17766aae695c0d9e35d755e331e6c56..4ac12d5e57177a70d323dc8f241588cf8eff561e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
-@@ -60,6 +60,7 @@ public class SynchronousPluginExecution {
+@@ -56,6 +56,7 @@ public class SynchronousPluginExecution {
              pluginsToLock = cachedDependencyLists.computeIfAbsent(plugin.getName(), (name) -> {
                  TreeSet<String> dependencyList = new TreeSet<>(Comparator.naturalOrder());
                  fillPluginsToLock(plugin, dependencyList);
