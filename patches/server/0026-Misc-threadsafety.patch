@@ -527,6 +527,42 @@ index 069febfbc303a6d2a365a3762b237f5c57cfb8a3..98b3f8b4be0030812b2bc8c6e4b2c3aa
      }
  
      private void updateSignText(ServerboundSignUpdatePacket packet, List<FilteredText> signText) {
+diff --git a/src/main/java/net/minecraft/util/thread/ReentrantBlockableEventLoop.java b/src/main/java/net/minecraft/util/thread/ReentrantBlockableEventLoop.java
+index 137fe86e33d63c629d69072ee7cbc15cdef1a4d8..081d5c96534746bf647f49c28f69b1666d8fef54 100644
+--- a/src/main/java/net/minecraft/util/thread/ReentrantBlockableEventLoop.java
++++ b/src/main/java/net/minecraft/util/thread/ReentrantBlockableEventLoop.java
+@@ -1,7 +1,9 @@
+ package net.minecraft.util.thread;
+ 
++import java.util.concurrent.atomic.AtomicInteger;
++
+ public abstract class ReentrantBlockableEventLoop<R extends Runnable> extends BlockableEventLoop<R> {
+-    private int reentrantCount;
++    private final AtomicInteger reentrantCount = new AtomicInteger(); // ShreddedPaper - use AtomicInteger
+ 
+     public ReentrantBlockableEventLoop(String name) {
+         super(name);
+@@ -13,17 +15,17 @@ public abstract class ReentrantBlockableEventLoop<R extends Runnable> extends Bl
+     }
+ 
+     protected boolean runningTask() {
+-        return this.reentrantCount != 0;
++        return this.reentrantCount.get() != 0; // ShreddedPaper - use AtomicInteger
+     }
+ 
+     @Override
+     public void doRunTask(R task) {
+-        this.reentrantCount++;
++        this.reentrantCount.getAndIncrement(); // ShreddedPaper - use AtomicInteger
+ 
+         try {
+             super.doRunTask(task);
+         } finally {
+-            this.reentrantCount--;
++            this.reentrantCount.getAndDecrement(); // ShreddedPaper - use AtomicInteger
+         }
+     }
+ }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
 index baf3d669b0f33f6ea3691f32362901a0fa754fd1..85014099f0932d1217c549e7fd0d35d2085b3667 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
