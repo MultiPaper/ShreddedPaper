@@ -135,10 +135,10 @@ index 52c7ce154c4cef680143f635d99d162bdac569c4..80acf2a25921c7b674d0758c0c29a735
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 6d90e5c22d95e934df422b3003261d036883b663..e2943374c16dd3655acfd3e98ee5b58db7e5fcf5 100644
+index 7d5fd9be6133ae7b160096026aa4e125141db5e3..a41816c6f0ca2d68a2eea25f513c8e10956d7813 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -415,6 +415,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -414,6 +414,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public boolean pollTask() {

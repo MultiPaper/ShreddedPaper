@@ -748,7 +748,7 @@ index 6c084d12a0c7c68a3a7a284256226c4cff7b29ff..d2bb65f4eaca8bf6457b033482e696fe
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          //this.profiler.push("commandFunctions"); // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index b17d31aa52ade535ebf572141e6dacc92dab5358..6d90e5c22d95e934df422b3003261d036883b663 100644
+index b17d31aa52ade535ebf572141e6dacc92dab5358..7d5fd9be6133ae7b160096026aa4e125141db5e3 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -13,10 +13,14 @@ import java.util.function.BooleanSupplier;
@@ -774,14 +774,13 @@ index b17d31aa52ade535ebf572141e6dacc92dab5358..6d90e5c22d95e934df422b3003261d03
  
  public class ServerChunkCache extends ChunkSource {
  
-@@ -252,10 +257,13 @@ public class ServerChunkCache extends ChunkSource {
+@@ -252,10 +257,12 @@ public class ServerChunkCache extends ChunkSource {
      @Override
      public ChunkAccess getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
          final int x1 = x; final int z1 = z; // Paper - conflict on variable change
 -        if (!io.papermc.paper.util.TickThread.isTickThread()) { // Paper - rewrite chunk system
 -            return (ChunkAccess) CompletableFuture.supplyAsync(() -> {
 +        if (!io.papermc.paper.util.TickThread.isTickThreadFor(this.level, x, z)) { // Paper - rewrite chunk system // ShreddedPaper - regions
-+            if (ShreddedPaperTickThread.isShreddedPaperTickThread()) TickThread.failedTickThreadCheck("Cannot get chunk from a region that is not ours!", "world=" + level.convertable.getLevelId() + ", chunkpos=[" + x + "," + z + "]"); // ShreddedPaper - regions
 +            CompletableFuture<ChunkAccess> future = CompletableFuture.supplyAsync(() -> { // ShreddedPaper - regions
                  return this.getChunk(x, z, leastStatus, create);
 -            }, this.mainThreadProcessor).join();
@@ -791,7 +790,7 @@ index b17d31aa52ade535ebf572141e6dacc92dab5358..6d90e5c22d95e934df422b3003261d03
          } else {
              // Paper start - Perf: Optimise getChunkAt calls for loaded chunks
              LevelChunk ifLoaded = this.getChunkAtIfLoadedMainThread(x, z);
-@@ -312,7 +320,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -312,7 +319,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
@@ -800,7 +799,7 @@ index b17d31aa52ade535ebf572141e6dacc92dab5358..6d90e5c22d95e934df422b3003261d03
          CompletableFuture completablefuture;
  
          if (flag1) {
-@@ -324,7 +332,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -324,7 +331,7 @@ public class ServerChunkCache extends ChunkSource {
          } else {
              completablefuture = CompletableFuture.supplyAsync(() -> {
                  return this.getChunkFutureMainThread(chunkX, chunkZ, leastStatus, create);
@@ -809,7 +808,7 @@ index b17d31aa52ade535ebf572141e6dacc92dab5358..6d90e5c22d95e934df422b3003261d03
                  return completablefuture1;
              });
          }
-@@ -779,7 +787,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -779,7 +786,7 @@ public class ServerChunkCache extends ChunkSource {
  
      @Override
      public void onLightUpdate(LightLayer type, SectionPos pos) {
@@ -818,7 +817,7 @@ index b17d31aa52ade535ebf572141e6dacc92dab5358..6d90e5c22d95e934df422b3003261d03
              ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos.chunk().toLong());
  
              if (playerchunk != null) {
-@@ -903,7 +911,22 @@ public class ServerChunkCache extends ChunkSource {
+@@ -903,7 +910,22 @@ public class ServerChunkCache extends ChunkSource {
              if (ServerChunkCache.this.runDistanceManagerUpdates()) {
                  return true;
              }
