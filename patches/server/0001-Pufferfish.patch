@@ -3135,7 +3135,7 @@ index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..5bc079d4edb08f0d3597af6e8f0ce403
  
      // CraftBukkit start
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
-index a2a5aef769ee8bb638a5a9f3da9812fa4a85dda5..7c9566fd76fa2721a47bc162331a9be398a94df9 100644
+index a2a5aef769ee8bb638a5a9f3da9812fa4a85dda5..6d4e8aaa14226032b59d0f38c97f1754f67b9359 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunkSection.java
 @@ -22,6 +22,7 @@ public class LevelChunkSection {
@@ -3162,14 +3162,14 @@ index a2a5aef769ee8bb638a5a9f3da9812fa4a85dda5..7c9566fd76fa2721a47bc162331a9be3
          }
  
          this.updateBlockCallback(x, y, z, iblockdata1, state); // Paper - optimise collisions
-@@ -233,6 +236,7 @@ public class LevelChunkSection {
-             for (int i1 = 0; i1 < 4; ++i1) {
-                 for (int j1 = 0; j1 < 4; ++j1) {
-                     datapaletteblock.getAndSetUnchecked(l, i1, j1, biomeSupplier.getNoiseBiome(x + l, y + i1, z + j1, sampler));
+@@ -162,6 +165,7 @@ public class LevelChunkSection {
+                     if (fluid.isRandomlyTicking()) {
+                         this.tickingFluidCount = (short) (this.tickingFluidCount + 1);
+                     }
 +                    this.fluidStateCount++; // Pufferfish
                  }
-             }
-         }
+ 
+                 // Paper start - optimise collisions
 diff --git a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java b/src/main/java/net/minecraft/world/level/entity/EntityTickList.java
 index 83a39f900551e39d5af6f17a339a386ddee4feef..0c8c534fc69172387f188af5282accfed7597ac7 100644
 --- a/src/main/java/net/minecraft/world/level/entity/EntityTickList.java

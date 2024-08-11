@@ -5,7 +5,7 @@ Subject: [PATCH] Block entities
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 88fd9775db97671fb40a311e729aee038eaaf6d4..e86b3cad388da57a7b7e924c58d7306d81120edc 100644
+index 88fd9775db97671fb40a311e729aee038eaaf6d4..7330767f84228619bc5a4c03ce2783a3e74818d8 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -5,9 +5,11 @@ import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
@@ -29,6 +29,15 @@ index 88fd9775db97671fb40a311e729aee038eaaf6d4..e86b3cad388da57a7b7e924c58d7306d
  
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
+@@ -132,6 +136,8 @@ public class LevelChunkRegion {
+                 && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled()
+                 && players.isEmpty()
+                 && unloadQueue.isEmpty()
++                && tickingBlockEntities.isEmpty()
++                && pendingBlockEntityTickers.isEmpty()
+                 ;
+     }
+ }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 index a33e68c626464fdb9efe67a2fb911f5d1683c06f..28e33ccfdf064a67185135da53e40ea575f6574a 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java

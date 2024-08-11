@@ -5,7 +5,7 @@ Subject: [PATCH] Block events
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index f01db70a4dcb249b5cbe5764257c480e3c630a8d..99680a983da4c64b709cae624348992cdc83e7f3 100644
+index 43bd6b7780226afadd196687dfb3d398b0f610cc..e40ee452a89a5fc60bb75c74631de2e9b0e6a730 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -4,20 +4,25 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
@@ -69,8 +69,8 @@ index f01db70a4dcb249b5cbe5764257c480e3c630a8d..99680a983da4c64b709cae624348992c
      public boolean isEmpty() {
          return levelChunks.isEmpty()
                  && tickingEntities.size() == 0
-@@ -170,6 +196,7 @@ public class LevelChunkRegion {
-                 && unloadQueue.isEmpty()
+@@ -172,6 +198,7 @@ public class LevelChunkRegion {
+                 && pendingBlockEntityTickers.isEmpty()
                  && trackedEntities.isEmpty()
                  && navigatingMobs.isEmpty()
 +                && blockEvents.isEmpty()

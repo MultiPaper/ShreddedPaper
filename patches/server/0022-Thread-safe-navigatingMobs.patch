@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe navigatingMobs
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 5bfa53a156467841f6aca61027b459c24f78fcf8..f01db70a4dcb249b5cbe5764257c480e3c630a8d 100644
+index 875648bd826c60cba129c72f39aa35bed3434f5a..43bd6b7780226afadd196687dfb3d398b0f610cc 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
@@ -43,9 +43,9 @@ index 5bfa53a156467841f6aca61027b459c24f78fcf8..f01db70a4dcb249b5cbe5764257c480e
      public RegionPos getRegionPos() {
          return regionPos;
      }
-@@ -155,6 +169,7 @@ public class LevelChunkRegion {
-                 && players.isEmpty()
-                 && unloadQueue.isEmpty()
+@@ -157,6 +171,7 @@ public class LevelChunkRegion {
+                 && tickingBlockEntities.isEmpty()
+                 && pendingBlockEntityTickers.isEmpty()
                  && trackedEntities.isEmpty()
 +                && navigatingMobs.isEmpty()
                  ;
