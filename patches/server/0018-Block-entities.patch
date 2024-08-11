@@ -211,6 +211,19 @@ index fb1ec5a87639402ac008a862e083a8261eac614f..195e715a76b9b89134cf929ad2810689
          //gameprofilerfiller.pop(); // Purpur
          this.spigotConfig.currentPrimedTnt = 0; // Spigot
      }
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index 5bc079d4edb08f0d3597af6e8f0ce403213434db..71521c19c60ed16579be100263e0c72cf8f88bec 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -106,7 +106,7 @@ public class LevelChunk extends ChunkAccess {
+ 
+     public LevelChunk(Level world, ChunkPos pos, UpgradeData upgradeData, LevelChunkTicks<Block> blockTickScheduler, LevelChunkTicks<Fluid> fluidTickScheduler, long inhabitedTime, @Nullable LevelChunkSection[] sectionArrayInitializer, @Nullable LevelChunk.PostLoadProcessor entityLoader, @Nullable BlendingData blendingData) {
+         super(pos, upgradeData, world, net.minecraft.server.MinecraftServer.getServer().registryAccess().registryOrThrow(Registries.BIOME), inhabitedTime, sectionArrayInitializer, blendingData); // Paper - Anti-Xray - The world isn't ready yet, use server singleton for registry
+-        this.tickersInLevel = Maps.newHashMap();
++        this.tickersInLevel = Maps.newConcurrentMap(); // ShreddedPaper - use concurrent map
+         this.level = (ServerLevel) world; // CraftBukkit - type
+         this.gameEventListenerRegistrySections = new Int2ObjectOpenHashMap();
+         Heightmap.Types[] aheightmap_type = Heightmap.Types.values();
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 index 38fd594b8184e4b2f11812f80e77a6d1d8df65ad..ad53a7b2e4e58837ca13b05828442125c9280469 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
