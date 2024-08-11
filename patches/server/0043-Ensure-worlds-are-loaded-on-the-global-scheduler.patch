@@ -5,7 +5,7 @@ Subject: [PATCH] Ensure worlds are loaded on the global scheduler
 
 
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index cb5f6d6571ac9b5da9bf695280fbd0dbc55454be..5bc508995f11a7e5ee13b9288f3ad8b7816ba411 100644
+index c11924979735e79655a2a0ae5485cd6ef74555b1..edc9a4c2aa5621f520525c9846df09d177f0765f 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -807,6 +807,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa

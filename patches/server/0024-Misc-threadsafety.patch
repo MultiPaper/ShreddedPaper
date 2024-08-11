@@ -429,7 +429,7 @@ index 6542c67e753245cd131de872c28862f83e7ff2f3..f355833ee748e25af228ad9bd3dc0660
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.game.ClientGamePacketListener;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 50efb1673b263ca4af72084652ff0a69e86a3255..81b5fb387d98b53cec30b15dd4485f06189faee3 100644
+index 099251e47f8a8bd303fec64a157f78eeda416f21..dbdb0db0836315a7f7d4234a20608df1b0b3071c 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -507,7 +507,7 @@ index a50ce5d0920638dd10e9c21f4bf0ce854c91428f..5fdc29db603108698d4eca489eef9db6
  
      }
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 069febfbc303a6d2a365a3762b237f5c57cfb8a3..98b3f8b4be0030812b2bc8c6e4b2c3aacb8d25cb 100644
+index 0d54b7e4d05423918f80b27c418edb2e8b4c99ff..ad225ec3cddeb689634777629ac52cde0ec00751 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 @@ -7,6 +7,7 @@ import com.mojang.brigadier.ParseResults;
@@ -518,7 +518,7 @@ index 069febfbc303a6d2a365a3762b237f5c57cfb8a3..98b3f8b4be0030812b2bc8c6e4b2c3aa
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
  import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-@@ -3530,7 +3531,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -3531,7 +3532,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
  
          this.filterTextPacket(list).thenAcceptAsync((list1) -> {
              this.updateSignText(packet, list1);
@@ -564,10 +564,10 @@ index 137fe86e33d63c629d69072ee7cbc15cdef1a4d8..081d5c96534746bf647f49c28f69b166
      }
  }
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index baf3d669b0f33f6ea3691f32362901a0fa754fd1..85014099f0932d1217c549e7fd0d35d2085b3667 100644
+index a755ea41486e5850014b133a1cdd455574742fdc..6c1e9965b10b5709129110bf408eaada8991542c 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
-@@ -1458,7 +1458,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+@@ -1467,7 +1467,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
      }
  
      protected BlockPos getOnPos(float offset) {
@@ -786,7 +786,7 @@ index 21c25026da4117b2cb2c85576d2def945a97dbe2..9b588a6f29f67520cc67aa9ec95d70bf
                  }
              }
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 97742d2286468c55daf2076f6da1f31a58412c0c..329291edfef3098ce8c68acce9cf16b9eeb7d2b3 100644
+index 195e715a76b9b89134cf929ad2810689e6573324..84557f71d4a98842faeb4badd723ff4e3183b3b3 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -166,7 +166,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {
@@ -1239,10 +1239,10 @@ index 6c6eb7deed281678c05ef27f933e1693b11dae7c..ee9c8fd4924e60a8f593c886c17f0014
      // Paper end - Bound treasure maps to world border
  
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 8fea185d3b7213dfef3c94ab7cc38bd008c38d29..ea8ef68cd005c96d6a31cce787c94c9771b398f7 100644
+index 5bc079d4edb08f0d3597af6e8f0ce403213434db..f8f35d6bfc4c7ecd3611f8d2c0f509b589a4c82f 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -795,13 +795,13 @@ public class LevelChunk extends ChunkAccess {
+@@ -809,13 +809,13 @@ public class LevelChunk extends ChunkAccess {
  
                  org.bukkit.World world = this.level.getWorld();
                  if (world != null) {

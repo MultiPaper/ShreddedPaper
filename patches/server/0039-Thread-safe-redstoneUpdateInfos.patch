@@ -29,7 +29,7 @@ index 99680a983da4c64b709cae624348992cdc83e7f3..ee00dd2ea0d2143cbc8282a34ad25a08
      public LevelChunkRegion(ServerLevel level, RegionPos regionPos) {
          this.level = level;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 76bed59483e41c637a2bdedee2bdce600d77beab..fd3a3b4405af77f850b3b2b9fcff95c98d7456cc 100644
+index 484ba0a90bd6f13fd2116279e422b1c9855d25ea..0af343050a13371b86379a794caeb8dfeeb8550b 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -186,7 +186,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {

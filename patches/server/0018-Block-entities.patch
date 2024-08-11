@@ -43,7 +43,7 @@ index a33e68c626464fdb9efe67a2fb911f5d1683c06f..28e33ccfdf064a67185135da53e40ea5
  
              while (region.getInternalTaskQueue().executeTask()) ;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 51877888cdb6bc28ec578bb2f7e1819ec46cdc3e..811db68a0a0b6c7003b8acb3a47c5d82210901b7 100644
+index 98201d9d984fdee9cc5fff3990229b18f19f708a..55508dd52c9dedd9ef44ce08dc62a129d8f178a1 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -948,7 +948,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -99,7 +99,7 @@ index 51877888cdb6bc28ec578bb2f7e1819ec46cdc3e..811db68a0a0b6c7003b8acb3a47c5d82
  
      private static <T> String getTypeCount(Iterable<T> items, Function<T, String> classifier) {
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 28f4e0f7ee069f891b8ff1124902d4154ab15138..97742d2286468c55daf2076f6da1f31a58412c0c 100644
+index fb1ec5a87639402ac008a862e083a8261eac614f..195e715a76b9b89134cf929ad2810689e6573324 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -6,10 +6,13 @@ import java.io.IOException;

@@ -140,7 +140,7 @@ index 50044760d4511ff2b75d8866faec22bf33bd2f94..824b4535b6afffbef92df8be166e5141
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index b4b3e6fc2c584cce4ad8344b1b16b99da5cda53e..f4ad4a15d7928df49af3412146b48607cc90131f 100644
+index 553d88739ae174963ee840f8a3aafa80654d45ab..2291091a8cdb3b3bb6a9af3bab6470e1906eac24 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -175,6 +175,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;

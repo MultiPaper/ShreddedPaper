@@ -27,7 +27,7 @@ index 3ebb70ecb854ba0172148e48a07578dc9c90d853..783ec3ddae8829237bfdb3a3b79f8bd8
  
              region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 9bbdb5c895c40aaceacc42cd94314bb2068e9d0a..221d5e8e49acc9b21f994e3ced03432b561570bf 100644
+index a7f3e1334e6df8fa9f2fce374be0df6d60bdc6e5..e8128156fb04be56291f09c8b71aeb944a18f2dd 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -209,7 +209,7 @@ public class ServerLevel extends Level implements WorldGenLevel {

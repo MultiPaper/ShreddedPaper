@@ -36,7 +36,7 @@ index f076380621dc6a40663e4f703de458a1d9b87fd9..06d85ca406b57f54827dd59191018590
                      if (treeType != null) {
                          structureEvent = new StructureGrowEvent(location, treeType, false, null, blocks);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index dd8eacf63fe2a970ea7c6d5f03197bf271565e2f..772c1ff243d9f677f7234b4e9765503abfdc9c99 100644
+index 1af483176ce7f69591b456f177a6268b32b80ee1..e2fe80d4253c783828f64eb38d293e0e2d30d5f7 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -1771,8 +1771,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -60,7 +60,7 @@ index dd8eacf63fe2a970ea7c6d5f03197bf271565e2f..772c1ff243d9f677f7234b4e9765503a
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
-index 5e24cac1328c81988302b0b7597fd27afd412e9b..aa8f069554c0659555572be0357d08df00f2534b 100644
+index 0a1e3784a26c5b0058b80455e0b0a357d4f25e91..510653da484f93666158553ffdc1200976481322 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 @@ -424,7 +424,7 @@ public class ServerPlayerGameMode {
@@ -186,7 +186,7 @@ index 20c2ed5b8a4a76554f251aa9c28fa5df10553bd9..04c29d349b2a5952b209e1f6c9503f4d
  
              return enuminteractionresult;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index 329291edfef3098ce8c68acce9cf16b9eeb7d2b3..76bed59483e41c637a2bdedee2bdce600d77beab 100644
+index 84557f71d4a98842faeb4badd723ff4e3183b3b3..484ba0a90bd6f13fd2116279e422b1c9855d25ea 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
@@ -394,10 +394,10 @@ index 5cb06959aeaceeb98cfee34b1df804e6642f305f..7fa724b10f89856f99956047290a08b6
              BlockState iblockdata = blockEntity.getBlockState();
              boolean flag = iblockdata.is(Blocks.WITHER_SKELETON_SKULL) || iblockdata.is(Blocks.WITHER_SKELETON_WALL_SKULL);
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index ea8ef68cd005c96d6a31cce787c94c9771b398f7..efa605d6ff1adcb8e35ec095daa7aac7f6d4c4ed 100644
+index f8f35d6bfc4c7ecd3611f8d2c0f509b589a4c82f..9f86114ddaeee7911e648ca122b4bde7e930dbe8 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-@@ -452,7 +452,7 @@ public class LevelChunk extends ChunkAccess {
+@@ -466,7 +466,7 @@ public class LevelChunk extends ChunkAccess {
  
                  boolean flag3 = iblockdata1.hasBlockEntity();
  
@@ -406,7 +406,7 @@ index ea8ef68cd005c96d6a31cce787c94c9771b398f7..efa605d6ff1adcb8e35ec095daa7aac7
                      iblockdata1.onRemove(this.level, blockposition, iblockdata, flag);
                  } else if (!iblockdata1.is(block) && flag3) {
                      this.removeBlockEntity(blockposition);
-@@ -462,7 +462,7 @@ public class LevelChunk extends ChunkAccess {
+@@ -476,7 +476,7 @@ public class LevelChunk extends ChunkAccess {
                      return null;
                  } else {
                      // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
@@ -415,7 +415,7 @@ index ea8ef68cd005c96d6a31cce787c94c9771b398f7..efa605d6ff1adcb8e35ec095daa7aac7
                          iblockdata.onPlace(this.level, blockposition, iblockdata1, flag);
                      }
  
-@@ -508,7 +508,7 @@ public class LevelChunk extends ChunkAccess {
+@@ -522,7 +522,7 @@ public class LevelChunk extends ChunkAccess {
      @Nullable
      public BlockEntity getBlockEntity(BlockPos pos, LevelChunk.EntityCreationType creationType) {
          // CraftBukkit start

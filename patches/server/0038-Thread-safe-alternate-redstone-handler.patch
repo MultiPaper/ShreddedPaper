@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe alternate redstone handler
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 3b6355790fc578c96845f802d1e99359fa3bbae0..9bbdb5c895c40aaceacc42cd94314bb2068e9d0a 100644
+index ef8c4455c06cd0eca58d21ac153acdc6f6999959..a7f3e1334e6df8fa9f2fce374be0df6d60bdc6e5 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -228,7 +228,7 @@ public class ServerLevel extends Level implements WorldGenLevel {

@@ -683,7 +683,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..47e9d18a4c4981e0b561eeaf52bf6e5b
                          this.changeEntityChunkStatus(FullChunkStatus.ENTITY_TICKING);
                          chunk.onChunkEntityTicking(this);
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 6c084d12a0c7c68a3a7a284256226c4cff7b29ff..d2bb65f4eaca8bf6457b033482e696fe8962d7d3 100644
+index c617f12b7e44859a4edafc0deff844cd2148268d..975121cd07dd284bcbab65d6a679c2236897e0be 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,7 @@ import com.mojang.authlib.GameProfileRepository;
@@ -748,7 +748,7 @@ index 6c084d12a0c7c68a3a7a284256226c4cff7b29ff..d2bb65f4eaca8bf6457b033482e696fe
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          //this.profiler.push("commandFunctions"); // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index b17d31aa52ade535ebf572141e6dacc92dab5358..7d5fd9be6133ae7b160096026aa4e125141db5e3 100644
+index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..92b2ee5cc413f7ca85e67cf3a84b1a5c08e3134e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -13,10 +13,14 @@ import java.util.function.BooleanSupplier;
@@ -842,7 +842,7 @@ index b17d31aa52ade535ebf572141e6dacc92dab5358..7d5fd9be6133ae7b160096026aa4e125
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 9c6f9cc702b33b58bf2007bcfbc3cf38933244b3..0946438c4b471f739c25a9d58b11c51d60e9ee82 100644
+index ae0f45317643724b6aa2eae04611f1edaeca0071..3198cc0eaad8e7d3e5daca8531d345951030e948 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -174,6 +174,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -899,7 +899,7 @@ index 43487a9ee202c5b0e5a416519939111f77b3059c..21d98fc8f006d1f445752f6ecd60e24d
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 46f2e1c0251ff22cb9ef880cae49d6d2663f4881..3bea6b6333abc6b044ca8e01c4c66bde472d5614 100644
+index 9db7f7604af0a4f82867cfb63e4c3bb785d829ec..3304b486a0906dce96905d0fd63b4f87432ad646 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -263,6 +263,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess

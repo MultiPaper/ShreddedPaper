@@ -346,10 +346,10 @@ index 47e9d18a4c4981e0b561eeaf52bf6e5bec102680..e6d0b0250d058e60a7ae7a22770f8a18
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index ea1ca44d67ebb6e7ea9d91a8b43a1886bba74913..a35a609036a20ff18ea2e6b22a113fe6e7fe3c06 100644
+index 5e856f53652658bd4c99ff9e61590fe94dcd8816..29613c4d48f90c5e355a8b4f9b76c459c7b02c6c 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -562,7 +562,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -560,7 +560,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      }
  
      private void processUnloads(BooleanSupplier shouldKeepTicking) {

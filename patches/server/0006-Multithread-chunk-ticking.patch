@@ -295,7 +295,7 @@ index e3f56908cc8a9c3f4580def50fcfdc61bd495a71..c063d9a29f2e7a14ccb878c758db9692
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 3146fd5f820175ee92f0c36e17f37886eed91436..428994dda9fb445ab1bc0e261a7b8ad62c9adcd3 100644
+index e80e14c7b512a3e4e46586c8816dbe05a9cdf0da..26770dadf47703828225efc4c72ffceeb9f375b7 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -1,12 +1,10 @@
@@ -399,7 +399,7 @@ index 3146fd5f820175ee92f0c36e17f37886eed91436..428994dda9fb445ab1bc0e261a7b8ad6
 -                    if (tick && chunk1.chunkStatus.isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING)) {
 -                        // Paper end - optimise chunk tick iteration
 -                        chunk1.incrementInhabitedTime(j);
--                        if (spawn && flag && (!gg.pufferfish.pufferfish.PufferfishConfig.enableAsyncMobSpawning || _pufferfish_spawnCountsReady.get()) && (this.spawnEnemies || this.spawnFriendlies) && this.level.getWorldBorder().isWithinBounds(chunkcoordintpair)) { // Spigot // Paper - optimise chunk tick iteration // Pufferfish
+-                        if (spawn && flag && (this.spawnEnemies || this.spawnFriendlies) && (!gg.pufferfish.pufferfish.PufferfishConfig.enableAsyncMobSpawning || _pufferfish_spawnCountsReady.get()) && this.level.getWorldBorder().isWithinBounds(chunkcoordintpair)) { // Spigot // Paper - optimise chunk tick iteration
 -                            NaturalSpawner.spawnForChunk(this.level, chunk1, lastSpawnState, this.spawnFriendlies, this.spawnEnemies, flag1); // Pufferfish
 -                        }
 -
@@ -460,7 +460,7 @@ index 3146fd5f820175ee92f0c36e17f37886eed91436..428994dda9fb445ab1bc0e261a7b8ad6
 +//                    if (tick && chunk1.chunkStatus.isOrAfter(net.minecraft.server.level.FullChunkStatus.ENTITY_TICKING)) {
 +//                        // Paper end - optimise chunk tick iteration
 +//                        chunk1.incrementInhabitedTime(j);
-+//                        if (spawn && flag && (!gg.pufferfish.pufferfish.PufferfishConfig.enableAsyncMobSpawning || _pufferfish_spawnCountsReady.get()) && (this.spawnEnemies || this.spawnFriendlies) && this.level.getWorldBorder().isWithinBounds(chunkcoordintpair)) { // Spigot // Paper - optimise chunk tick iteration // Pufferfish
++//                        if (spawn && flag && (this.spawnEnemies || this.spawnFriendlies) && (!gg.pufferfish.pufferfish.PufferfishConfig.enableAsyncMobSpawning || _pufferfish_spawnCountsReady.get()) && this.level.getWorldBorder().isWithinBounds(chunkcoordintpair)) { // Spigot // Paper - optimise chunk tick iteration
 +//                            NaturalSpawner.spawnForChunk(this.level, chunk1, lastSpawnState, this.spawnFriendlies, this.spawnEnemies, flag1); // Pufferfish
 +//                        }
 +//
@@ -480,10 +480,10 @@ index 3146fd5f820175ee92f0c36e17f37886eed91436..428994dda9fb445ab1bc0e261a7b8ad6
                  // this.level.timings.chunkTicks.stopTiming(); // Paper // Purpur
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index f2bb2ee3c0efe21fae1fac39333cc6742ea75559..2ff98096027d1398c72591772af5ee7cd837982a 100644
+index e9eb7f3a28474bc6d3c9f787e8d09b4a80e7fffe..a8fba925717149730f7f472c2a1a01d621fa30c5 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1021,7 +1021,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          });
      }
      // Paper start - optimise random block ticking
@@ -492,12 +492,12 @@ index f2bb2ee3c0efe21fae1fac39333cc6742ea75559..2ff98096027d1398c72591772af5ee7c
      private final io.papermc.paper.util.math.ThreadUnsafeRandom randomTickRandom = new io.papermc.paper.util.math.ThreadUnsafeRandom(this.random.nextLong());
      // Paper end
  
-@@ -1032,7 +1032,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1033,7 +1033,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          //ProfilerFiller gameprofilerfiller = this.getProfiler(); // Purpur
  
          //gameprofilerfiller.push("thunder"); // Purpur
 -        final BlockPos.MutableBlockPos blockposition = this.chunkTickMutablePosition; // Paper - use mutable to reduce allocation rate, final to force compile fail on change
 +        final BlockPos.MutableBlockPos blockposition = this.chunkTickMutablePosition.get(); // Paper - use mutable to reduce allocation rate, final to force compile fail on change // ShreddedPaper - is this really that necessary?
  
-         if (!this.paperConfig().environment.disableThunder && flag && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot // Paper - Option to disable thunder
+         if (!this.paperConfig().environment.disableThunder && flag && this.isThundering() && this.spigotConfig.thunderChance > 0 && /*this.random.nextInt(this.spigotConfig.thunderChance) == 0 &&*/ chunk.shouldDoLightning(this.random)) { // Spigot // Paper - Option to disable thunder // Pufferfish - replace random with shouldDoLightning
              blockposition.set(this.findLightningTargetAround(this.getBlockRandomPos(j, 0, k, 15))); // Paper

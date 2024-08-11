@@ -135,10 +135,10 @@ index dfbdfca7147e4463507be08a36de63aa96238ba4..56bd2dea24afbda142602fd0c352feed
              }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..81d6ae082047fdda6f2271a830e700fa90b9d0ac
+index 0000000000000000000000000000000000000000..051084e44759febef79a5b5606967e677699b951
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,38 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import net.minecraft.server.level.ServerLevel;
@@ -149,6 +149,7 @@ index 0000000000000000000000000000000000000000..81d6ae082047fdda6f2271a830e700fa
 +    public static void tickEntity(Entity entity) {
 +        ServerLevel level = (ServerLevel) entity.level();
 +
++        entity.activatedPriorityReset = false; // Pufferfish - DAB
 +        if (!entity.isRemoved()) {
 +            if (false && level.shouldDiscardEntity(entity)) { // CraftBukkit - We prevent spawning in general, so this butchering is not needed
 +                entity.discard();
@@ -177,7 +178,7 @@ index 0000000000000000000000000000000000000000..81d6ae082047fdda6f2271a830e700fa
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 428994dda9fb445ab1bc0e261a7b8ad62c9adcd3..b17d31aa52ade535ebf572141e6dacc92dab5358 100644
+index 26770dadf47703828225efc4c72ffceeb9f375b7..e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -710,12 +710,14 @@ public class ServerChunkCache extends ChunkSource {
@@ -202,7 +203,7 @@ index 428994dda9fb445ab1bc0e261a7b8ad62c9adcd3..b17d31aa52ade535ebf572141e6dacc9
                  });
              }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 2ff98096027d1398c72591772af5ee7cd837982a..9c6f9cc702b33b58bf2007bcfbc3cf38933244b3 100644
+index a8fba925717149730f7f472c2a1a01d621fa30c5..ae0f45317643724b6aa2eae04611f1edaeca0071 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -192,7 +192,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
@@ -223,11 +224,12 @@ index 2ff98096027d1398c72591772af5ee7cd837982a..9c6f9cc702b33b58bf2007bcfbc3cf38
          this.blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
          this.fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
          this.pathTypesByPosCache = new PathTypeCache();
-@@ -916,32 +916,32 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -916,33 +916,32 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
              org.spigotmc.ActivationRange.activateEntities(this); // Spigot
              //this.timings.entityTick.startTiming(); // Spigot // Purpur
 -            this.entityTickList.forEach((entity) -> {
+-                entity.activatedPriorityReset = false; // Pufferfish - DAB
 -                if (!entity.isRemoved()) {
 -                    if (false && this.shouldDiscardEntity(entity)) { // CraftBukkit - We prevent spawning in general, so this butchering is not needed
 -                        entity.discard();
@@ -282,7 +284,7 @@ index 2ff98096027d1398c72591772af5ee7cd837982a..9c6f9cc702b33b58bf2007bcfbc3cf38
              //this.timings.entityTick.stopTiming(); // Spigot // Purpur
              //this.timings.tickEntities.stopTiming(); // Spigot // Purpur
              //gameprofilerfiller.pop(); // Purpur
-@@ -1009,7 +1009,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1010,7 +1009,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      }
  
@@ -291,7 +293,7 @@ index 2ff98096027d1398c72591772af5ee7cd837982a..9c6f9cc702b33b58bf2007bcfbc3cf38
          return !this.server.isSpawningAnimals() && (entity instanceof Animal || entity instanceof WaterAnimal) ? true : !this.server.areNpcsEnabled() && entity instanceof Npc;
      }
  
-@@ -1499,7 +1499,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1500,7 +1499,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      private void tickPassenger(Entity vehicle, Entity passenger) {
          if (!passenger.isRemoved() && passenger.getVehicle() == vehicle) {
@@ -300,7 +302,7 @@ index 2ff98096027d1398c72591772af5ee7cd837982a..9c6f9cc702b33b58bf2007bcfbc3cf38
                  // Paper - EAR 2
                  final boolean isActive = org.spigotmc.ActivationRange.checkIfActive(passenger);
                  //co.aikar.timings.Timing timer = isActive ? passenger.getType().passengerTickTimer.startTiming() : passenger.getType().passengerInactiveTickTimer.startTiming(); // Paper // Purpur
-@@ -2642,7 +2642,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2643,7 +2642,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
@@ -309,7 +311,7 @@ index 2ff98096027d1398c72591772af5ee7cd837982a..9c6f9cc702b33b58bf2007bcfbc3cf38
          return this.entityLookup; // Paper - rewrite chunk system
      }
  
-@@ -2763,11 +2763,11 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2764,11 +2763,11 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
          public void onTickingStart(Entity entity) {
              if (entity instanceof net.minecraft.world.entity.Marker && !paperConfig().entities.markers.tick) return; // Paper - Configurable marker ticking
@@ -323,7 +325,7 @@ index 2ff98096027d1398c72591772af5ee7cd837982a..9c6f9cc702b33b58bf2007bcfbc3cf38
              // Paper start - Reset pearls when they stop being ticked
              if (paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && entity instanceof net.minecraft.world.entity.projectile.ThrownEnderpearl pearl) {
                  pearl.cachedOwner = null;
-@@ -2900,6 +2900,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2901,6 +2900,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
@@ -332,7 +334,7 @@ index 2ff98096027d1398c72591772af5ee7cd837982a..9c6f9cc702b33b58bf2007bcfbc3cf38
      }
  
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..46f2e1c0251ff22cb9ef880cae49d6d2663f4881 100644
+index 579ee25fc358bb6c5d4129e12036b66c35ac2d9b..9db7f7604af0a4f82867cfb63e4c3bb785d829ec 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -339,6 +339,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -344,7 +346,7 @@ index 7c8a3a6af8d5fdbb2341fe4012686bfc4f79a312..46f2e1c0251ff22cb9ef880cae49d6d2
      public boolean noPhysics;
      public final RandomSource random;
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
-index f2e988b6fe9cc62c3fc167afac4a41a2e3fc8d75..28f4e0f7ee069f891b8ff1124902d4154ab15138 100644
+index adf6379f1ebd7ead6368d7b58f60bf793ab43be6..fb1ec5a87639402ac008a862e083a8261eac614f 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
 +++ b/src/main/java/net/minecraft/world/level/Level.java
 @@ -1346,7 +1346,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable {

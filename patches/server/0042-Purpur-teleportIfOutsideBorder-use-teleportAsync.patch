@@ -5,10 +5,10 @@ Subject: [PATCH] Purpur teleportIfOutsideBorder - use teleportAsync
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-index e95c20639d5da73bab0d23acc67e81cd09e3e168..b02568c6568af81a631033594880002a4a8caeea 100644
+index 6f840e64c2f416f5e98c9c462fd29e3291a56fcf..d54e696d425e83a286de12ea8082ae7acfe3fb05 100644
 --- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
-@@ -441,7 +441,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+@@ -440,7 +440,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
                          double d1 = this.level().getWorldBorder().getDamagePerBlock();
  
                          if (d1 > 0.0D) {

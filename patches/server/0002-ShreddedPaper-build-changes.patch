@@ -5,7 +5,7 @@ Subject: [PATCH] ShreddedPaper build changes
 
 
 diff --git a/build.gradle.kts b/build.gradle.kts
-index c0699cc026ef4526ceb09c3a2c582774d67fb190..d67acf49205e6df94e3d65de624f2ddc6c34a44b 100644
+index 4db7610b7812c124595f103f30c599ac0bc34067..a08fe5582edaa4ceed6bf4f803bed132b0fdf3ce 100644
 --- a/build.gradle.kts
 +++ b/build.gradle.kts
 @@ -13,7 +13,7 @@ configurations.named(log4jPlugins.compileClasspathConfigurationName) {
@@ -17,7 +17,7 @@ index c0699cc026ef4526ceb09c3a2c582774d67fb190..d67acf49205e6df94e3d65de624f2ddc
      // Paper start
      implementation("org.jline:jline-terminal-jansi:3.21.0")
      implementation("net.minecrell:terminalconsoleappender:1.3.0")
-@@ -91,14 +91,14 @@ tasks.jar {
+@@ -100,14 +100,14 @@ tasks.jar {
          val gitBranch = git("rev-parse", "--abbrev-ref", "HEAD").getText().trim() // Paper
          attributes(
              "Main-Class" to "org.bukkit.craftbukkit.Main",
@@ -144,7 +144,7 @@ index c366d84518979e842a6f10f969a5951539ecac93..63f9c70666eaa90c68fa342e435bcfbd
          stringbuilder.append("// ");
          stringbuilder.append(CrashReport.getErrorComment());
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index ef8f1126e9e3851ab7a186811f70d6ba93c6d6ca..e2cd988219e93de3f892c35fa8dd798022dc886c 100644
+index d2dc8cd9688784e75edc56cdfd337c17c3b6648e..76edb0f99033d4819b82118a8ea21063674dcdd8 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -960,7 +960,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa

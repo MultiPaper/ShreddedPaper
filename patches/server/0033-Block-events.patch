@@ -133,7 +133,7 @@ index d5f0acade30d8f64a2db2c3aba195b89fd52643b..f32aecd69d929c005ca8226054c218c7
  
              region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 772c1ff243d9f677f7234b4e9765503abfdc9c99..3b6355790fc578c96845f802d1e99359fa3bbae0 100644
+index e2fe80d4253c783828f64eb38d293e0e2d30d5f7..ef8c4455c06cd0eca58d21ac153acdc6f6999959 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;

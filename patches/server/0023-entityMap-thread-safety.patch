@@ -272,7 +272,7 @@ index 0000000000000000000000000000000000000000..28bb91a25b7e473f4e2af48561e6b108
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc4bd200fe 100644
+index f6a01cbe8871bc6d0f5992730c70d34c184d718e..746c3e614a9596a93574af870365e535acda5152 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -13,6 +13,7 @@ import com.mojang.datafixers.DataFixer;
@@ -301,7 +301,7 @@ index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc
      private final Long2ByteMap chunkTypeCache;
      private final Long2LongMap chunkSaveCooldowns;
      private final Queue<Runnable> unloadQueue;
-@@ -254,7 +257,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -252,7 +255,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          // Paper - rewrite chunk system
          this.tickingGenerated = new AtomicInteger();
          this.playerMap = new PlayerMap();
@@ -311,7 +311,7 @@ index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc
          this.chunkTypeCache = new Long2ByteOpenHashMap();
          this.chunkSaveCooldowns = new Long2LongOpenHashMap();
          this.unloadQueue = Queues.newConcurrentLinkedQueue();
-@@ -1091,9 +1095,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1089,9 +1093,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
      public void addEntity(Entity entity) {
          org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot
          // Paper start - ignore and warn about illegal addEntity calls instead of crashing server
@@ -323,7 +323,7 @@ index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc
              return;
          }
          // Paper end - ignore and warn about illegal addEntity calls instead of crashing server
-@@ -1106,20 +1110,20 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1104,20 +1108,20 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              if (i != 0) {
                  int j = entitytypes.updateInterval();
  
@@ -347,7 +347,7 @@ index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc
  
                          while (objectiterator.hasNext()) {
                              ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) objectiterator.next();
-@@ -1139,7 +1143,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1137,7 +1141,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          org.spigotmc.AsyncCatcher.catchOp("entity untrack"); // Spigot
          if (entity instanceof ServerPlayer entityplayer) {
              this.updatePlayerStatus(entityplayer, false);
@@ -356,7 +356,7 @@ index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc
  
              while (objectiterator.hasNext()) {
                  ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) objectiterator.next();
-@@ -1148,7 +1152,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1146,7 +1150,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              }
          }
  
@@ -365,7 +365,7 @@ index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc
  
          if (playerchunkmap_entitytracker1 != null) {
              this.level.getChunkSource().tickingRegions.removeTrackedEntity(entity); // ShreddedPaper - only remove if it actually existed
-@@ -1162,7 +1166,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1160,7 +1164,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          if (true) return; // ShreddedPaper - handle ourselves
          //this.level.timings.tracker1.startTiming(); // Purpur
          try {
@@ -374,7 +374,7 @@ index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc
                  // update tracker entry
                  tracker.updatePlayers(tracker.entity.getPlayersInTrackRange());
              }
-@@ -1173,7 +1177,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1171,7 +1175,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
  
          //this.level.timings.tracker2.startTiming(); // Purpur
          try {
@@ -383,7 +383,7 @@ index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc
                  tracker.serverEntity.sendChanges();
              }
          } finally {
-@@ -1191,7 +1195,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1189,7 +1193,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          // Paper end - optimized tracker
          List<ServerPlayer> list = Lists.newArrayList();
          List<ServerPlayer> list1 = this.level.players();
@@ -392,7 +392,7 @@ index 3b77035237ec9267f48f403021db75c7ffd51be4..20c4b5645c5cc9a2a41b93bce6b907fc
          //this.level.timings.tracker1.startTiming(); // Paper // Purpur
  
          ChunkMap.TrackedEntity playerchunkmap_entitytracker;
-@@ -1220,7 +1224,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1218,7 +1222,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
          //this.level.timings.tracker1.stopTiming(); // Paper // Purpur
  
          if (!list.isEmpty()) {

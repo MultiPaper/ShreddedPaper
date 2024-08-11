@@ -841,7 +841,7 @@ index bdaf062f9b66ceab303a0807eca301342886a8ea..313f30948c9ebd09094c1623bfe2c359
      }
  }
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index e2cd988219e93de3f892c35fa8dd798022dc886c..6c084d12a0c7c68a3a7a284256226c4cff7b29ff 100644
+index 76edb0f99033d4819b82118a8ea21063674dcdd8..c617f12b7e44859a4edafc0deff844cd2148268d 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -191,6 +191,7 @@ import org.bukkit.event.server.ServerLoadEvent;
@@ -861,7 +861,7 @@ index e2cd988219e93de3f892c35fa8dd798022dc886c..6c084d12a0c7c68a3a7a284256226c4c
          if (upnp) {
              if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 7924e3c597164f71056cd58dd167ee8b1d41b9c3..f2bb2ee3c0efe21fae1fac39333cc6742ea75559 100644
+index 4c5017026e8a07508a43b1baa9617e8c8b6e659f..e9eb7f3a28474bc6d3c9f787e8d09b4a80e7fffe 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -50,7 +50,6 @@ import net.minecraft.core.particles.ParticleOptions;
