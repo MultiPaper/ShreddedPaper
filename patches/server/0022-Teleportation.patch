@@ -394,6 +394,68 @@ index 3bea6b6333abc6b044ca8e01c4c66bde472d5614..ca7a2d41f3b3fb2af1c9ef5dddaf9381
                              ServerLevel.makeObsidianPlatform(worldserver, this); // CraftBukkit
                          }
                      }
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java b/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
+index 61bd2459f2b9164dce90134103abaddce42b0621..39d3e08148f2bf3cee2ee6377e28df6fb21d1cef 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
+@@ -19,9 +19,12 @@ import net.minecraft.world.phys.EntityHitResult;
+ import net.minecraft.world.phys.HitResult;
+ // CraftBukkit start
+ import org.bukkit.Bukkit;
++import org.bukkit.Location;
+ import org.bukkit.event.entity.CreatureSpawnEvent;
+ import org.bukkit.event.entity.EntityRemoveEvent;
+ import org.bukkit.event.player.PlayerTeleportEvent;
++
++import java.util.concurrent.CompletableFuture;
+ // CraftBukkit end
+ 
+ public class ThrownEnderpearl extends ThrowableItemProjectile {
+@@ -66,16 +69,21 @@ public class ThrownEnderpearl extends ThrowableItemProjectile {
+                     location.setPitch(player.getLocation().getPitch());
+                     location.setYaw(player.getLocation().getYaw());
+ 
+-                    PlayerTeleportEvent teleEvent = new PlayerTeleportEvent(player, player.getLocation(), location, PlayerTeleportEvent.TeleportCause.ENDER_PEARL);
+-                    Bukkit.getPluginManager().callEvent(teleEvent);
++                    // ShreddedPaper start - teleport async
++                    // PlayerTeleportEvent teleEvent = new PlayerTeleportEvent(player, player.getLocation(), location, PlayerTeleportEvent.TeleportCause.ENDER_PEARL);
++                    // Bukkit.getPluginManager().callEvent(teleEvent);
++                    Location previousLocation = entityplayer.getBukkitEntity().getLocation();
++                    CompletableFuture<Boolean> teleFuture = entityplayer.getBukkitEntity().teleportAsync(location, PlayerTeleportEvent.TeleportCause.ENDER_PEARL);
+ 
+-                    if (!teleEvent.isCancelled() && entityplayer.connection.isAcceptingMessages()) {
++                    teleFuture.thenAccept(wasTeleported -> {
++                    if (wasTeleported && entityplayer.connection.isAcceptingMessages()) {
++                    // ShreddedPaper end - teleport async
+                         if (this.random.nextFloat() < this.level().purpurConfig.enderPearlEndermiteChance && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) { // Purpur
+                             Endermite entityendermite = (Endermite) EntityType.ENDERMITE.create(this.level());
+ 
+                             if (entityendermite != null) {
+                                 entityendermite.setPlayerSpawned(true); // Purpur
+-                                entityendermite.moveTo(entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot());
++                                entityendermite.moveTo(previousLocation.getX(), previousLocation.getY(), previousLocation.getZ(), previousLocation.getYaw(), previousLocation.getPitch()); // ShreddedPaper - teleport async
+                                 this.level().addFreshEntity(entityendermite, CreatureSpawnEvent.SpawnReason.ENDER_PEARL);
+                             }
+                         }
+@@ -84,15 +92,16 @@ public class ThrownEnderpearl extends ThrowableItemProjectile {
+                             entity.stopRiding();
+                         }
+ 
+-                        entityplayer.connection.teleport(teleEvent.getTo());
++                        // entityplayer.connection.teleport(teleEvent.getTo()); // ShreddedPaper - teleport async
+                         entity.resetFallDistance();
+                         entity.hurt(this.damageSources().fall().customEventDamager(this), this.level().purpurConfig.enderPearlDamage); // CraftBukkit // Paper - fix DamageSource API // Purpur
+                     }
+                     // CraftBukkit end
+                     this.level().playSound((Player) null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_TELEPORT, SoundSource.PLAYERS);
++                    }); // ShreddedPaper - teleport async
+                 }
+             } else if (entity != null) {
+-                entity.teleportTo(this.getX(), this.getY(), this.getZ());
++                entity.getBukkitEntity().teleportAsync(new Location(this.level().getWorld(), this.getX(), this.getY(), this.getZ(), entity.getBukkitYaw(), entity.getXRot())); // entity.teleportTo(this.getX(), this.getY(), this.getZ()); // ShreddedPaper - teleport async
+                 entity.resetFallDistance();
+             }
+ 
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 index ad53a7b2e4e58837ca13b05828442125c9280469..bd60758e8291821c66bd82a5d23682959b915136 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
