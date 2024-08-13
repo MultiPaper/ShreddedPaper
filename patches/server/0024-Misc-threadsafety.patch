@@ -785,6 +785,28 @@ index 21c25026da4117b2cb2c85576d2def945a97dbe2..9b588a6f29f67520cc67aa9ec95d70bf
                      // CraftBukkit end
                  }
              }
+diff --git a/src/main/java/net/minecraft/world/item/component/LodestoneTracker.java b/src/main/java/net/minecraft/world/item/component/LodestoneTracker.java
+index cdd1f6939ce33e62f6609f7eb3a5dff59bf12675..70cbe44b89f7cac1b9b598505c17f8fa77dcee46 100644
+--- a/src/main/java/net/minecraft/world/item/component/LodestoneTracker.java
++++ b/src/main/java/net/minecraft/world/item/component/LodestoneTracker.java
+@@ -4,6 +4,8 @@ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import io.netty.buffer.ByteBuf;
+ import java.util.Optional;
++
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.GlobalPos;
+ import net.minecraft.network.codec.ByteBufCodecs;
+@@ -29,7 +31,7 @@ public record LodestoneTracker(Optional<GlobalPos> target, boolean tracked) {
+                 return this;
+             } else {
+                 BlockPos blockPos = this.target.get().pos();
+-                return world.isInWorldBounds(blockPos) && (!world.hasChunkAt(blockPos) || world.getPoiManager().existsAtPosition(PoiTypes.LODESTONE, blockPos)) // Paper - Prevent compass from loading chunks
++                return world.isInWorldBounds(blockPos) && (!TickThread.isTickThreadFor(world, blockPos) || !world.hasChunkAt(blockPos) || world.getPoiManager().existsAtPosition(PoiTypes.LODESTONE, blockPos)) // Paper - Prevent compass from loading chunks // ShreddedPaper - Prevent compass from accessing outside our thread
+                     ? this
+                     : new LodestoneTracker(Optional.empty(), true);
+             }
 diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
 index 195e715a76b9b89134cf929ad2810689e6573324..84557f71d4a98842faeb4badd723ff4e3183b3b3 100644
 --- a/src/main/java/net/minecraft/world/level/Level.java
@@ -1239,7 +1261,7 @@ index 6c6eb7deed281678c05ef27f933e1693b11dae7c..ee9c8fd4924e60a8f593c886c17f0014
      // Paper end - Bound treasure maps to world border
  
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index 5bc079d4edb08f0d3597af6e8f0ce403213434db..f8f35d6bfc4c7ecd3611f8d2c0f509b589a4c82f 100644
+index 71521c19c60ed16579be100263e0c72cf8f88bec..e01aba693382654f0b078ae06538248736fe896b 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -809,13 +809,13 @@ public class LevelChunk extends ChunkAccess {
