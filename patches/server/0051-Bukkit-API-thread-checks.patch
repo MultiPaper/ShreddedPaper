@@ -46,3 +46,48 @@ index 3723dd028800c81f3f392657f1b209884864c5ba..12091e6b2696f7adf5275988ecc4cdc5
          warnUnsafeChunk("getting a faraway chunk", x, z); // Paper
          // Paper start - add ticket to hold chunk for a little while longer if plugin accesses it
          net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+index ed30feb916daecc1d9b9aaa854ac5b832aa59757..59f9d77239c03a56eb2dfad4599f32ec77894830 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+@@ -6,6 +6,8 @@ import java.util.Collection;
+ import java.util.Collections;
+ import java.util.List;
+ import java.util.stream.Collectors;
++
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -75,6 +77,7 @@ public class CraftBlock implements Block {
+     }
+ 
+     public net.minecraft.world.level.block.state.BlockState getNMS() {
++        if (this.world instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, this.position, "Cannot get block asynchronously!");
+         return this.world.getBlockState(this.position);
+     }
+ 
+@@ -162,6 +165,7 @@ public class CraftBlock implements Block {
+ 
+     @Override
+     public byte getData() {
++        if (this.world instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, this.position, "Cannot get block asynchronously!");
+         net.minecraft.world.level.block.state.BlockState blockData = this.world.getBlockState(this.position);
+         return CraftMagicNumbers.toLegacyData(blockData);
+     }
+@@ -194,6 +198,7 @@ public class CraftBlock implements Block {
+     }
+ 
+     boolean setTypeAndData(final net.minecraft.world.level.block.state.BlockState blockData, final boolean applyPhysics) {
++        if (this.world instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, this.position, "Cannot set block asynchronously!");
+         return CraftBlock.setTypeAndData(this.world, this.position, this.getNMS(), blockData, applyPhysics);
+     }
+ 
+@@ -226,6 +231,7 @@ public class CraftBlock implements Block {
+ 
+     @Override
+     public Material getType() {
++        if (this.world instanceof ServerLevel serverLevel) TickThread.ensureTickThread(serverLevel, this.position, "Cannot get block asynchronously!");
+         return this.world.getBlockState(this.position).getBukkitMaterial(); // Paper - optimise getType calls
+     }
+ 
