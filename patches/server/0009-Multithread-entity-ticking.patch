@@ -5,7 +5,7 @@ Subject: [PATCH] Multithread entity ticking
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..ea45d119640d42d4d22d3db0e5c7d2456e1b64e4 100644
+index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..616beda72d0e6fb94e54da45484559b651b7ebdd 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,6 +1,8 @@
@@ -41,7 +41,7 @@ index 51ce3a1324793f3560cd718d5aa37b33ebbaafa0..ea45d119640d42d4d22d3db0e5c7d245
 +        }
 +    }
 +
-+    public synchronized void forEachTickingEntity(Consumer<Entity> action) {
++    public void forEachTickingEntity(Consumer<Entity> action) {
 +        IteratorSafeOrderedReferenceSet.Iterator<Entity> iterator = this.tickingEntities.iterator();
 +        try {
 +            while (iterator.hasNext()) {
