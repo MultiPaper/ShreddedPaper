@@ -107,6 +107,27 @@ index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b
          }
      }
  
+diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
+index 6542c67e753245cd131de872c28862f83e7ff2f3..073743301c2e70fcd148c33e97be2a3069d6109e 100644
+--- a/src/main/java/net/minecraft/server/level/ServerEntity.java
++++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
+@@ -43,6 +43,7 @@ import net.minecraft.world.item.MapItem;
+ import net.minecraft.world.level.saveddata.maps.MapId;
+ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.Location;
+ import org.slf4j.Logger;
+ 
+ // CraftBukkit start
+@@ -111,7 +112,7 @@ public class ServerEntity {
+             this.broadcastAndSend(new ClientboundSetPassengersPacket(this.entity)); // CraftBukkit
+             ServerEntity.removedPassengers(list, this.lastPassengers).forEach((entity) -> {
+                 if (entity instanceof ServerPlayer entityplayer) {
+-                    entityplayer.connection.teleport(entityplayer.getX(), entityplayer.getY(), entityplayer.getZ(), entityplayer.getYRot(), entityplayer.getXRot());
++                    entityplayer.getBukkitEntity().teleportAsync(new Location(entityplayer.getBukkitEntity().getWorld(), entityplayer.getX(), entityplayer.getY(), entityplayer.getZ(), entityplayer.getYRot(), entityplayer.getXRot())); // ShreddedPaper - teleport async
+                 }
+ 
+             });
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 index ca36526379158b027b3ccebb78c0a0f4978a2c40..a50ce5d0920638dd10e9c21f4bf0ce854c91428f 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
