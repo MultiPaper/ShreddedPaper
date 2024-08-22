@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Fri, 23 Aug 2024 01:03:30 +0900
+Subject: [PATCH] Debug: Moving into another region
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 6b2c2e2f782630a3b7e25532260cc61e02c8049f..aed3b6df57534abf2a8d72fb22529ff3e44e89e1 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -1176,7 +1176,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     public void move(MoverType movementType, Vec3 movement) {
+         final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
+         // Paper start - detailed watchdog information
+-        io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
++        io.papermc.paper.util.TickThread.ensureTickThread(this, "Cannot move an entity off-main");
++        BlockPos newPos = new BlockPos((int) (this.getX() + movement.x), (int) (this.getY() + movement.y), (int) (this.getZ() + movement.z));
++        if (!TickThread.isTickThreadFor((ServerLevel) this.level, newPos)) {
++            LOGGER.warn("Trying to move {} from {} to {}!!! movement={} getDeltaMovement={}", this, this.blockPosition(), newPos, movement, this.getDeltaMovement());
++        }
+         synchronized (this.posLock) {
+             this.moveStartX = this.getX();
+             this.moveStartY = this.getY();
