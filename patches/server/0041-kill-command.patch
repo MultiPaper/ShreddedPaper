@@ -5,18 +5,19 @@ Subject: [PATCH] /kill command
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-index d5e3f8f83ef134cacc8f070fce43951498604414..1945d2936cba31370054045bec1bff5b44a5badd 100644
+index 0671578ca4a43ff5ba3853440ad8ee96018c9916..478b67cfaef9507713b70d837cdcb675f47c10a7 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-@@ -9,6 +9,7 @@ import org.bukkit.craftbukkit.CraftWorld;
+@@ -9,6 +9,8 @@ import org.bukkit.Location;
+ import org.bukkit.craftbukkit.CraftWorld;
  import io.multipaper.shreddedpaper.region.RegionPos;
  
- import java.util.concurrent.atomic.AtomicLong;
 +import java.util.function.Consumer;
- 
++
  public class ShreddedPaper {
  
-@@ -42,6 +43,14 @@ public class ShreddedPaper {
+     public static void runSync(Location location, Runnable runnable) {
+@@ -39,6 +41,14 @@ public class ShreddedPaper {
          }
      }
  

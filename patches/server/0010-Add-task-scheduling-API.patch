@@ -6,12 +6,13 @@ Subject: [PATCH] Add task scheduling API
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d5e3f8f83ef134cacc8f070fce43951498604414
+index 0000000000000000000000000000000000000000..0671578ca4a43ff5ba3853440ad8ee96018c9916
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,58 @@
 +package io.multipaper.shreddedpaper;
 +
++import io.papermc.paper.util.TickThread;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.entity.Entity;
@@ -20,11 +21,7 @@ index 0000000000000000000000000000000000000000..d5e3f8f83ef134cacc8f070fce439514
 +import org.bukkit.craftbukkit.CraftWorld;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +
-+import java.util.concurrent.atomic.AtomicLong;
-+
 +public class ShreddedPaper {
-+
-+    private static final AtomicLong asyncThreadCounter = new AtomicLong(0);
 +
 +    public static void runSync(Location location, Runnable runnable) {
 +        runSync(((CraftWorld) location.getWorld()).getHandle(), new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), runnable);
@@ -70,10 +67,6 @@ index 0000000000000000000000000000000000000000..d5e3f8f83ef134cacc8f070fce439514
 +        return serverLevel.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forChunk(chunkPos));
 +    }
 +
-+    public static void runAsync(Runnable runnable) {
-+        Thread.ofVirtual().name("ShreddedPaper-Async-Task-" + asyncThreadCounter.incrementAndGet()).start(runnable);
-+    }
-+
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/DelayedTask.java b/src/main/java/io/multipaper/shreddedpaper/region/DelayedTask.java
 new file mode 100644
@@ -111,7 +104,7 @@ index 0000000000000000000000000000000000000000..7f3344a89ceab9c362c48eabc8ec4b14
 +
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 616beda72d0e6fb94e54da45484559b651b7ebdd..e7ad3b17b47e7a2e7bc38d8f414d3920e6aa5b28 100644
+index ea45d119640d42d4d22d3db0e5c7d2456e1b64e4..a31559ba6d385f961d08d12a4cbe62a53b766ab2 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,5 +1,6 @@

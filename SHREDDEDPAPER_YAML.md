@@ -33,10 +33,6 @@ multithreading:
   # for single server instances.
   allow-unsupported-plugins-to-modify-chunks-via-global-scheduler: true
 
-  # Instead of waiting till the next tick to execute right-click packets,
-  # execute them immediately if possible.
-  execute-right-click-packets-immediately: true
-
 # ShreddedPaper's optimizations settings
 optimizations:
   

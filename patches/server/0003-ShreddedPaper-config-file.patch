@@ -20,10 +20,10 @@ index 0000000000000000000000000000000000000000..df97bb240655934b62cfb1647f2dc327
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java b/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d9dceb388411497bd79c9f2397ca43c7565eea23
+index 0000000000000000000000000000000000000000..99ff58475641bc12fa3a3fd99afd6f15ac315957
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java
-@@ -0,0 +1,49 @@
+@@ -0,0 +1,48 @@
 +package io.multipaper.shreddedpaper.config;
 +
 +import io.papermc.paper.configuration.ConfigurationPart;
@@ -59,7 +59,6 @@ index 0000000000000000000000000000000000000000..d9dceb388411497bd79c9f2397ca43c7
 +        public int regionSize = 8;
 +        public boolean runUnsupportedPluginsInSync = true;
 +        public boolean allowUnsupportedPluginsToModifyChunksViaGlobalScheduler = true;
-+        public boolean executeRightClickPacketsImmediately = true;
 +
 +    }
 +
