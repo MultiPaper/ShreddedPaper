@@ -5,7 +5,7 @@ Subject: [PATCH] Moving into another region
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 6b2c2e2f782630a3b7e25532260cc61e02c8049f..36de52ac1b0a4bdfd9cea47467b1b4b3664065f2 100644
+index 6b2c2e2f782630a3b7e25532260cc61e02c8049f..b015fe3b2a7ef9a13c6f91edb7fded542e2e8604 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1176,7 +1176,11 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -41,7 +41,7 @@ index 6b2c2e2f782630a3b7e25532260cc61e02c8049f..36de52ac1b0a4bdfd9cea47467b1b4b3
      }
  
 +    // ShreddedPaper start - why is something setting the entity velocity to larger than one region...
-+    private static final int REGION_SIZE_BLOCKS_SQR = (RegionPos.REGION_SIZE * 16) * (RegionPos.REGION_SIZE * 16);
++    private static final int REGION_SIZE_BLOCKS_SQR = (RegionPos.REGION_SIZE * 16) * (RegionPos.REGION_SIZE * 16) + 1;
      public void setDeltaMovement(Vec3 velocity) {
 +        if (velocity.horizontalDistanceSqr() > REGION_SIZE_BLOCKS_SQR && velocity.horizontalDistanceSqr() > this.deltaMovement.horizontalDistanceSqr()) {
 +            LOGGER.warn("Velocity is being set larger than the ShreddedPaper region size: {} for entity {}", velocity, this, new Exception("Velocity larger than region size"));
