@@ -5,6 +5,65 @@ Subject: [PATCH]
  allow-unsupported-plugins-to-modify-chunks-via-global-scheduler
 
 
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
+index 4165d17d8e0e4dc75af5d2d56216db688e895afa..b1b4415fe64a36778beb31938ae5d360bc936d02 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
+@@ -1,7 +1,10 @@
+ package ca.spottedleaf.moonrise.common.util;
+ 
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
+ import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
+ import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ServerLevel;
+@@ -51,6 +54,16 @@ public class TickThread extends Thread {
+     }
+     // ShreddedPaper end
+ 
++    // ShreddedPaper start
++    public static boolean canBypassTickThreadCheck() {
++        return
++                ShreddedPaperConfiguration.get().multithreading.allowUnsupportedPluginsToModifyChunksViaGlobalScheduler &&
++                        SynchronousPluginExecution.getCurrentPlugin() != null &&
++                        Thread.currentThread() == MinecraftServer.getServer().getRunningThread() &&
++                        !ShreddedPaperChunkTicker.tickingChunks;
++    }
++    // ShreddedPaper end
++
+     /**
+      * @deprecated
+      */
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+index 61e10aac82906caaca741315b4a46146e8bed840..6ad25fae4623fab55d10ced503ae8fe5cc0d0450 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+@@ -18,9 +18,13 @@ import java.util.concurrent.CompletableFuture;
+ 
+ public class ShreddedPaperChunkTicker {
+ 
++    public static boolean tickingChunks = false;
++
+     public static void tickChunks(ServerLevel level, NaturalSpawner.SpawnState spawnercreature_d) {
+         List<CompletableFuture<Void>> futures = new ArrayList<>();
+ 
++        tickingChunks = true;
++
+         level.chunkSource.tickingRegions.forEach(
+                 region -> futures.add(tickRegion(level, region, spawnercreature_d))
+         );
+@@ -30,6 +34,8 @@ public class ShreddedPaperChunkTicker {
+                 level.getChunkSource().mainThreadProcessor.managedBlock(future::isDone);
+             }
+         }
++
++        tickingChunks = false;
+     }
+ 
+     public static CompletableFuture<Void> tickRegion(ServerLevel level, LevelChunkRegion region, NaturalSpawner.SpawnState spawnercreature_d) {
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 index cee763e641821090382ab1d20405d54052852bab..ef32faef3bc833cf0b461f50255d316300d06f56 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java

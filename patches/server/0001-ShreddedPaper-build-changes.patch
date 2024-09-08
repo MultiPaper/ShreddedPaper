@@ -185,6 +185,30 @@ index 8f74c2ec5252b6265549589310d742337c91cb2c..727a4e4d5f93bad6f9539e2d742baf77
                      server.halt(true);
                      servergui.runFinalizers();
                  }
+diff --git a/src/main/java/net/minecraft/world/scores/Scoreboard.java b/src/main/java/net/minecraft/world/scores/Scoreboard.java
+index 121b57ec018bffc05904e7596e0963e2bb545dc1..14100b0f9ab320efc57e0d190adfcf32ce0b8917 100644
+--- a/src/main/java/net/minecraft/world/scores/Scoreboard.java
++++ b/src/main/java/net/minecraft/world/scores/Scoreboard.java
+@@ -88,7 +88,7 @@ public class Scoreboard {
+             }
+ 
+             @Override
+-            public void set(int score) {
++            public void set(int newScoreValue) { // ShreddedPaper compile error - rename to newScoreValue
+                 if (!bl) {
+                     throw new IllegalStateException("Cannot modify read-only score");
+                 } else {
+@@ -101,8 +101,8 @@ public class Scoreboard {
+                         }
+                     }
+ 
+-                    if (score != score.value()) {
+-                        score.value(score);
++                    if (newScoreValue != score.value()) { // ShreddedPaper compile error - rename to newScoreValue
++                        score.value(newScoreValue); // ShreddedPaper compile error - rename to newScoreValue
+                         bl = true;
+                     }
+ 
 diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
 index 48999a860a3b9ed691691c355beaf3e0674acb95..d3992a91921fc5cef7d53f989421f67418380c0d 100644
 --- a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java

@@ -593,10 +593,10 @@ index 0000000000000000000000000000000000000000..692dee8b14e70b2a1e9af885a7f75860
 +}
 +
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index a19178cba21a3301088d2c4c84bab757fa8301fc..03b1ff252cb5ebce8334b1de37333e4844562916 100644
+index f7187fa6a946d094b356fa732c2d7f3a56a940ae..b2d7e00d70b3d97ec0b5aa2a3b80b03856c3aaac 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
+@@ -10,6 +10,7 @@ import net.minecraft.world.level.Level;
  import net.minecraft.world.level.NaturalSpawner;
  import net.minecraft.world.level.chunk.LevelChunk;
  import io.multipaper.shreddedpaper.region.LevelChunkRegion;
@@ -604,7 +604,7 @@ index a19178cba21a3301088d2c4c84bab757fa8301fc..03b1ff252cb5ebce8334b1de37333e48
  
  import java.util.ArrayList;
  import java.util.List;
-@@ -51,10 +52,26 @@ public class ShreddedPaperChunkTicker {
+@@ -50,10 +51,26 @@ public class ShreddedPaperChunkTicker {
          try {
              currentlyTickingRegion.set(region);
  
@@ -659,7 +659,7 @@ index d82795c57f15c6d96ad2e78dc5e715e194f467cc..cee763e641821090382ab1d20405d540
       * Lock the region and run the runnable. If the region is already locked, wait until it is unlocked.
       * Can be called recursively and will respect existing locks created by the same thread.
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 89a56d18a1d26dbf9bd27fff335845d09cc65cdb..3fa12df0dee4bd09cab8dcaa036697fd588c8adc 100644
+index 392ea3aa1e585f17694067d917226c02dda1a890..3dc17e42ba8771fb3411b4125e643223731e453a 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -385,6 +385,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -689,7 +689,7 @@ index 89a56d18a1d26dbf9bd27fff335845d09cc65cdb..3fa12df0dee4bd09cab8dcaa036697fd
      }
      // Paper end - rewrite chunk system
  
-@@ -1766,17 +1772,19 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1773,17 +1779,19 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          //MinecraftTimings.bukkitSchedulerTimer.stopTiming(); // Spigot // Paper // Purpur
          // Paper start - Folia scheduler API
          ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();

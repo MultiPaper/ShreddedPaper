@@ -5,7 +5,7 @@ Subject: [PATCH] Misc threadsafety
 
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index 1174042c7f8f915d621aebacf61a080cc39819b4..8c541e4cf2b35871cb1a212dead287ae54a367cc 100644
+index 5e53a62bb32f9aea01c2c4ffc212d570d0c4d252..63ecd04314455a1037d84e5c7260c34d3c215fea 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -23,6 +23,7 @@ import com.google.gson.JsonObject;
@@ -43,7 +43,7 @@ index 1174042c7f8f915d621aebacf61a080cc39819b4..8c541e4cf2b35871cb1a212dead287ae
 +                        // We're shutting down, no need to worry about chunk threads
 +                        future = CompletableFuture.completedFuture(supplier.get());
 +                    } else {
-+                        future = CompletableFuture.supplyAsync(supplier, r -> world.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(RegionPos.forChunk(holder.vanillaChunkHolder.pos), r));
++                        future = CompletableFuture.supplyAsync(supplier, r -> world.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(RegionPos.forChunk(holder.vanillaChunkHolder.getPos()), r));
 +                        if (!future.isDone()) {
 +                            // Poll task while we wait for region to become unlocked
 +                            world.chunkSource.mainThreadProcessor.pollTask();
@@ -465,7 +465,7 @@ index 386adc0405a0b210094d096723fe25d19e14f7b0..110ad7e82e72f808e460ccec7740e5be
                      }
                  } );
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 7c4b96b800a09fd305213fc038b435dcfedeed35..e0efa205d5ed240aca54a3ef7910f0bbf63d59e3 100644
+index 7c4b96b800a09fd305213fc038b435dcfedeed35..cbf09786d70d1fe2b0fcbbb878961fcd175b6a10 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -2914,6 +2914,8 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
@@ -473,7 +473,7 @@ index 7c4b96b800a09fd305213fc038b435dcfedeed35..e0efa205d5ed240aca54a3ef7910f0bb
                  this.connection.send(new ClientboundRemoveMobEffectPacket(entity.getId(), mobeffect.getEffect()));
              }
 +
-+            if (entity.tracker != null) entity.tracker.serverEntity.sendChanges(); // ShreddedPaper - send changes now
++            if (entity.moonrise$getTrackedEntity() != null) entity.moonrise$getTrackedEntity().serverEntity.sendChanges(); // ShreddedPaper - send changes now
          }
  
      }
@@ -1423,7 +1423,7 @@ index a8568e16301f7fce4baea6942a02b9be94fe7ddc..6e1c41960f4ed80c321d5781b6dc7697
          return true;
      }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index 4babcb88fd857d4faed5c4dd94a28624c29a0933..1dca2e27a10bdbfb42760898129d41dfdb192c67 100644
+index 1f01fa5286775953f16d0a151f0e16287b735786..5c4dfae5628fc31c72a212cba351d0d36f6cb3dc 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -3518,7 +3518,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {

@@ -18,10 +18,10 @@ index 0000000000000000000000000000000000000000..69db3090c24ab058549cdd8e78ca1beb
 +     for Folia plugins that have hard coded checks for Folia */
 +}
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index df6da15eb1908c0ab1e05bc424e3a9713e4ca002..e8bed883ffd95c4fdfc65dc6a5dced6fa9278c98 100644
+index a51cf2bed02780f741f0465e23a76413a85289e1..ae722ce431941c46e1ae05d51735306586fd702b 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -16,6 +16,7 @@ import com.mojang.datafixers.DataFixer;
+@@ -17,6 +17,7 @@ import com.mojang.datafixers.DataFixer;
  import com.mojang.logging.LogUtils;
  import io.multipaper.shreddedpaper.ShreddedPaper;
  import io.multipaper.shreddedpaper.threading.ShreddedPaperPlayerTicker;
@@ -29,7 +29,7 @@ index df6da15eb1908c0ab1e05bc424e3a9713e4ca002..e8bed883ffd95c4fdfc65dc6a5dced6f
  import it.unimi.dsi.fastutil.longs.LongIterator;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectArraySet;
-@@ -1246,6 +1247,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1249,6 +1250,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              this.statusIcon = (ServerStatus.Favicon) this.loadStatusIcon().orElse(null); // CraftBukkit - decompile error
              this.status = this.buildServerStatus();
  

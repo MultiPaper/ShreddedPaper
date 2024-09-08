@@ -102,10 +102,10 @@ index 43c34c7ad95ff2cf29e8cf003bce765fee1e0ac8..634e385d8d8af8848ca7a82a990e7120
       * Schedule a task to run on the given region's thread at the beginning of the next tick
       */
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 5df9bfbbd316662a69ff893d21899ef6c1bcd1bf..6d51ab3ecc9d47a671365b9c82a47ab946c7564e 100644
+index 9f7feef6c842b25402eebd3be4cf8364d1b5c70b..ce09bb29910788f14127a4d64cfe601386199d98 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -76,6 +76,8 @@ public class ShreddedPaperChunkTicker {
+@@ -75,6 +75,8 @@ public class ShreddedPaperChunkTicker {
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
@@ -115,7 +115,7 @@ index 5df9bfbbd316662a69ff893d21899ef6c1bcd1bf..6d51ab3ecc9d47a671365b9c82a47ab9
  
              region.getPlayers().forEach(ShreddedPaperPlayerTicker::tickPlayer);
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
-index c7f1873c4b7fb0398a20df6ee33914dc31c2733c..6f98c5194435566872e9e3a22e0e712da6086c64 100644
+index f40bba4ed34e4385dd9c279c5e53400debde4a5b..ab51946555b14c60a633bb29ca389837f9d8764c 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
 @@ -1,9 +1,12 @@
@@ -142,7 +142,7 @@ index c7f1873c4b7fb0398a20df6ee33914dc31c2733c..6f98c5194435566872e9e3a22e0e712d
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 59d7e6244cde58c21698b9c2ab5f59befad440c2..6fa6255515d7a9a8d3665635f70bdfe8d9fab7e5 100644
+index 59d7e6244cde58c21698b9c2ab5f59befad440c2..250380556094ab239ea0c1ffc72d078ec18f805e 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -868,7 +868,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -175,7 +175,7 @@ index 59d7e6244cde58c21698b9c2ab5f59befad440c2..6fa6255515d7a9a8d3665635f70bdfe8
  
      public void broadcast(Entity entity, Packet<?> packet) {
 -        ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) this.entityMap.get(entity.getId());
-+        ChunkMap.TrackedEntity playerchunkmap_entitytracker = entity.tracker; // (ChunkMap.TrackedEntity) this.entityMap.get(entity.getId()); // ShreddedPaper - don't use map
++        ChunkMap.TrackedEntity playerchunkmap_entitytracker = entity.moonrise$getTrackedEntity(); // (ChunkMap.TrackedEntity) this.entityMap.get(entity.getId()); // ShreddedPaper - don't use map
  
          if (playerchunkmap_entitytracker != null) {
              playerchunkmap_entitytracker.broadcast(packet);
@@ -184,7 +184,7 @@ index 59d7e6244cde58c21698b9c2ab5f59befad440c2..6fa6255515d7a9a8d3665635f70bdfe8
  
      protected void broadcastAndSend(Entity entity, Packet<?> packet) {
 -        ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) this.entityMap.get(entity.getId());
-+        ChunkMap.TrackedEntity playerchunkmap_entitytracker = entity.tracker; // (ChunkMap.TrackedEntity) this.entityMap.get(entity.getId()); // ShreddedPaper - don't use map
++        ChunkMap.TrackedEntity playerchunkmap_entitytracker = entity.moonrise$getTrackedEntity(); // (ChunkMap.TrackedEntity) this.entityMap.get(entity.getId()); // ShreddedPaper - don't use map
  
          if (playerchunkmap_entitytracker != null) {
              playerchunkmap_entitytracker.broadcastAndSend(packet);
@@ -229,7 +229,7 @@ index 7c05de32a697d0a81e6016f5ea2015d958f84236..3c74794e1646bd1622d1099c65b4d6b9
      public boolean noPhysics;
      public final RandomSource random;
 diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
-index 2a4425d04917b32c7ae5af3e7422c0bafc2aa1c2..d1873af9efbed31dcfb0befe131f7a723e080e04 100644
+index 2a4425d04917b32c7ae5af3e7422c0bafc2aa1c2..8588fac611880cd2a078338513fa5f686ee082f0 100644
 --- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
 @@ -135,7 +135,7 @@ public class PrimedTnt extends Entity implements TraceableEntity {
@@ -237,12 +237,12 @@ index 2a4425d04917b32c7ae5af3e7422c0bafc2aa1c2..d1873af9efbed31dcfb0befe131f7a72
              // Send position and velocity updates to nearby players on every tick while the TNT is in water.
              // This does pretty well at keeping their clients in sync with the server.
 -            net.minecraft.server.level.ChunkMap.TrackedEntity ete = ((net.minecraft.server.level.ServerLevel)this.level()).getChunkSource().chunkMap.entityMap.get(this.getId());
-+            net.minecraft.server.level.ChunkMap.TrackedEntity ete = this.tracker; // ((net.minecraft.server.level.ServerLevel)this.level()).getChunkSource().chunkMap.entityMap.get(this.getId()); // ShreddedPaper - don't use map
++            net.minecraft.server.level.ChunkMap.TrackedEntity ete = this.moonrise$getTrackedEntity(); // ((net.minecraft.server.level.ServerLevel)this.level()).getChunkSource().chunkMap.entityMap.get(this.getId()); // ShreddedPaper - don't use map
              if (ete != null) {
                  net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket velocityPacket = new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(this);
                  net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket positionPacket = new net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket(this);
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 68707a9ea41ec6e87a6a2604ce7c9bba7392f190..0de4fc831f11b38b96c91049380f8facb338649c 100644
+index d1be89db52eac41fc5a7b538880bf3d7b881d0ef..ce822c658405a6fe9fedc7d5c05be63ee6009b82 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -1913,7 +1913,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
@@ -250,7 +250,7 @@ index 68707a9ea41ec6e87a6a2604ce7c9bba7392f190..0de4fc831f11b38b96c91049380f8fac
  
          ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(CraftSound.bukkitToMinecraftHolder(sound), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
 -        ChunkMap.TrackedEntity entityTracker = this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId());
-+        ChunkMap.TrackedEntity entityTracker = craftEntity.getHandle().tracker; // this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId()); // ShreddedPaper - don't use map
++        ChunkMap.TrackedEntity entityTracker = craftEntity.getHandle().moonrise$getTrackedEntity(); // this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId()); // ShreddedPaper - don't use map
          if (entityTracker != null) {
              entityTracker.broadcastAndSend(packet);
          }
@@ -259,12 +259,12 @@ index 68707a9ea41ec6e87a6a2604ce7c9bba7392f190..0de4fc831f11b38b96c91049380f8fac
  
          ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(Holder.direct(SoundEvent.createVariableRangeEvent(ResourceLocation.parse(sound))), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
 -        ChunkMap.TrackedEntity entityTracker = this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId());
-+        ChunkMap.TrackedEntity entityTracker = craftEntity.getHandle().tracker; // this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId()); // ShreddedPaper - don't use map
++        ChunkMap.TrackedEntity entityTracker = craftEntity.getHandle().moonrise$getTrackedEntity(); // this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId()); // ShreddedPaper - don't use map
          if (entityTracker != null) {
              entityTracker.broadcastAndSend(packet);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-index aaef8782feec185f9445140fe0bd994a184b43d7..fb07b0277bef4755c7b24163f2dc3b88555561ce 100644
+index aaef8782feec185f9445140fe0bd994a184b43d7..95ac36d9012f8ea9845a12aa09e1aebab3f84272 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 @@ -725,7 +725,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
@@ -272,7 +272,7 @@ index aaef8782feec185f9445140fe0bd994a184b43d7..fb07b0277bef4755c7b24163f2dc3b88
  
          ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
 -        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
-+        ChunkMap.TrackedEntity entityTracker = this.getHandle().tracker; // world.getChunkSource().chunkMap.entityMap.get(this.getEntityId()); // ShreddedPaper - don't use map
++        ChunkMap.TrackedEntity entityTracker = this.getHandle().moonrise$getTrackedEntity(); // world.getChunkSource().chunkMap.entityMap.get(this.getEntityId()); // ShreddedPaper - don't use map
  
          if (entityTracker != null) {
              for (ServerPlayerConnection connection : entityTracker.seenBy) {
@@ -281,12 +281,12 @@ index aaef8782feec185f9445140fe0bd994a184b43d7..fb07b0277bef4755c7b24163f2dc3b88
  
          ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
 -        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
-+        ChunkMap.TrackedEntity entityTracker = this.getHandle().tracker; // world.getChunkSource().chunkMap.entityMap.get(this.getEntityId()); // ShreddedPaper - don't use map
++        ChunkMap.TrackedEntity entityTracker = this.getHandle().moonrise$getTrackedEntity(); // world.getChunkSource().chunkMap.entityMap.get(this.getEntityId()); // ShreddedPaper - don't use map
  
          if (entityTracker == null) {
              return;
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
-index c871861f9acd0620acd5b75449a3db3c5d7d52fb..4babcb88fd857d4faed5c4dd94a28624c29a0933 100644
+index c871861f9acd0620acd5b75449a3db3c5d7d52fb..1f01fa5286775953f16d0a151f0e16287b735786 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 @@ -2069,7 +2069,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
@@ -294,7 +294,7 @@ index c871861f9acd0620acd5b75449a3db3c5d7d52fb..4babcb88fd857d4faed5c4dd94a28624
          // Paper end
          ChunkMap tracker = ((ServerLevel) this.getHandle().level()).getChunkSource().chunkMap;
 -        ChunkMap.TrackedEntity entry = tracker.entityMap.get(other.getId());
-+        ChunkMap.TrackedEntity entry = other.tracker; // tracker.entityMap.get(other.getId()); // ShreddedPaper - don't use map
++        ChunkMap.TrackedEntity entry = other.moonrise$getTrackedEntity(); // tracker.entityMap.get(other.getId()); // ShreddedPaper - don't use map
          if (entry != null) {
              entry.removePlayer(this.getHandle());
          }
@@ -303,7 +303,7 @@ index c871861f9acd0620acd5b75449a3db3c5d7d52fb..4babcb88fd857d4faed5c4dd94a28624
          }
  
 -        ChunkMap.TrackedEntity entry = tracker.entityMap.get(other.getId());
-+        ChunkMap.TrackedEntity entry = other.tracker; // tracker.entityMap.get(other.getId()); // ShreddedPaper - don't use map
++        ChunkMap.TrackedEntity entry = other.moonrise$getTrackedEntity(); // tracker.entityMap.get(other.getId()); // ShreddedPaper - don't use map
          if (entry != null && !entry.seenBy.contains(this.getHandle().connection)) {
              entry.updatePlayer(this.getHandle());
          }

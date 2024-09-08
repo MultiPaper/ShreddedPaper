@@ -6,20 +6,19 @@ Subject: [PATCH] mpmap debug command
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/commands/MPMapCommand.java b/src/main/java/io/multipaper/shreddedpaper/commands/MPMapCommand.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6fad03268943c9e4d4a6be3afac14f43da5e83d2
+index 0000000000000000000000000000000000000000..522a0a5e6aecd7c624cc589df4001092cc79a0d8
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/commands/MPMapCommand.java
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,47 @@
 +package io.multipaper.shreddedpaper.commands;
 +
-+import io.papermc.paper.chunk.system.scheduling.NewChunkHolder;
++import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder;
 +import net.kyori.adventure.text.format.NamedTextColor;
 +import net.minecraft.server.level.FullChunkStatus;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.level.ChunkPos;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.entity.Player;
-+import io.multipaper.shreddedpaper.ShreddedPaper;
 +
 +public class MPMapCommand extends MapCommandBase {
 +
@@ -30,7 +29,7 @@ index 0000000000000000000000000000000000000000..6fad03268943c9e4d4a6be3afac14f43
 +
 +    @Override
 +    protected ChunkStatus getStatus(Player player, ChunkPos chunkPos) {
-+        NewChunkHolder newChunkHolder = ((ServerLevel) ((CraftPlayer) player).getHandle().level()).chunkTaskScheduler.chunkHolderManager.getChunkHolder(chunkPos.x, chunkPos.z);
++        NewChunkHolder newChunkHolder = ((ServerLevel) ((CraftPlayer) player).getHandle().level()).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolder(chunkPos.x, chunkPos.z);
 +
 +        NamedTextColor color;
 +        String name;

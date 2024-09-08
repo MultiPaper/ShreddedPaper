@@ -50,7 +50,7 @@ index 9464054912e19fc78dd965b71fce20a18564b351..0304ebb48563f4e337855eb091b2c1a8
      private Component playerPrefix = CommonComponents.EMPTY;
      private Component playerSuffix = CommonComponents.EMPTY;
 diff --git a/src/main/java/net/minecraft/world/scores/Scoreboard.java b/src/main/java/net/minecraft/world/scores/Scoreboard.java
-index 121b57ec018bffc05904e7596e0963e2bb545dc1..2af1dcad557607800e3742fd2866885481f4835c 100644
+index 14100b0f9ab320efc57e0d190adfcf32ce0b8917..2af1dcad557607800e3742fd2866885481f4835c 100644
 --- a/src/main/java/net/minecraft/world/scores/Scoreboard.java
 +++ b/src/main/java/net/minecraft/world/scores/Scoreboard.java
 @@ -15,6 +15,7 @@ import java.util.EnumMap;
@@ -79,26 +79,6 @@ index 121b57ec018bffc05904e7596e0963e2bb545dc1..2af1dcad557607800e3742fd28668854
  
      @Nullable
      public Objective getObjective(@Nullable String name) {
-@@ -88,7 +89,7 @@ public class Scoreboard {
-             }
- 
-             @Override
--            public void set(int score) {
-+            public void set(int newScoreValue) { // ShreddedPaper compile error - rename to newScoreValue
-                 if (!bl) {
-                     throw new IllegalStateException("Cannot modify read-only score");
-                 } else {
-@@ -101,8 +102,8 @@ public class Scoreboard {
-                         }
-                     }
- 
--                    if (score != score.value()) {
--                        score.value(score);
-+                    if (newScoreValue != score.value()) { // ShreddedPaper compile error - rename to newScoreValue
-+                        score.value(newScoreValue); // ShreddedPaper compile error - rename to newScoreValue
-                         bl = true;
-                     }
- 
 @@ -240,7 +241,7 @@ public class Scoreboard {
          this.onObjectiveRemoved(objective);
      }

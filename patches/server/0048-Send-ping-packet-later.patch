@@ -5,10 +5,10 @@ Subject: [PATCH] Send ping packet later
 
 
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index e64d4739ae092f2057f56ae6dabc6ea7a7f8aa27..e4f4b1e920c16ed0d860b530039347bf03adf8dc 100644
+index 76a105451cce3a264be2a25ed15c6632e229d86b..1717f6e9b2d46b2867aec0bb51f79e873db9672e 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1914,6 +1914,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1922,6 +1922,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              ServerPlayer entityplayer = (ServerPlayer) iterator.next();
  
              entityplayer.connection.chunkSender.sendNextChunks(entityplayer);
@@ -17,7 +17,7 @@ index e64d4739ae092f2057f56ae6dabc6ea7a7f8aa27..e4f4b1e920c16ed0d860b530039347bf
          }
  
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index 098b7d64aba26f5b1b35ff70863def81d7e168aa..1eeda91338a7bd1ed902f3e68aafb0a605ee5020 100644
+index d142bb4572a9cacfe61f3d09fa97fc26aa446588..f01b28732851f26465c9e246fe0dc35eea457d76 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 @@ -269,7 +269,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack

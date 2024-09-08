@@ -120,10 +120,10 @@ index 3b77254f09bf9172c2de8a1fc3cec83e0ca641a3..59576497d2432fc4ea97b6070e4daefa
          if (!level.chunkScheduler.getRegionLocker().hasLock(regionPos)) {
              // We care about the navigating mobs in at least this region, ensure it's locked
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 6d51ab3ecc9d47a671365b9c82a47ab946c7564e..e849497c41482993a4d7b884f6bb76df14cdef51 100644
+index ce09bb29910788f14127a4d64cfe601386199d98..61e10aac82906caaca741315b4a46146e8bed840 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -74,6 +74,8 @@ public class ShreddedPaperChunkTicker {
+@@ -73,6 +73,8 @@ public class ShreddedPaperChunkTicker {
  
              region.forEachTickingChunk(chunk -> _tickChunk(level, chunk, spawnercreature_d));
  

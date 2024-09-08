@@ -39,10 +39,10 @@ index 9338b86709b5d7721b8ec4576e1e0ec9a4f90bcf..3ece853609b21a65c341ae352d9f99ff
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 3bac1c9388523a5b807f9400877d4ee6140d553a..5df9bfbbd316662a69ff893d21899ef6c1bcd1bf 100644
+index 343e726d1eb20ca512b5d895d03cf8c0b2643f98..9f7feef6c842b25402eebd3be4cf8364d1b5c70b 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -76,6 +76,8 @@ public class ShreddedPaperChunkTicker {
+@@ -75,6 +75,8 @@ public class ShreddedPaperChunkTicker {
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
@@ -227,7 +227,7 @@ index a4578ae22409edb686d0bcbac8cbc1a2e1d7b988..3c4e777f477aa9802879a2adba5f6561
          this.gameEventListenerRegistrySections = new Int2ObjectOpenHashMap();
          Heightmap.Types[] aheightmap_type = Heightmap.Types.values();
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 6d4073cb79b28d61126925881a7d411b13976cf8..4d7d3eac42ef35475f941cb29bc0c5ead2d20bde 100644
+index 86639a4d4059bcf92dbc1af4b5eeb6547010a7b1..462fa9c5f4852289888101ea841567016952d16b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -196,7 +196,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {

@@ -5,10 +5,10 @@ Subject: [PATCH] handlingTick
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index e849497c41482993a4d7b884f6bb76df14cdef51..fe078f01dbbd5ea524ec6ee3498059a7fbcf2f12 100644
+index 6ad25fae4623fab55d10ced503ae8fe5cc0d0450..c2e3b1f34c538d1f7f55eeedaa8853ffd39945ec 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -69,6 +69,8 @@ public class ShreddedPaperChunkTicker {
+@@ -74,6 +74,8 @@ public class ShreddedPaperChunkTicker {
  
              region.tickTasks();
  
@@ -17,7 +17,7 @@ index e849497c41482993a4d7b884f6bb76df14cdef51..fe078f01dbbd5ea524ec6ee3498059a7
              level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
              level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
  
-@@ -76,6 +78,8 @@ public class ShreddedPaperChunkTicker {
+@@ -81,6 +83,8 @@ public class ShreddedPaperChunkTicker {
  
              level.runBlockEvents(region);
  

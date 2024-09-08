@@ -241,15 +241,14 @@ index 0000000000000000000000000000000000000000..b1d176e76f064a737a62a2ef6e07e5a3
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5313eab85d2ce63947e0256b2695ade154d26eca
+index 0000000000000000000000000000000000000000..01e74b68f194e8f4ddfd501cd027cc526a7fed89
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -0,0 +1,85 @@
+@@ -0,0 +1,84 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.region.RegionPos;
-+import io.papermc.paper.util.player.NearbyPlayers;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.level.ChunkPos;
@@ -282,7 +281,7 @@ index 0000000000000000000000000000000000000000..5313eab85d2ce63947e0256b2695ade1
 +    public static CompletableFuture<Void> tickRegion(ServerLevel level, LevelChunkRegion region, NaturalSpawner.SpawnState spawnercreature_d) {
 +        return level.chunkScheduler.schedule(region.getRegionPos(), () -> _tickRegion(level, region, spawnercreature_d)).exceptionally(e -> {
 +            LogUtils.getClassLogger().error("Exception ticking region {}", region.getRegionPos(), e);
-+            MinecraftServer.chunkSystemCrash = new RuntimeException("Ticking thread crash while ticking region " + region.getRegionPos(), e);
++            MinecraftServer.threadCrash = new RuntimeException("Ticking thread crash while ticking region " + region.getRegionPos(), e);
 +            return null;
 +        });
 +    }
@@ -330,6 +329,31 @@ index 0000000000000000000000000000000000000000..5313eab85d2ce63947e0256b2695ade1
 +    }
 +
 +}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 89a56d18a1d26dbf9bd27fff335845d09cc65cdb..392ea3aa1e585f17694067d917226c02dda1a890 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1227,6 +1227,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     // Paper end
+     // Spigot End
+ 
++    public static volatile @Nullable RuntimeException threadCrash; // ShreddedPaper - thread crash
++
+     protected void runServer() {
+         try {
+             long serverStartTime = Util.getNanos(); // Paper
+@@ -1278,6 +1280,11 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             // Purpur end
+ 
+             while (this.running) {
++                // ShreddedPaper start - thread crash
++                if (MinecraftServer.threadCrash != null) {
++                    throw MinecraftServer.threadCrash;
++                }
++                // ShreddedPaper end - thread crash
+                 long i;
+ 
+                 if (!this.isPaused() && this.tickRateManager.isSprinting() && this.tickRateManager.checkShouldSprintThisTick()) {
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
 index 66ee6ca56897c9646605f5907ce895e54bc30d96..187c9e6aab99ee88e879d21f76f801274bed1021 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java

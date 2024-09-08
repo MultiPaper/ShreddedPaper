@@ -282,14 +282,14 @@ index 8fba7684488e6cfee2562b6287e6ff8b90a5f145..9338b86709b5d7721b8ec4576e1e0ec9
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index a51db4e5505903376656aad80971f8faabc0cc53..3bac1c9388523a5b807f9400877d4ee6140d553a 100644
+index c4dd108a248011a40229546e9db58f1390818c5e..343e726d1eb20ca512b5d895d03cf8c0b2643f98 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -58,6 +58,8 @@ public class ShreddedPaperChunkTicker {
+@@ -57,6 +57,8 @@ public class ShreddedPaperChunkTicker {
  
              while (region.getInternalTaskQueue().executeTask()) ;
  
-+            level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
++            level.moonrise$getChunkTaskScheduler().chunkHolderManager.processUnloads(region);
 +
              region.forEachTickingEntity(entity -> {
                  CraftEntity bukkitEntity = entity.getBukkitEntityRaw();
