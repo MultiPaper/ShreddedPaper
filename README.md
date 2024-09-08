@@ -5,7 +5,7 @@
 **ShreddedPaper is in public beta.** Most features work for most players most of
 the time, however things can occasionally break.
 
-1.20.6 [Purpur](https://github.com/PurpurMC/Purpur) fork that brings vertical scaling to Minecraft.
+1.21.1 [Purpur](https://github.com/PurpurMC/Purpur) fork that brings vertical scaling to Minecraft.
 
 ShreddedPaper:
 
@@ -61,7 +61,7 @@ repositories {
 }
 
 dependencies {
-  compile "com.github.puregero:shreddedpaper-api:1.20.6-R0.1-SNAPSHOT"
+  compile "com.github.puregero:shreddedpaper-api:1.21.1-R0.1-SNAPSHOT"
 }
 ```
 
@@ -78,7 +78,7 @@ Or in your pom.xml:
     <dependency>
         <groupId>com.github.puregero</groupId>
         <artifactId>shreddedpaper-api</artifactId>
-        <version>1.20.6-R0.1-SNAPSHOT</version>
+        <version>1.21.1-R0.1-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```

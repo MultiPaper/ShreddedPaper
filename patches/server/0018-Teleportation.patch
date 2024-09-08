@@ -1,0 +1,741 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sat, 25 May 2024 12:05:30 +0900
+Subject: [PATCH] Teleportation
+
+
+diff --git a/src/main/java/net/minecraft/server/commands/TeleportCommand.java b/src/main/java/net/minecraft/server/commands/TeleportCommand.java
+index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b1c6482ba 100644
+--- a/src/main/java/net/minecraft/server/commands/TeleportCommand.java
++++ b/src/main/java/net/minecraft/server/commands/TeleportCommand.java
+@@ -12,7 +12,10 @@ import java.util.EnumSet;
+ import java.util.Iterator;
+ import java.util.Locale;
+ import java.util.Set;
++import java.util.concurrent.CompletableFuture;
+ import javax.annotation.Nullable;
++
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.arguments.EntityAnchorArgument;
+ import net.minecraft.commands.arguments.EntityArgument;
+@@ -29,6 +32,7 @@ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.PathfinderMob;
+ import net.minecraft.world.entity.RelativeMovement;
++import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.phys.Vec3;
+@@ -37,6 +41,8 @@ import org.bukkit.Location;
+ import org.bukkit.craftbukkit.CraftWorld;
+ import org.bukkit.event.entity.EntityTeleportEvent;
+ import org.bukkit.event.player.PlayerTeleportEvent;
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
+ // CraftBukkit end
+ 
+ public class TeleportCommand {
+@@ -162,9 +168,19 @@ public class TeleportCommand {
+             float f3 = Mth.wrapDegrees(pitch);
+ 
+             // CraftBukkit start - Teleport event
+-            boolean result;
++            // ShreddedPaper start - Run teleports on the correct thread
++            CompletableFuture<Boolean> result = new CompletableFuture<>();
+             if (target instanceof ServerPlayer player) {
+-                result = player.teleportTo(world, x, y, z, movementFlags, f2, f3, PlayerTeleportEvent.TeleportCause.COMMAND);
++                ChunkPos toPos = new ChunkPos(new BlockPos((int) x, (int) y, (int) z));
++                Runnable task = () -> {
++                    result.complete(player.teleportTo(world, x, y, z, movementFlags, f2, f3, PlayerTeleportEvent.TeleportCause.COMMAND));
++                };
++                if (TickThread.isTickThreadFor(target) && TickThread.isTickThreadFor(world, toPos)) {
++                    task.run();
++                } else {
++                    ShreddedPaperRegionScheduler.scheduleAcrossLevels((ServerLevel) target.level(), RegionPos.forChunk(target.chunkPosition()), world, RegionPos.forChunk(toPos), task);
++                }
++                // ShreddedPaper end - Run teleports on the correct thread
+             } else {
+                 Location to = new Location(world.getWorld(), x, y, z, f2, f3);
+                 EntityTeleportEvent event = new EntityTeleportEvent(target.getBukkitEntity(), target.getBukkitEntity().getLocation(), to);
+@@ -174,17 +190,29 @@ public class TeleportCommand {
+                 }
+                 to = event.getTo(); // Paper - actually track new location
+ 
+-                x = to.getX();
+-                y = to.getY();
+-                z = to.getZ();
+-                f2 = to.getYaw();
+-                f3 = to.getPitch();
+-                world = ((CraftWorld) to.getWorld()).getHandle();
+-
+-                result = target.teleportTo(world, x, y, z, movementFlags, f2, f3);
++                // ShreddedPaper start - Run teleports on the correct thread
++                double finalX = to.getX();
++                double finalY = to.getY();
++                double finalZ = to.getZ();
++                float finalF2 = to.getYaw();
++                float finalF3 = to.getPitch();
++                ServerLevel finalWorld = ((CraftWorld) to.getWorld()).getHandle();
++
++                ChunkPos toPos = new ChunkPos(new BlockPos((int) finalX, (int) finalY, (int) finalZ));
++                Runnable task = () -> {
++                    result.complete(target.teleportTo(finalWorld, finalX, finalY, finalZ, movementFlags, finalF2, finalF3));
++                };
++                if (TickThread.isTickThreadFor(target) && TickThread.isTickThreadFor(finalWorld, toPos)) {
++                    task.run();
++                } else {
++                    ShreddedPaperRegionScheduler.scheduleAcrossLevels((ServerLevel) target.level(), RegionPos.forChunk(target.chunkPosition()), finalWorld, RegionPos.forChunk(toPos), task);
++                }
++                // ShreddedPaper end - Run teleports on the correct thread
+             }
+ 
+-            if (result) {
++            result.thenAccept(success -> { // ShreddedPaper
++                if (!success) return; // ShreddedPaper
++
+                 // CraftBukkit end
+                 if (facingLocation != null) {
+                     facingLocation.perform(source, target);
+@@ -209,8 +237,7 @@ public class TeleportCommand {
+ 
+                     entitycreature.getNavigation().stop();
+                 }
+-
+-            }
++            }); // ShreddedPaper
+         }
+     }
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
+index dfd09004063a8d8d93357633c8d23b6acff67b73..4bd64425811c9e99a94613437d3874b7aedc01f0 100644
+--- a/src/main/java/net/minecraft/server/level/ServerEntity.java
++++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
+@@ -43,6 +43,7 @@ import net.minecraft.world.item.MapItem;
+ import net.minecraft.world.level.saveddata.maps.MapId;
+ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.Location;
+ import org.slf4j.Logger;
+ 
+ // CraftBukkit start
+@@ -115,7 +116,7 @@ public class ServerEntity {
+             this.broadcastAndSend(new ClientboundSetPassengersPacket(this.entity)); // CraftBukkit
+             ServerEntity.removedPassengers(list, this.lastPassengers).forEach((entity) -> {
+                 if (entity instanceof ServerPlayer entityplayer) {
+-                    entityplayer.connection.teleport(entityplayer.getX(), entityplayer.getY(), entityplayer.getZ(), entityplayer.getYRot(), entityplayer.getXRot());
++                    entityplayer.getBukkitEntity().teleportAsync(new Location(entityplayer.getBukkitEntity().getWorld(), entityplayer.getX(), entityplayer.getY(), entityplayer.getZ(), entityplayer.getYRot(), entityplayer.getXRot())); // ShreddedPaper - teleport async
+                 }
+ 
+             });
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index 3c04172fc1056bfc1d6a70953cf256d727e5a4de..7c4b96b800a09fd305213fc038b435dcfedeed35 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -16,6 +16,7 @@ import java.util.Optional;
+ import java.util.OptionalInt;
+ import java.util.Set;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.stream.Collectors;
+ import javax.annotation.Nullable;
+ import java.util.stream.Collectors;
+@@ -1296,10 +1297,10 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
+     }
+ 
+     // CraftBukkit start
+-    public DimensionTransition findRespawnPositionAndUseSpawnBlock(boolean flag, DimensionTransition.PostDimensionTransition dimensiontransition_a, PlayerRespawnEvent.RespawnReason reason) {
+-        DimensionTransition dimensionTransition;
+-        boolean isBedSpawn = false;
+-        boolean isAnchorSpawn = false;
++    public CompletableFuture<DimensionTransition> findRespawnPositionAndUseSpawnBlockAsync(boolean flag, DimensionTransition.PostDimensionTransition dimensiontransition_a, PlayerRespawnEvent.RespawnReason reason) { // ShreddedPaper - async
++        CompletableFuture<DimensionTransition> dimensionTransitionFuture;
++        AtomicBoolean isBedSpawn = new AtomicBoolean(false); // ShreddedPaper
++        AtomicBoolean isAnchorSpawn = new AtomicBoolean(false); // ShreddedPaper
+         // CraftBukkit end
+         BlockPos blockposition = this.getRespawnPosition();
+         float f = this.getRespawnAngle();
+@@ -1307,48 +1308,53 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
+         ServerLevel worldserver = this.server.getLevel(this.getRespawnDimension());
+ 
+         if (worldserver != null && blockposition != null) {
+-            Optional<ServerPlayer.RespawnPosAngle> optional = ServerPlayer.findRespawnAndUseSpawnBlock(worldserver, blockposition, f, flag1, flag);
+-
+-            if (optional.isPresent()) {
+-                ServerPlayer.RespawnPosAngle entityplayer_respawnposangle = (ServerPlayer.RespawnPosAngle) optional.get();
+-
+-                // CraftBukkit start
+-                isBedSpawn = entityplayer_respawnposangle.isBedSpawn();
+-                isAnchorSpawn = entityplayer_respawnposangle.isAnchorSpawn();
+-                dimensionTransition = new DimensionTransition(worldserver, entityplayer_respawnposangle.position(), Vec3.ZERO, entityplayer_respawnposangle.yaw(), 0.0F, dimensiontransition_a);
+-                // CraftBukkit end
+-            } else {
+-                dimensionTransition = DimensionTransition.missingRespawnBlock(this.server.overworld(), this, dimensiontransition_a); // CraftBukkit
+-            }
++            dimensionTransitionFuture = new CompletableFuture<>(); // ShreddedPaper
++            ShreddedPaper.ensureSync(worldserver, blockposition, () -> { // ShreddedPaper
++                Optional<ServerPlayer.RespawnPosAngle> optional = ServerPlayer.findRespawnAndUseSpawnBlock(worldserver, blockposition, f, flag1, flag);
++
++                if (optional.isPresent()) {
++                    ServerPlayer.RespawnPosAngle entityplayer_respawnposangle = (ServerPlayer.RespawnPosAngle) optional.get();
++
++                    // CraftBukkit start
++                    isBedSpawn.set(entityplayer_respawnposangle.isBedSpawn()); // ShreddedPaper
++                    isAnchorSpawn.set(entityplayer_respawnposangle.isAnchorSpawn()); // ShreddedPaper
++                    dimensionTransitionFuture.complete(new DimensionTransition(worldserver, entityplayer_respawnposangle.position(), Vec3.ZERO, entityplayer_respawnposangle.yaw(), 0.0F, dimensiontransition_a)); // ShreddedPaper
++                    // CraftBukkit end
++                } else {
++                    DimensionTransition.missingRespawnBlock(this.server.overworld(), ServerPlayer.this, dimensiontransition_a).thenAccept(dimensionTransitionFuture::complete); // CraftBukkit // ShreddedPaper
++                }
++            }); // ShreddedPaper
+         } else {
+-            dimensionTransition = new DimensionTransition(this.server.overworld(), this, dimensiontransition_a); // CraftBukkit
++            dimensionTransitionFuture = DimensionTransition.ofSharedSpawnPos(this.server.overworld(), this, dimensiontransition_a); // CraftBukkit // ShreddedPaper
+         }
+         // CraftBukkit start
+         if (reason == null) {
+-            return dimensionTransition;
++            return dimensionTransitionFuture; // ShreddedPaper
+         }
+ 
+-        Player respawnPlayer = this.getBukkitEntity();
+-        Location location = CraftLocation.toBukkit(dimensionTransition.pos(), dimensionTransition.newLevel().getWorld(), dimensionTransition.yRot(), dimensionTransition.xRot());
++        return dimensionTransitionFuture.thenApply(dimensionTransition -> { // ShreddedPaper
++            Player respawnPlayer = this.getBukkitEntity();
++            Location location = CraftLocation.toBukkit(dimensionTransition.pos(), dimensionTransition.newLevel().getWorld(), dimensionTransition.yRot(), dimensionTransition.xRot());
+ 
+-        // Paper start - respawn flags
+-        com.google.common.collect.ImmutableSet.Builder<org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag> builder = com.google.common.collect.ImmutableSet.builder();
+-        if (reason == org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.END_PORTAL) {
+-            builder.add(org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag.END_PORTAL);
+-        }
+-        PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn, isAnchorSpawn, reason, builder);
+-        // Paper end - respawn flags
+-        this.level().getCraftServer().getPluginManager().callEvent(respawnEvent);
+-        // Spigot Start
+-        if (this.connection.isDisconnected()) {
+-            return null;
+-        }
+-        // Spigot End
++            // Paper start - respawn flags
++            com.google.common.collect.ImmutableSet.Builder<org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag> builder = com.google.common.collect.ImmutableSet.builder();
++            if (reason == org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.END_PORTAL) {
++                builder.add(org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag.END_PORTAL);
++            }
++            PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn.get(), isAnchorSpawn.get(), reason, builder); // ShreddedPaper
++            // Paper end - respawn flags
++            this.level().getCraftServer().getPluginManager().callEvent(respawnEvent);
++            // Spigot Start
++            if (this.connection.isDisconnected()) {
++                return null;
++            }
++            // Spigot End
+ 
+-        location = respawnEvent.getRespawnLocation();
++            location = respawnEvent.getRespawnLocation();
+ 
+-        return new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), dimensionTransition.speed(), location.getYaw(), location.getPitch(), dimensionTransition.missingRespawnBlock(), dimensionTransition.postDimensionTransition(), dimensionTransition.cause());
+-        // CraftBukkit end
++            return new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), dimensionTransition.speed(), location.getYaw(), location.getPitch(), dimensionTransition.missingRespawnBlock(), dimensionTransition.postDimensionTransition(), dimensionTransition.cause());
++            // CraftBukkit end
++        }); // ShreddedPaper
+     }
+ 
+     public static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(ServerLevel world, BlockPos pos, float spawnAngle, boolean spawnForced, boolean alive) {
+@@ -2229,6 +2235,8 @@ public class ServerPlayer extends net.minecraft.world.entity.player.Player imple
+     }
+ 
+     public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, TeleportCause cause) {
++        TickThread.ensureTickThread(this, "Cannot teleport player async"); // ShreddedPaper
++        TickThread.ensureTickThread(worldserver, d0, d2, "Cannot teleport player to async destination"); // ShreddedPaper
+         // CraftBukkit end
+         ChunkPos chunkcoordintpair = new ChunkPos(BlockPos.containing(d0, d1, d2));
+ 
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 4457070ad5dcaed2abeb69a83885c98b10195f54..07c22ebab91e2c72edf864be54aa5b1005a9ebd9 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2128,7 +2128,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+                 Entity entity = packet.getEntity(worldserver);
+ 
+                 if (entity != null) {
+-                    this.player.teleportTo(worldserver, entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot(), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE); // CraftBukkit
++                    this.player.getBukkitEntity().teleportAsync(new Location(worldserver.getWorld(), entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot()), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE); // CraftBukkit // ShreddedPaper - use teleportAsync
+                     return;
+                 }
+             }
+@@ -3000,19 +3000,27 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+         switch (packetplayinclientcommand_enumclientcommand) {
+             case PERFORM_RESPAWN:
+                 if (this.player.wonGame) {
+-                    this.player.wonGame = false;
+-                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, RespawnReason.END_PORTAL); // CraftBukkit
+-                    CriteriaTriggers.CHANGED_DIMENSION.trigger(this.player, Level.END, Level.OVERWORLD);
++                    // ShreddedPaper start - async respawn
++                    this.server.getPlayerList().respawnAsync(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, RespawnReason.END_PORTAL).thenAccept(player -> {
++                        this.player.wonGame = false;
++                        this.player = player;
++                        CriteriaTriggers.CHANGED_DIMENSION.trigger(this.player, Level.END, Level.OVERWORLD);
++                    });
++                    // ShreddedPaper end - async respawn
+                 } else {
+                     if (this.player.getHealth() > 0.0F) {
+                         return;
+                     }
+ 
+-                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, RespawnReason.DEATH); // CraftBukkit
+-                    if (this.server.isHardcore()) {
+-                        this.player.setGameMode(GameType.SPECTATOR, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.HARDCORE_DEATH, null); // Paper - Expand PlayerGameModeChangeEvent
+-                        ((GameRules.BooleanValue) this.player.level().getGameRules().getRule(GameRules.RULE_SPECTATORSGENERATECHUNKS)).set(false, this.player.serverLevel()); // CraftBukkit - per-world
+-                    }
++                    // ShreddedPaper start - async respawn
++                    this.server.getPlayerList().respawnAsync(this.player, false, Entity.RemovalReason.KILLED, RespawnReason.DEATH).thenAccept(player -> {
++                        this.player = player;
++                        if (this.server.isHardcore()) {
++                            this.player.setGameMode(GameType.SPECTATOR, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.HARDCORE_DEATH, null); // Paper - Expand PlayerGameModeChangeEvent
++                            ((GameRules.BooleanValue) this.player.level().getGameRules().getRule(GameRules.RULE_SPECTATORSGENERATECHUNKS)).set(false, this.player.serverLevel()); // CraftBukkit - per-world
++                        }
++                    });
++                    // ShreddedPaper end - async respawn
+                 }
+                 break;
+             case REQUEST_STATS:
+diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
+index f1aec2ac55e6f7745527f65276623c6dd4e9ba1b..d44b00e25ec9d8ce4e871c430dd9cc011fec26e0 100644
+--- a/src/main/java/net/minecraft/server/players/PlayerList.java
++++ b/src/main/java/net/minecraft/server/players/PlayerList.java
+@@ -22,9 +22,13 @@ import java.util.Objects;
+ import java.util.Optional;
+ import java.util.Set;
+ import java.util.UUID;
++import java.util.concurrent.CompletableFuture;
+ import java.util.function.Function;
+ import java.util.function.Predicate;
++import javax.annotation.Nonnull;
+ import javax.annotation.Nullable;
++
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.FileUtil;
+ import net.minecraft.commands.CommandSourceStack;
+@@ -123,6 +127,8 @@ import org.bukkit.event.player.PlayerRespawnEvent;
+ import org.bukkit.event.player.PlayerRespawnEvent.RespawnReason;
+ import org.bukkit.event.player.PlayerSpawnChangeEvent;
+ import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
+ // CraftBukkit end
+ 
+ public abstract class PlayerList {
+@@ -827,10 +833,22 @@ public abstract class PlayerList {
+     }
+ 
+     public ServerPlayer respawn(ServerPlayer entityplayer, boolean flag, Entity.RemovalReason entity_removalreason, RespawnReason reason, Location location) {
++        // ShreddedPaper start - async respawn
++        throw new UnsupportedOperationException("Cannot respawn player synchronously");
++    }
++
++    public CompletableFuture<ServerPlayer> respawnAsync(ServerPlayer entityplayer, boolean flag, Entity.RemovalReason entity_removalreason, RespawnReason reason) {
++        return this.respawnAsync(entityplayer, flag, entity_removalreason, reason, null);
++    }
++
++    public CompletableFuture<ServerPlayer> respawnAsync(ServerPlayer entityplayer, boolean flag, Entity.RemovalReason entity_removalreason, RespawnReason reason, Location location) {
++        CompletableFuture<ServerPlayer> future = new CompletableFuture<>();
++        // ShreddedPaper end - async respawn
++        // Paper end - Expand PlayerRespawnEvent
+         entityplayer.stopRiding(); // CraftBukkit
+-        this.players.remove(entityplayer);
+-        this.playersByName.remove(entityplayer.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot
+-        entityplayer.serverLevel().removePlayerImmediately(entityplayer, entity_removalreason);
++        // this.players.remove(entityplayer); // ShreddedPaper - don't do this, we're reusing the same entity
++        // this.playersByName.remove(entityplayer.getScoreboardName().toLowerCase(java.util.Locale.ROOT)); // Spigot // ShreddedPaper - don't do this, we're reusing the same entity
++        // entityplayer.serverLevel().removePlayerImmediately(entityplayer, entity_removalreason); // ShreddedPaper - do later
+         /* CraftBukkit start
+         DimensionTransition dimensiontransition = entityplayer.findRespawnPositionAndUseSpawnBlock(flag, DimensionTransition.DO_NOTHING);
+         WorldServer worldserver = dimensiontransition.newLevel();
+@@ -841,10 +859,11 @@ public abstract class PlayerList {
+         entityplayer.wonGame = false;
+         // CraftBukkit end
+ 
+-        entityplayer1.connection = entityplayer.connection;
+-        entityplayer1.restoreFrom(entityplayer, flag);
+-        entityplayer1.setId(entityplayer.getId());
+-        entityplayer1.setMainArm(entityplayer.getMainArm());
++        // ShreddedPaper start - it's the same entity, just skip the copy process rather than figuring out how to rearrange it
++        // entityplayer1.connection = entityplayer.connection;
++        // entityplayer1.restoreFrom(entityplayer, flag);
++        // entityplayer1.setId(entityplayer.getId());
++        // entityplayer1.setMainArm(entityplayer.getMainArm());
+         // CraftBukkit - not required, just copies old location into reused entity
+         /*
+         if (!dimensiontransition.missingRespawnBlock()) {
+@@ -853,36 +872,49 @@ public abstract class PlayerList {
+          */
+         // CraftBukkit end
+ 
+-        Iterator iterator = entityplayer.getTags().iterator();
++        // Iterator iterator = entityplayer.getTags().iterator();
+ 
+-        while (iterator.hasNext()) {
+-            String s = (String) iterator.next();
++        // while (iterator.hasNext()) {
++        //     String s = (String) iterator.next();
+ 
+-            entityplayer1.addTag(s);
+-        }
++        //     entityplayer1.addTag(s);
++        // }
++        // ShreddedPaper end - it's the same entity, just skip the copy process rather than figuring out how to rearrange it
+         // Paper start - Add PlayerPostRespawnEvent
+         boolean isBedSpawn = false;
+         boolean isRespawn = false;
+         // Paper end - Add PlayerPostRespawnEvent
+ 
+         // CraftBukkit start - fire PlayerRespawnEvent
+-        DimensionTransition dimensiontransition;
++        CompletableFuture<DimensionTransition> dimensiontransitionFuture; // ShreddedPaper
+         if (location == null) {
+-            dimensiontransition = entityplayer.findRespawnPositionAndUseSpawnBlock(flag, DimensionTransition.DO_NOTHING, reason);
++            dimensiontransitionFuture = entityplayer.findRespawnPositionAndUseSpawnBlockAsync(flag, DimensionTransition.DO_NOTHING, reason); // ShreddedPaper
+ 
+             if (!flag) entityplayer.reset(); // SPIGOT-4785
+             // Paper start - Add PlayerPostRespawnEvent
+-            isRespawn = true;
+-            location = CraftLocation.toBukkit(dimensiontransition.pos(), dimensiontransition.newLevel().getWorld(), dimensiontransition.yRot(), dimensiontransition.xRot());
++            // ShreddedPaper - do later
+             // Paper end - Add PlayerPostRespawnEvent
+         } else {
+-            dimensiontransition = new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), Vec3.ZERO, location.getYaw(), location.getPitch(), DimensionTransition.DO_NOTHING);
++            dimensiontransitionFuture = CompletableFuture.completedFuture(new DimensionTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), Vec3.ZERO, location.getYaw(), location.getPitch(), DimensionTransition.DO_NOTHING)); // ShreddedPaper
+         }
+         // Spigot Start
+-        if (dimensiontransition == null) {
+-            return entityplayer;
+-        }
++        // ShreddedPaper start
++        return dimensiontransitionFuture.thenCompose(dimensiontransition -> {
++            if (dimensiontransition == null) {
++                return CompletableFuture.completedFuture(entityplayer);
++            }
++
++            boolean isRespawn2 = location == null; // ShreddedPaper
++            Location location2 = CraftLocation.toBukkit(dimensiontransition.pos(), dimensiontransition.newLevel().getWorld(), dimensiontransition.yRot(), dimensiontransition.xRot()); // ShreddedPaper
++
++            return CompletableFuture.supplyAsync(() -> postRespawn(entityplayer1, flag, entity_removalreason, reason, location2, dimensiontransition, isRespawn2), r -> ShreddedPaperRegionScheduler.scheduleAcrossLevels(entityplayer1.serverLevel(), RegionPos.forChunk(entityplayer1.chunkPosition()), dimensiontransition.newLevel(), RegionPos.forLocation(location2), r)); // ShreddedPaper
++        });
+         // Spigot End
++    }
++
++    private ServerPlayer postRespawn(ServerPlayer entityplayer1, boolean flag, Entity.RemovalReason entity_removalreason, RespawnReason reason, Location location, DimensionTransition dimensiontransition, boolean isRespawn) { // ShreddedPaper
++        entityplayer1.serverLevel().removePlayerImmediately(entityplayer1, entity_removalreason); // ShreddedPaper - doing later
++
+         ServerLevel worldserver = dimensiontransition.newLevel();
+         entityplayer1.spawnIn(worldserver);
+         entityplayer1.unsetRemoved();
+@@ -913,9 +945,9 @@ public abstract class PlayerList {
+         this.sendPlayerPermissionLevel(entityplayer1);
+         if (!entityplayer.connection.isDisconnected()) {
+             worldserver.addRespawnedPlayer(entityplayer1);
+-            this.players.add(entityplayer1);
+-            this.playersByName.put(entityplayer1.getScoreboardName().toLowerCase(java.util.Locale.ROOT), entityplayer1); // Spigot
+-            this.playersByUUID.put(entityplayer1.getUUID(), entityplayer1);
++            // this.players.add(entityplayer1); // ShreddedPaper - don't do this, we're reusing the same entity
++            // this.playersByName.put(entityplayer1.getScoreboardName().toLowerCase(java.util.Locale.ROOT), entityplayer1); // Spigot // ShreddedPaper - don't do this, we're reusing the same entity
++            // this.playersByUUID.put(entityplayer1.getUUID(), entityplayer1); // ShreddedPaper - don't do this, we're reusing the same entity
+         }
+         // entityplayer1.initInventoryMenu();
+         entityplayer1.setHealth(entityplayer1.getHealth());
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 9eecb1d0000adeb8b37a62d86a2ab3e8027d71eb..7c05de32a697d0a81e6016f5ea2015d958f84236 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.entity;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableList.Builder;
+ import com.google.common.collect.Lists;
+@@ -113,6 +114,7 @@ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.border.WorldBorder;
+ import net.minecraft.world.level.entity.EntityAccess;
+ import net.minecraft.world.level.entity.EntityInLevelCallback;
++import net.minecraft.world.level.entity.LevelCallback;
+ import net.minecraft.world.level.gameevent.DynamicGameEventListener;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.levelgen.Heightmap;
+@@ -2156,6 +2158,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     }
+ 
+     public void moveTo(double x, double y, double z, float yaw, float pitch) {
++        if (levelCallback != EntityInLevelCallback.NULL) TickThread.ensureTickThread((ServerLevel) level(), x, z, "Can't move entity to async destination"); // ShreddedPaper - can't teleport into other regions
+         // Paper start - Fix Entity Teleportation and cancel velocity if teleported
+         if (!preserveMotion) {
+             this.deltaMovement = Vec3.ZERO;
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java b/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
+index 334fa781e94d195c13dd78cdbe8f43b4b126ebd0..2a2da846410f31cfddb1619c16f5c767672cd079 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
+@@ -1,5 +1,9 @@
+ package net.minecraft.world.entity.projectile;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
+ import net.minecraft.core.particles.ParticleTypes;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+@@ -61,6 +65,7 @@ public class ThrownEnderpearl extends ThrowableItemProjectile {
+             if (!this.isRemoved()) {
+                 Entity entity = this.getOwner();
+ 
++                Runnable runOnThread = () -> { // ShreddedPaper - run on thread
+                 if (entity != null && ThrownEnderpearl.isAllowedToTeleportOwner(entity, worldserver)) {
+                     if (entity.isPassenger()) {
+                         entity.unRide();
+@@ -73,11 +78,11 @@ public class ThrownEnderpearl extends ThrowableItemProjectile {
+                             // CraftBukkit start
+                             Entity tp = entity.changeDimension(new DimensionTransition(worldserver, this.position(), entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(), DimensionTransition.DO_NOTHING, PlayerTeleportEvent.TeleportCause.ENDER_PEARL));
+                             if (tp == null) {
+-                                this.discard(EntityRemoveEvent.Cause.HIT);
++                                // this.discard(EntityRemoveEvent.Cause.HIT); // ShreddedPaper
+                                 return;
+                             }
+                             // CraftBukkit end
+-                            if (this.random.nextFloat() < this.level().purpurConfig.enderPearlEndermiteChance && worldserver.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) { // Purpur
++                            if (this.random.nextFloat() < worldserver.purpurConfig.enderPearlEndermiteChance && worldserver.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) { // Purpur // ShreddedPaper - this.level may be null
+                                 Endermite entityendermite = (Endermite) EntityType.ENDERMITE.create(worldserver);
+ 
+                                 if (entityendermite != null) {
+@@ -90,7 +95,7 @@ public class ThrownEnderpearl extends ThrowableItemProjectile {
+                             // entity.changeDimension(new DimensionTransition(worldserver, this.position(), entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(), DimensionTransition.DO_NOTHING)); // CraftBukkit - moved up
+                             entity.resetFallDistance();
+                             entityplayer.resetCurrentImpulseContext();
+-                            entity.hurt(this.damageSources().fall().customEventDamager(this), this.level().purpurConfig.enderPearlDamage); // CraftBukkit // Paper - fix DamageSource API // Purpur
++                            entity.hurt(this.damageSources().fall().customEventDamager(this), worldserver.purpurConfig.enderPearlDamage); // CraftBukkit // Paper - fix DamageSource API // Purpur // ShreddedPaper - this.level may be null
+                             this.playSound(worldserver, this.position());
+                         }
+                     } else {
+@@ -99,9 +104,18 @@ public class ThrownEnderpearl extends ThrowableItemProjectile {
+                         this.playSound(worldserver, this.position());
+                     }
+ 
+-                    this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
++                    // this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause // ShreddedPaper
+                     return;
+                 }
++                }; // ShreddedPaper - run on thread
++
++                // ShreddedPaper start - run on thread
++                if (TickThread.isTickThreadFor(entity) && TickThread.isTickThreadFor(this)) {
++                    runOnThread.run();
++                } else {
++                    ShreddedPaperRegionScheduler.scheduleAcrossLevels(worldserver, RegionPos.forChunk(this.chunkPosition()), (ServerLevel) entity.level(), RegionPos.forChunk(entity.chunkPosition()), runOnThread);
++                }
++                // ShreddedPaper end - run on thread
+ 
+                 this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+                 return;
+diff --git a/src/main/java/net/minecraft/world/level/portal/DimensionTransition.java b/src/main/java/net/minecraft/world/level/portal/DimensionTransition.java
+index 36c8735312c885eb153f4ffdf0f2a5495e9c9f65..71526ab506e3128a7518748753462345cd6a8ade 100644
+--- a/src/main/java/net/minecraft/world/level/portal/DimensionTransition.java
++++ b/src/main/java/net/minecraft/world/level/portal/DimensionTransition.java
+@@ -9,6 +9,8 @@ import net.minecraft.world.phys.Vec3;
+ // CraftBukkit start
+ import org.bukkit.event.player.PlayerTeleportEvent;
+ 
++import java.util.concurrent.CompletableFuture;
++
+ public record DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, float yRot, float xRot, boolean missingRespawnBlock, DimensionTransition.PostDimensionTransition postDimensionTransition, PlayerTeleportEvent.TeleportCause cause) {
+ 
+     public DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, float yRot, float xRot, boolean missingRespawnBlock, DimensionTransition.PostDimensionTransition postDimensionTransition) {
+@@ -32,14 +34,26 @@ public record DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, fl
+         this(worldserver, vec3d, vec3d1, f, f1, false, dimensiontransition_a, cause);
+     }
+ 
+-    public DimensionTransition(ServerLevel world, Entity entity, DimensionTransition.PostDimensionTransition postDimensionTransition) {
+-        this(world, entity, postDimensionTransition, PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    // ShreddedPaper start - make async
++//    public DimensionTransition(ServerLevel world, Entity entity, DimensionTransition.PostDimensionTransition postDimensionTransition) {
++//        this(world, entity, postDimensionTransition, PlayerTeleportEvent.TeleportCause.UNKNOWN);
++//    }
++//
++//    public DimensionTransition(ServerLevel worldserver, Entity entity, DimensionTransition.PostDimensionTransition dimensiontransition_a, PlayerTeleportEvent.TeleportCause cause) {
++//        this(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3.ZERO, worldserver.getSharedSpawnAngle(), 0.0F, false, dimensiontransition_a, cause); // Paper - MC-200092 - fix spawn pos yaw being ignored
++//        // CraftBukkit end
++//    }
++
++    public static CompletableFuture<DimensionTransition> ofSharedSpawnPos(ServerLevel world, Entity entity, DimensionTransition.PostDimensionTransition postDimensionTransition) {
++        return ofSharedSpawnPos(world, entity, postDimensionTransition, PlayerTeleportEvent.TeleportCause.UNKNOWN);
+     }
+ 
+-    public DimensionTransition(ServerLevel worldserver, Entity entity, DimensionTransition.PostDimensionTransition dimensiontransition_a, PlayerTeleportEvent.TeleportCause cause) {
+-        this(worldserver, findAdjustedSharedSpawnPos(worldserver, entity), Vec3.ZERO, worldserver.getSharedSpawnAngle(), 0.0F, false, dimensiontransition_a, cause); // Paper - MC-200092 - fix spawn pos yaw being ignored
+-        // CraftBukkit end
++    public static CompletableFuture<DimensionTransition> ofSharedSpawnPos(ServerLevel worldserver, Entity entity, DimensionTransition.PostDimensionTransition dimensiontransition_a, PlayerTeleportEvent.TeleportCause cause) {
++        return entity.adjustSpawnLocation(worldserver, worldserver.getSharedSpawnPos()).thenApply(blockPos -> {
++            return new DimensionTransition(worldserver, blockPos.getBottomCenter(), Vec3.ZERO, worldserver.getSharedSpawnAngle(), 0.0F, false, dimensiontransition_a, cause); // Paper - MC-200092 - fix spawn pos yaw being ignored
++        });
+     }
++    // ShreddedPaper end - make async
+ 
+     private static void playPortalSound(Entity entity) {
+         if (entity instanceof ServerPlayer entityplayer) {
+@@ -52,12 +66,16 @@ public record DimensionTransition(ServerLevel newLevel, Vec3 pos, Vec3 speed, fl
+         entity.placePortalTicket(BlockPos.containing(entity.position()));
+     }
+ 
+-    public static DimensionTransition missingRespawnBlock(ServerLevel world, Entity entity, DimensionTransition.PostDimensionTransition postDimensionTransition) {
+-        return new DimensionTransition(world, findAdjustedSharedSpawnPos(world, entity), Vec3.ZERO, world.getSharedSpawnAngle(), 0.0F, true, postDimensionTransition); // Paper - MC-200092 - fix spawn pos yaw being ignored
++    // ShreddedPaper start - make async
++    public static CompletableFuture<DimensionTransition> missingRespawnBlock(ServerLevel world, Entity entity, DimensionTransition.PostDimensionTransition postDimensionTransition) {
++        return entity.adjustSpawnLocation(world, world.getSharedSpawnPos()).thenApply(blockPos -> {
++            return new DimensionTransition(world, blockPos, Vec3.ZERO, world.getSharedSpawnAngle(), 0.0F, false, postDimensionTransition); // Paper - MC-200092 - fix spawn pos yaw being ignored
++        });
+     }
++    // ShreddedPaper end - make async
+ 
+     private static Vec3 findAdjustedSharedSpawnPos(ServerLevel world, Entity entity) {
+-        return entity.adjustSpawnLocation(world, world.getSharedSpawnPos()).getBottomCenter();
++        throw new UnsupportedOperationException(); // return entity.adjustSpawnLocation(world, world.getSharedSpawnPos()).getBottomCenter(); // ShreddedPaper
+     }
+ 
+     @FunctionalInterface
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 4d7d3eac42ef35475f941cb29bc0c5ead2d20bde..68707a9ea41ec6e87a6a2604ce7c9bba7392f190 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -2452,7 +2452,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+     // Paper start
+     public java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
+         warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
+-        if (Bukkit.isPrimaryThread()) {
++        if (TickThread.isTickThreadFor(getHandle(), x, z)) { // ShreddedPaper - ensure it's the chunk's thread
+             net.minecraft.world.level.chunk.LevelChunk immediate = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+             if (immediate != null) {
+                 return java.util.concurrent.CompletableFuture.completedFuture(new CraftChunk(immediate));
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index bec40e26e17ba6fdefb68c79e2fa7a9593b0f4fe..aaef8782feec185f9445140fe0bd994a184b43d7 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -8,6 +8,8 @@ import com.google.common.collect.Lists;
+ import java.util.List;
+ import java.util.Set;
+ import java.util.UUID;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.Tag;
+ import net.minecraft.network.chat.Component;
+@@ -19,6 +21,7 @@ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.boss.EnderDragonPart;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+ import net.minecraft.world.entity.projectile.AbstractArrow;
++import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.portal.DimensionTransition;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
+@@ -59,6 +62,8 @@ import org.bukkit.util.NumberConversions;
+ import org.bukkit.util.Vector;
+ 
+ import net.md_5.bungee.api.chat.BaseComponent; // Spigot
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
+ 
+ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+     private static PermissibleBase perm;
+@@ -1080,13 +1085,36 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+         net.minecraft.server.level.ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
+         java.util.concurrent.CompletableFuture<Boolean> ret = new java.util.concurrent.CompletableFuture<>();
+ 
++        // ShreddedPaper start - run sync if possible
++        ChunkPos fromChunkPos = this.getHandle().chunkPosition();
++        ChunkPos toChunkPos = CraftLocation.toChunkPosition(locationClone);
++        if (ShreddedPaper.isSync((ServerLevel) this.getHandle().level(), fromChunkPos)
++                && ShreddedPaper.isSync(world, toChunkPos)
++                && this.getHandle().level().hasChunk(fromChunkPos.x, fromChunkPos.z)
++                && world.hasChunk(toChunkPos.x, toChunkPos.z)) {
++            try {
++                ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
++            } catch (Throwable throwable) {
++                if (throwable instanceof ThreadDeath) {
++                    throw (ThreadDeath)throwable;
++                }
++                net.minecraft.server.MinecraftServer.LOGGER.error("Failed to teleport entity " + CraftEntity.this, throwable);
++                ret.completeExceptionally(throwable);
++            }
++            return ret;
++        }
++        // ShreddedPaper end
++
+         world.loadChunksForMoveAsync(getHandle().getBoundingBoxAt(locationClone.getX(), locationClone.getY(), locationClone.getZ()),
+             this instanceof CraftPlayer ? ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.HIGHER : ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor.Priority.NORMAL, (list) -> {
+                 net.minecraft.server.level.ServerChunkCache chunkProviderServer = world.getChunkSource();
+                 for (net.minecraft.world.level.chunk.ChunkAccess chunk : list) {
+                     chunkProviderServer.addTicketAtLevel(net.minecraft.server.level.TicketType.POST_TELEPORT, chunk.getPos(), 33, CraftEntity.this.getEntityId());
+                 }
+-                net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
++                ShreddedPaperRegionScheduler.scheduleAcrossLevels(
++                        (ServerLevel) CraftEntity.this.getHandle().level(), RegionPos.forChunk(CraftEntity.this.getHandle().chunkPosition()),
++                        world, RegionPos.forLocation(locationClone),
++                        () -> { // ShreddedPaper - Run teleports on the correct threads
+                     try {
+                         ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
+                     } catch (Throwable throwable) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+index 37fc08d04ff3514d27ad25c8d774a6e96b30c3b1..c871861f9acd0620acd5b75449a3db3c5d7d52fb 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -1,5 +1,6 @@
+ package org.bukkit.craftbukkit.entity;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.base.Preconditions;
+ import com.google.common.collect.ImmutableSet;
+ import com.google.common.io.BaseEncoding;
+@@ -1508,7 +1509,8 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+         } else {
+             entity.portalProcess = null; // SPIGOT-7785: there is no need to carry this over as it contains the old world/location and we might run into trouble if there is a portal in the same spot in both worlds
+             // The respawn reason should never be used if the passed location is non null.
+-            this.server.getHandle().respawn(entity, true, Entity.RemovalReason.CHANGED_DIMENSION, null, to);
++            if (!TickThread.isTickThreadFor(entity.serverLevel(), entity.position()) || !TickThread.isTickThreadFor(toWorld, CraftLocation.toBlockPosition(to))) throw new UnsupportedOperationException("Cannot respawn player asynchronously"); // ShreddedPaper - make sure following will be run on this thread
++            this.server.getHandle().respawnAsync(entity, true, Entity.RemovalReason.CHANGED_DIMENSION, null, to).join(); // Paper // ShreddedPaper - will be run on this thread
+         }
+         return true;
+     }
+@@ -3382,7 +3384,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
+         {
+             if ( CraftPlayer.this.getHealth() <= 0 && CraftPlayer.this.isOnline() )
+             {
+-                CraftPlayer.this.server.getServer().getPlayerList().respawn( CraftPlayer.this.getHandle(), false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.PLUGIN );
++                CraftPlayer.this.server.getServer().getPlayerList().respawnAsync( CraftPlayer.this.getHandle(), false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.PLUGIN ); // ShreddedPaper - async respawning
+             }
+         }
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/util/CraftLocation.java b/src/main/java/org/bukkit/craftbukkit/util/CraftLocation.java
+index 097996d3955ab5126b71f7bff1dd2c62becb5ffd..ebc362617934e90dece6fd35becdc1558996dc0d 100644
+--- a/src/main/java/org/bukkit/craftbukkit/util/CraftLocation.java
++++ b/src/main/java/org/bukkit/craftbukkit/util/CraftLocation.java
+@@ -1,6 +1,8 @@
+ package org.bukkit.craftbukkit.util;
+ 
+ import net.minecraft.core.BlockPos;
++import net.minecraft.core.SectionPos;
++import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.phys.Vec3;
+ import org.bukkit.Location;
+ import org.bukkit.World;
+@@ -40,6 +42,12 @@ public final class CraftLocation {
+         return new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+     }
+ 
++    // ShreddedPaper start
++    public static ChunkPos toChunkPosition(Location location) {
++        return new ChunkPos(SectionPos.blockToSectionCoord(location.getBlockX()), SectionPos.blockToSectionCoord(location.getBlockZ()));
++    }
++    // ShreddedPaper end
++
+     public static Vec3 toVec3D(Location location) {
+         return new Vec3(location.getX(), location.getY(), location.getZ());
+     }

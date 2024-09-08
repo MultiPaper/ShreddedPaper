@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Wed, 14 Aug 2024 01:13:18 +0900
+Subject: [PATCH] Send ping packet later
+
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index e64d4739ae092f2057f56ae6dabc6ea7a7f8aa27..e4f4b1e920c16ed0d860b530039347bf03adf8dc 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1914,6 +1914,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             ServerPlayer entityplayer = (ServerPlayer) iterator.next();
+ 
+             entityplayer.connection.chunkSender.sendNextChunks(entityplayer);
++            entityplayer.connection.keepConnectionAlive(); // ShreddedPaper - send the ping packet right before flushing
+             entityplayer.connection.resumeFlushing();
+         }
+ 
+diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
+index 098b7d64aba26f5b1b35ff70863def81d7e168aa..1eeda91338a7bd1ed902f3e68aafb0a605ee5020 100644
+--- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
+@@ -269,7 +269,7 @@ public abstract class ServerCommonPacketListenerImpl implements ServerCommonPack
+         this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY, PlayerKickEvent.Cause.INVALID_COOKIE); // Paper - kick event cause
+     }
+ 
+-    protected void keepConnectionAlive() {
++    public void keepConnectionAlive() { // ShreddedPaper - make public
+         //this.server.getProfiler().push("keepAlive"); // Purpur
+         // Paper start - give clients a longer time to respond to pings as per pre 1.12.2 timings
+         // This should effectively place the keepalive handling back to "as it was" before 1.12.2
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 640ac03286b7653888497c9cee8864101488ac42..2b25e48d03cc90ca9c0cb1caaf07ee2edd9d0e50 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -397,7 +397,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+             this.aboveGroundVehicleTickCount = 0;
+         }
+ 
+-        this.keepConnectionAlive();
++        // this.keepConnectionAlive(); // ShreddedPaper - called elsewhere
+         // CraftBukkit start
+         for (int spam; (spam = this.chatSpamTickCount.get()) > 0 && !this.chatSpamTickCount.compareAndSet(spam, spam - 1); ) ;
+         if (tabSpamLimiter.get() > 0) tabSpamLimiter.getAndDecrement(); // Paper - configurable tab spam limits

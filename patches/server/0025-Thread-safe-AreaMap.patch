@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Thu, 30 May 2024 17:43:14 +0900
+Subject: [PATCH] Thread-safe AreaMap
+
+
+diff --git a/src/main/java/ca/spottedleaf/moonrise/common/misc/PositionCountingAreaMap.java b/src/main/java/ca/spottedleaf/moonrise/common/misc/PositionCountingAreaMap.java
+index efefd94b652228d877db5dbca8b28354ad42529f..13b4a87827e99c777a7af8faa085737586dd8092 100644
+--- a/src/main/java/ca/spottedleaf/moonrise/common/misc/PositionCountingAreaMap.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/misc/PositionCountingAreaMap.java
+@@ -10,23 +10,23 @@ public final class PositionCountingAreaMap<T> {
+     private final Reference2ReferenceOpenHashMap<T, PositionCounter> counters = new Reference2ReferenceOpenHashMap<>();
+     private final Long2IntOpenHashMap positions = new Long2IntOpenHashMap();
+ 
+-    public ReferenceSet<T> getObjects() {
++    public synchronized ReferenceSet<T> getObjects() {
+         return this.counters.keySet();
+     }
+ 
+-    public int getTotalPositions() {
++    public synchronized int getTotalPositions() {
+         return this.positions.size();
+     }
+ 
+-    public boolean hasObjectsNear(final int toX, final int toZ) {
++    public synchronized boolean hasObjectsNear(final int toX, final int toZ) {
+         return this.positions.containsKey(IntPairUtil.key(toX, toZ));
+     }
+ 
+-    public int getObjectsNear(final int toX, final int toZ) {
++    public synchronized int getObjectsNear(final int toX, final int toZ) {
+         return this.positions.get(IntPairUtil.key(toX, toZ));
+     }
+ 
+-    public boolean add(final T parameter, final int toX, final int toZ, final int distance) {
++    public synchronized boolean add(final T parameter, final int toX, final int toZ, final int distance) {
+         final PositionCounter existing = this.counters.get(parameter);
+         if (existing != null) {
+             return false;
+@@ -39,7 +39,7 @@ public final class PositionCountingAreaMap<T> {
+         return counter.add(toX, toZ, distance);
+     }
+ 
+-    public boolean addOrUpdate(final T parameter, final int toX, final int toZ, final int distance) {
++    public synchronized boolean addOrUpdate(final T parameter, final int toX, final int toZ, final int distance) {
+         final PositionCounter existing = this.counters.get(parameter);
+         if (existing != null) {
+             return existing.update(toX, toZ, distance);
+@@ -52,7 +52,7 @@ public final class PositionCountingAreaMap<T> {
+         return counter.add(toX, toZ, distance);
+     }
+ 
+-    public boolean remove(final T parameter) {
++    public synchronized boolean remove(final T parameter) {
+         final PositionCounter counter = this.counters.remove(parameter);
+         if (counter == null) {
+             return false;
+@@ -63,7 +63,7 @@ public final class PositionCountingAreaMap<T> {
+         return true;
+     }
+ 
+-    public boolean update(final T parameter, final int toX, final int toZ, final int distance) {
++    public synchronized boolean update(final T parameter, final int toX, final int toZ, final int distance) {
+         final PositionCounter counter = this.counters.get(parameter);
+         if (counter == null) {
+             return false;

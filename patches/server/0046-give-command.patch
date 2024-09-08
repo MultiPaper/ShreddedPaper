@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sun, 11 Aug 2024 18:32:56 +0900
+Subject: [PATCH] /give command
+
+
+diff --git a/src/main/java/net/minecraft/server/commands/GiveCommand.java b/src/main/java/net/minecraft/server/commands/GiveCommand.java
+index 2f7897744f4aea718170698881773e9031a58a51..9c40b2d62b05374faaef7d882affa630d55654c1 100644
+--- a/src/main/java/net/minecraft/server/commands/GiveCommand.java
++++ b/src/main/java/net/minecraft/server/commands/GiveCommand.java
+@@ -7,6 +7,8 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import java.util.Collection;
+ import java.util.Iterator;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.commands.CommandBuildContext;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.arguments.EntityArgument;
+@@ -57,10 +59,11 @@ public class GiveCommand {
+ 
+                     l -= i1;
+                     ItemStack itemstack1 = item.createItemStack(i1, false);
++                    ShreddedPaper.ensureSync(entityplayer, () -> { // ShreddedPaper - run on player's thread
+                     boolean flag = entityplayer.getInventory().add(itemstack1);
+                     ItemEntity entityitem;
+ 
+-                    if (org.purpurmc.purpur.PurpurConfig.disableGiveCommandDrops) continue; // Purpur - add config option for toggling give command dropping
++                    if (org.purpurmc.purpur.PurpurConfig.disableGiveCommandDrops) return; // Purpur - add config option for toggling give command dropping // ShreddedPaper - run on player's thread
+                     if (flag && itemstack1.isEmpty()) {
+                         entityitem = entityplayer.drop(itemstack, false, false, false); // CraftBukkit - SPIGOT-2942: Add boolean to call event
+                         if (entityitem != null) {
+@@ -76,6 +79,7 @@ public class GiveCommand {
+                             entityitem.setTarget(entityplayer.getUUID());
+                         }
+                     }
++                    }); // ShreddedPaper - run on player's thread
+                 }
+             }
+ 

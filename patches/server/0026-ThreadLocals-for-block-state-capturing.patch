@@ -1,0 +1,489 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Thu, 30 May 2024 21:47:29 +0900
+Subject: [PATCH] ThreadLocals for block state capturing
+
+
+diff --git a/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java b/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
+index 410ecbe7dbe9ece01c22d2529843d8a2e6ddd9cf..e94997406b410ca8af517a03c52713c5a916eeb1 100644
+--- a/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
++++ b/src/main/java/net/minecraft/core/dispenser/DispenseItemBehavior.java
+@@ -614,7 +614,7 @@ public interface DispenseItemBehavior {
+                     }
+                 }
+ 
+-                worldserver.captureTreeGeneration = true;
++                worldserver.captureTreeGeneration.set(true); // ShreddedPaper - thread local
+                 // CraftBukkit end
+ 
+                 if (!BoneMealItem.growCrop(stack, worldserver, blockposition) && !BoneMealItem.growWaterPlant(stack, worldserver, blockposition, (Direction) null)) {
+@@ -623,13 +623,13 @@ public interface DispenseItemBehavior {
+                     worldserver.levelEvent(1505, blockposition, 15);
+                 }
+                 // CraftBukkit start
+-                worldserver.captureTreeGeneration = false;
+-                if (worldserver.capturedBlockStates.size() > 0) {
++                worldserver.captureTreeGeneration.set(false); // ShreddedPaper - thread local
++                if (worldserver.capturedBlockStates.get().size() > 0) { // ShreddedPaper - thread local
+                     TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
+                     SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
+                     Location location = CraftLocation.toBukkit(blockposition, worldserver.getWorld());
+-                    List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(worldserver.capturedBlockStates.values());
+-                    worldserver.capturedBlockStates.clear();
++                    List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(worldserver.capturedBlockStates.get().values()); // ShreddedPaper - thread local
++                    worldserver.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
+                     StructureGrowEvent structureEvent = null;
+                     if (treeType != null) {
+                         structureEvent = new StructureGrowEvent(location, treeType, false, null, blocks);
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 5fad8361e2b3644f5c40e652791d74e092443c0b..ced3e80d1faef804dd3bc020185a5c9f1bed8aa5 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -1621,8 +1621,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+         } else {
+             if (entity instanceof net.minecraft.world.entity.item.ItemEntity itemEntity && itemEntity.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
+             // Paper start - capture all item additions to the world
+-            if (captureDrops != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) {
+-                captureDrops.add((net.minecraft.world.entity.item.ItemEntity) entity);
++            if (captureDrops.get() != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) { // ShreddedPaper - thread local
++                captureDrops.get().add((net.minecraft.world.entity.item.ItemEntity) entity); // ShreddedPaper - thread local
+                 return true;
+             }
+             // Paper end - capture all item additions to the world
+@@ -1828,7 +1828,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+ 
+     @Override
+     public void updateNeighborsAt(BlockPos pos, Block sourceBlock) {
+-        if (captureBlockStates) { return; } // Paper - Cancel all physics during placement
++        if (captureBlockStates.get()) { return; } // Paper - Cancel all physics during placement // ShreddedPaper - thread local
+         this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, sourceBlock, (Direction) null);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+index 7c06b284a6cc74c0b31f8921706c7796dcc4e402..8937c509cdee13349cd4e512f6a90086324dc709 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -425,7 +425,7 @@ public class ServerPlayerGameMode {
+             } else {
+                 // CraftBukkit start
+                 org.bukkit.block.BlockState state = bblock.getState();
+-                this.level.captureDrops = new ArrayList<>();
++                this.level.captureDrops.set(new ArrayList<>()); // ShreddedPaper - thread local
+                 // CraftBukkit end
+                 BlockState iblockdata1 = block.playerWillDestroy(this.level, pos, iblockdata, this.player);
+                 boolean flag = this.level.removeBlock(pos, false);
+@@ -453,8 +453,8 @@ public class ServerPlayerGameMode {
+                     // return true; // CraftBukkit
+                 }
+                 // CraftBukkit start
+-                java.util.List<net.minecraft.world.entity.item.ItemEntity> itemsToDrop = this.level.captureDrops; // Paper - capture all item additions to the world
+-                this.level.captureDrops = null; // Paper - capture all item additions to the world; Remove this earlier so that we can actually drop stuff
++                java.util.List<net.minecraft.world.entity.item.ItemEntity> itemsToDrop = this.level.captureDrops.get(); // Paper - capture all item additions to the world // ShreddedPaper - thread local
++                this.level.captureDrops.set(null); // Paper - capture all item additions to the world; Remove this earlier so that we can actually drop stuff // ShreddedPaper - thread local
+                 if (event.isDropItems()) {
+                     org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, state, this.player, itemsToDrop); // Paper - capture all item additions to the world
+                 }
+diff --git a/src/main/java/net/minecraft/world/item/ItemStack.java b/src/main/java/net/minecraft/world/item/ItemStack.java
+index 6d6559d72b49aaf14fa0555fa47683e2d9940da3..f3237bb1d33ece03dd56f1aa6ee26fc88289c7d9 100644
+--- a/src/main/java/net/minecraft/world/item/ItemStack.java
++++ b/src/main/java/net/minecraft/world/item/ItemStack.java
+@@ -421,29 +421,31 @@ public final class ItemStack implements DataComponentHolder {
+             ServerLevel world = (ServerLevel) context.getLevel();
+ 
+             if (!(item instanceof BucketItem/* || item instanceof SolidBucketItem*/)) { // if not bucket // Paper - Fix cancelled powdered snow bucket placement
+-                world.captureBlockStates = true;
++                world.captureBlockStates.set(true); // ShreddedPaper - thread local
+                 // special case bonemeal
+                 if (item == Items.BONE_MEAL) {
+-                    world.captureTreeGeneration = true;
++                    world.captureTreeGeneration.set(true); // ShreddedPaper - thread local
+                 }
+             }
+             InteractionResult enuminteractionresult;
+             try {
++                world.capturedTileEntities.get().clear(); // ShreddedPaper - clear beforehand
++                world.capturedBlockStates.get().clear(); // ShreddedPaper - clear beforehand
+                 enuminteractionresult = item.useOn(context);
+             } finally {
+-                world.captureBlockStates = false;
++                world.captureBlockStates.set(false); // ShreddedPaper - thread local
+             }
+             DataComponentPatch newData = this.components.asPatch();
+             int newCount = this.getCount();
+             this.setCount(oldCount);
+             this.restorePatch(oldData);
+-            if (enuminteractionresult.consumesAction() && world.captureTreeGeneration && world.capturedBlockStates.size() > 0) {
+-                world.captureTreeGeneration = false;
++            if (enuminteractionresult.consumesAction() && world.captureTreeGeneration.get() && world.capturedBlockStates.get().size() > 0) { // ShreddedPaper - thread local
++                world.captureTreeGeneration.set(false); // ShreddedPaper - thread local
+                 Location location = CraftLocation.toBukkit(blockposition, world.getWorld());
+                 TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
+                 SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
+-                List<CraftBlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
+-                world.capturedBlockStates.clear();
++                List<CraftBlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.get().values()); // ShreddedPaper - thread local
++                world.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
+                 StructureGrowEvent structureEvent = null;
+                 if (treeType != null) {
+                     boolean isBonemeal = this.getItem() == Items.BONE_MEAL;
+@@ -472,13 +474,13 @@ public final class ItemStack implements DataComponentHolder {
+                 SignItem.openSignThreadLocal.remove(); // SPIGOT-6758 - Reset on early return // ShreddedPaper - thread local for openSign
+                 return enuminteractionresult;
+             }
+-            world.captureTreeGeneration = false;
++            world.captureTreeGeneration.set(false); // ShreddedPaper - thread local;
+ 
+             if (entityhuman != null && enuminteractionresult.indicateItemUse()) {
+                 InteractionHand enumhand = context.getHand();
+                 org.bukkit.event.block.BlockPlaceEvent placeEvent = null;
+-                List<BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
+-                world.capturedBlockStates.clear();
++                List<BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.get().values()); // ShreddedPaper - thread local
++                world.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
+                 if (blocks.size() > 1) {
+                     placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(world, entityhuman, enumhand, blocks, blockposition.getX(), blockposition.getY(), blockposition.getZ());
+                 } else if (blocks.size() == 1 && item != Items.POWDER_SNOW_BUCKET) { // Paper - Fix cancelled powdered snow bucket placement
+@@ -489,16 +491,16 @@ public final class ItemStack implements DataComponentHolder {
+                     enuminteractionresult = InteractionResult.FAIL; // cancel placement
+                     // PAIL: Remove this when MC-99075 fixed
+                     placeEvent.getPlayer().updateInventory();
+-                    world.capturedTileEntities.clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot
++                    world.capturedTileEntities.get().clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot // ShreddedPaper - thread local
+                     // revert back all captured blocks
+-                    world.preventPoiUpdated = true; // CraftBukkit - SPIGOT-5710
+-                    world.isBlockPlaceCancelled = true; // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
++                    world.preventPoiUpdated.set(true); // CraftBukkit - SPIGOT-5710 // ShreddedPaper - thread local
++                    world.isBlockPlaceCancelled.set(true); // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent // ShreddedPaper - thread local
+                     for (BlockState blockstate : blocks) {
+                         blockstate.update(true, false);
+                         ((CraftBlock) blockstate.getBlock()).getNMS().getBlock().forgetPlacer(); // Purpur
+                     }
+-                    world.isBlockPlaceCancelled = false; // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
+-                    world.preventPoiUpdated = false;
++                    world.isBlockPlaceCancelled.set(false); // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent // ShreddedPaper - thread local
++                    world.preventPoiUpdated.set(false); // ShreddedPaper - thread local
+ 
+                     // Brute force all possible updates
+                     // Paper start - Don't resync blocks
+@@ -515,7 +517,7 @@ public final class ItemStack implements DataComponentHolder {
+                         this.setCount(newCount);
+                     }
+ 
+-                    for (Map.Entry<BlockPos, BlockEntity> e : world.capturedTileEntities.entrySet()) {
++                    for (Map.Entry<BlockPos, BlockEntity> e : world.capturedTileEntities.get().entrySet()) { // ShreddedPaper - thread local
+                         world.setBlockEntity(e.getValue());
+                     }
+ 
+@@ -587,8 +589,8 @@ public final class ItemStack implements DataComponentHolder {
+                     entityhuman.awardStat(Stats.ITEM_USED.get(item));
+                 }
+             }
+-            world.capturedTileEntities.clear();
+-            world.capturedBlockStates.clear();
++            world.capturedTileEntities.get().clear(); // ShreddedPaper - thread local
++            world.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
+             // CraftBukkit end
+ 
+             return enuminteractionresult;
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index a5f3b91e559bdc626a144a69e435fc1f6996e07a..2f6a37be257ce954ccc308d2707fd50d32bc4ff7 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
+ import com.mojang.serialization.Codec;
+ import java.io.IOException;
+ import java.util.Iterator;
++import java.util.LinkedHashMap;
+ import java.util.List;
+ import java.util.Objects;
+ import java.util.Set;
+@@ -154,13 +155,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     public boolean pvpMode;
+     public org.bukkit.generator.ChunkGenerator generator;
+ 
+-    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
+-    public boolean captureBlockStates = false;
+-    public boolean captureTreeGeneration = false;
+-    public boolean isBlockPlaceCancelled = false; // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
+-    public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.LinkedHashMap<>(); // Paper
+-    public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
+-    public List<ItemEntity> captureDrops;
++    // ShreddedPaper start - threading
++    public ThreadLocal<Boolean> preventPoiUpdated = ThreadLocal.withInitial(() -> false); // CraftBukkit - SPIGOT-5710
++    public ThreadLocal<Boolean> captureBlockStates = ThreadLocal.withInitial(() -> false);
++    public ThreadLocal<Boolean> captureTreeGeneration = ThreadLocal.withInitial(() -> false);
++    public ThreadLocal<Boolean> isBlockPlaceCancelled = ThreadLocal.withInitial(() -> false); // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
++    public ThreadLocal<Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState>> capturedBlockStates = ThreadLocal.withInitial(LinkedHashMap::new); // Paper
++    public ThreadLocal<Map<BlockPos, BlockEntity>> capturedTileEntities = ThreadLocal.withInitial(LinkedHashMap::new); // Paper - Retain block place order when capturing blockstates
++    public ThreadLocal<List<ItemEntity>> captureDrops = new ThreadLocal<>();
++    // ShreddedPaper end - threading
+     public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
+     // Paper start
+     public int wakeupInactiveRemainingAnimals;
+@@ -1002,8 +1005,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     @Nullable
+     public final BlockState getBlockStateIfLoaded(BlockPos pos) {
+         // CraftBukkit start - tree generation
+-        if (this.captureTreeGeneration) {
+-            CraftBlockState previous = this.capturedBlockStates.get(pos);
++        if (this.captureTreeGeneration.get()) { // ShreddedPaper - thread local
++            CraftBlockState previous = this.capturedBlockStates.get().get(pos); // ShreddedPaper - thread local
+             if (previous != null) {
+                 return previous.getHandle();
+             }
+@@ -1066,15 +1069,15 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     @Override
+     public boolean setBlock(BlockPos pos, BlockState state, int flags, int maxUpdateDepth) {
+         // CraftBukkit start - tree generation
+-        if (this.captureTreeGeneration) {
++        if (this.captureTreeGeneration.get()) { // ShreddedPaper - thread local
+             // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
+             BlockState type = getBlockState(pos);
+             if (!type.isDestroyable()) return false;
+             // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
+-            CraftBlockState blockstate = this.capturedBlockStates.get(pos);
++            CraftBlockState blockstate = this.capturedBlockStates.get().get(pos); // ShreddedPaper - thread local
+             if (blockstate == null) {
+                 blockstate = CapturedBlockState.getTreeBlockState(this, pos, flags);
+-                this.capturedBlockStates.put(pos.immutable(), blockstate);
++                this.capturedBlockStates.get().put(pos.immutable(), blockstate); // ShreddedPaper - thread local
+             }
+             blockstate.setData(state);
+             blockstate.setFlag(flags);
+@@ -1091,10 +1094,10 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+ 
+             // CraftBukkit start - capture blockstates
+             boolean captured = false;
+-            if (this.captureBlockStates && !this.capturedBlockStates.containsKey(pos)) {
++            if (this.captureBlockStates.get() && !this.capturedBlockStates.get().containsKey(pos)) { // ShreddedPaper - thread local
+                 CraftBlockState blockstate = (CraftBlockState) world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()).getState(); // Paper - use CB getState to get a suitable snapshot
+                 blockstate.setFlag(flags); // Paper - set flag
+-                this.capturedBlockStates.put(pos.immutable(), blockstate);
++                this.capturedBlockStates.get().put(pos.immutable(), blockstate); // ShreddedPaper - thread local
+                 captured = true;
+             }
+             // CraftBukkit end
+@@ -1104,8 +1107,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+ 
+             if (iblockdata1 == null) {
+                 // CraftBukkit start - remove blockstate if failed (or the same)
+-                if (this.captureBlockStates && captured) {
+-                    this.capturedBlockStates.remove(pos);
++                if (this.captureBlockStates.get() && captured) { // ShreddedPaper - thread local
++                    this.capturedBlockStates.get().remove(pos); // ShreddedPaper - thread local
+                 }
+                 // CraftBukkit end
+                 return false;
+@@ -1142,7 +1145,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+                 */
+ 
+                 // CraftBukkit start
+-                if (!this.captureBlockStates) { // Don't notify clients or update physics while capturing blockstates
++                if (!this.captureBlockStates.get()) { // Don't notify clients or update physics while capturing blockstates // ShreddedPaper - thread local
+                     // Modularize client and physic updates
+                     // Spigot start
+                     try {
+@@ -1201,7 +1204,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+             }
+ 
+             // CraftBukkit start - SPIGOT-5710
+-            if (!this.preventPoiUpdated) {
++            if (!this.preventPoiUpdated.get()) { // ShreddedPaper - thread local
+                 this.onBlockStateChange(blockposition, iblockdata1, iblockdata2);
+             }
+             // CraftBukkit end
+@@ -1313,8 +1316,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     @Override
+     public BlockState getBlockState(BlockPos pos) {
+         // CraftBukkit start - tree generation
+-        if (this.captureTreeGeneration) {
+-            CraftBlockState previous = this.capturedBlockStates.get(pos); // Paper
++        if (this.captureTreeGeneration.get()) { // ShreddedPaper - thread local
++            CraftBlockState previous = this.capturedBlockStates.get().get(pos); // Paper // ShreddedPaper - thread local
+             if (previous != null) {
+                 return previous.getHandle();
+             }
+@@ -1588,7 +1591,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+     public BlockEntity getBlockEntity(BlockPos blockposition, boolean validate) {
+         // Paper start - Perf: Optimize capturedTileEntities lookup
+         net.minecraft.world.level.block.entity.BlockEntity blockEntity;
+-        if (!this.capturedTileEntities.isEmpty() && (blockEntity = this.capturedTileEntities.get(blockposition)) != null) {
++        if (!this.capturedTileEntities.get().isEmpty() && (blockEntity = this.capturedTileEntities.get().get(blockposition)) != null) { // ShreddedPaper - thread local
+             return blockEntity;
+         }
+         // Paper end - Perf: Optimize capturedTileEntities lookup
+@@ -1601,8 +1604,8 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+ 
+         if (!this.isOutsideBuildHeight(blockposition)) {
+             // CraftBukkit start
+-            if (this.captureBlockStates) {
+-                this.capturedTileEntities.put(blockposition.immutable(), blockEntity);
++            if (this.captureBlockStates.get()) { // ShreddedPaper - thread local
++                this.capturedTileEntities.get().put(blockposition.immutable(), blockEntity); // ShreddedPaper - thread local
+                 return;
+             }
+             // CraftBukkit end
+diff --git a/src/main/java/net/minecraft/world/level/block/BedBlock.java b/src/main/java/net/minecraft/world/level/block/BedBlock.java
+index 17c994a39a1b99cc7727e328ce7493d534247a21..a6609c64baaa68e53b8b2622582878670a3e7bc8 100644
+--- a/src/main/java/net/minecraft/world/level/block/BedBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/BedBlock.java
+@@ -365,7 +365,7 @@ public class BedBlock extends HorizontalDirectionalBlock implements EntityBlock
+ 
+             world.setBlock(blockposition1, (BlockState) state.setValue(BedBlock.PART, BedPart.HEAD), 3);
+             // CraftBukkit start - SPIGOT-7315: Don't updated if we capture block states
+-            if (world.captureBlockStates) {
++            if (world.captureBlockStates.get()) { // ShreddedPaper - thread local
+                 return;
+             }
+             // CraftBukkit end
+diff --git a/src/main/java/net/minecraft/world/level/block/Block.java b/src/main/java/net/minecraft/world/level/block/Block.java
+index 4ff7e3693305069e7fad185802a3b0481ab70a4a..3c4039d14e26a37e5696f3b1eca75c55e26e4bdd 100644
+--- a/src/main/java/net/minecraft/world/level/block/Block.java
++++ b/src/main/java/net/minecraft/world/level/block/Block.java
+@@ -412,8 +412,8 @@ public class Block extends BlockBehaviour implements ItemLike {
+ 
+             entityitem.setDefaultPickUpDelay();
+             // CraftBukkit start
+-            if (world.captureDrops != null) {
+-                world.captureDrops.add(entityitem);
++            if (world.captureDrops.get() != null) { // ShreddedPaper - thread local
++                world.captureDrops.get().add(entityitem); // ShreddedPaper - thread local
+             } else {
+                 world.addFreshEntity(entityitem);
+             }
+diff --git a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+index 99e69f34d4f2dd9a67076e38e094246d5969cd11..0e7626eb64c97ae5ff2fea075ce7f8d1d75ad6e3 100644
+--- a/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/SaplingBlock.java
+@@ -66,18 +66,18 @@ public class SaplingBlock extends BushBlock implements BonemealableBlock {
+             world.setBlock(pos, (net.minecraft.world.level.block.state.BlockState) state.cycle(SaplingBlock.STAGE), 4);
+         } else {
+             // CraftBukkit start
+-            if (world.captureTreeGeneration) {
++            if (world.captureTreeGeneration.get()) { // ShreddedPaper - thread local
+                 this.treeGrower.growTree(world, world.getChunkSource().getGenerator(), pos, state, random);
+             } else {
+-                world.captureTreeGeneration = true;
++                world.captureTreeGeneration.set(true); // ShreddedPaper - thread local
+                 this.treeGrower.growTree(world, world.getChunkSource().getGenerator(), pos, state, random);
+-                world.captureTreeGeneration = false;
+-                if (world.capturedBlockStates.size() > 0) {
++                world.captureTreeGeneration.set(false); // ShreddedPaper - thread local
++                if (world.capturedBlockStates.get().size() > 0) { // ShreddedPaper - thread local
+                     TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
+                     SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
+                     Location location = CraftLocation.toBukkit(pos, world.getWorld());
+-                    java.util.List<BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
+-                    world.capturedBlockStates.clear();
++                    java.util.List<BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.get().values()); // ShreddedPaper - thread local
++                    world.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
+                     StructureGrowEvent event = null;
+                     if (treeType != null) {
+                         event = new StructureGrowEvent(location, treeType, false, null, blocks);
+diff --git a/src/main/java/net/minecraft/world/level/block/WitherSkullBlock.java b/src/main/java/net/minecraft/world/level/block/WitherSkullBlock.java
+index 5cb06959aeaceeb98cfee34b1df804e6642f305f..7fa724b10f89856f99956047290a08b653656554 100644
+--- a/src/main/java/net/minecraft/world/level/block/WitherSkullBlock.java
++++ b/src/main/java/net/minecraft/world/level/block/WitherSkullBlock.java
+@@ -61,7 +61,7 @@ public class WitherSkullBlock extends SkullBlock {
+     }
+ 
+     public static void checkSpawn(Level world, BlockPos pos, SkullBlockEntity blockEntity) {
+-        if (world.captureBlockStates) return; // CraftBukkit
++        if (world.captureBlockStates.get()) return; // CraftBukkit // ShreddedPaper - thread local
+         if (!world.isClientSide) {
+             BlockState iblockdata = blockEntity.getBlockState();
+             boolean flag = iblockdata.is(Blocks.WITHER_SKELETON_SKULL) || iblockdata.is(Blocks.WITHER_SKELETON_WALL_SKULL);
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index 66716764aa2b0bdf6d546f4a08c774c453415a5d..ffcf0e70eb3a3200d0437f1845ae8a461c13b8fe 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -406,7 +406,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+ 
+                 boolean flag3 = iblockdata1.hasBlockEntity();
+ 
+-                if (!this.level.isClientSide && !this.level.isBlockPlaceCancelled) { // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent
++                if (!this.level.isClientSide && !this.level.isBlockPlaceCancelled.get()) { // Paper - prevent calling cleanup logic when undoing a block place upon a cancelled BlockPlaceEvent // ShreddedPaper - thread local
+                     iblockdata1.onRemove(this.level, blockposition, iblockdata, flag);
+                 } else if (!iblockdata1.is(block) && flag3) {
+                     this.removeBlockEntity(blockposition);
+@@ -416,7 +416,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+                     return null;
+                 } else {
+                     // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
+-                    if (!this.level.isClientSide && doPlace && (!this.level.captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) {
++                    if (!this.level.isClientSide && doPlace && (!this.level.captureBlockStates.get() || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // ShreddedPaper - thread local
+                         iblockdata.onPlace(this.level, blockposition, iblockdata1, flag);
+                     }
+ 
+@@ -467,7 +467,7 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+     @Nullable
+     public BlockEntity getBlockEntity(BlockPos pos, LevelChunk.EntityCreationType creationType) {
+         // CraftBukkit start
+-        BlockEntity tileentity = this.level.capturedTileEntities.get(pos);
++        BlockEntity tileentity = this.level.capturedTileEntities.get().get(pos); // ShreddedPaper - thread local
+         if (tileentity == null) {
+             tileentity = (BlockEntity) this.blockEntities.get(pos);
+         }
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index e9198ac8f6c29b516eac7f5b4f4278988df8ed7a..92d4c68098a12e3f1acf78bc15e8697f713c26e9 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -784,13 +784,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+ 
+     @Override
+     public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
+-        this.world.captureTreeGeneration = true;
+-        this.world.captureBlockStates = true;
++        this.world.captureTreeGeneration.set(true); // ShreddedPaper - thread local
++        this.world.captureBlockStates.set(true); // ShreddedPaper - thread local
++        world.capturedTileEntities.get().clear(); // ShreddedPaper - clear beforehand
++        world.capturedBlockStates.get().clear(); // ShreddedPaper - clear beforehand
+         boolean grownTree = this.generateTree(loc, type);
+-        this.world.captureBlockStates = false;
+-        this.world.captureTreeGeneration = false;
++        this.world.captureBlockStates.set(false); // ShreddedPaper - thread local
++        this.world.captureTreeGeneration.set(false); // ShreddedPaper - thread local
+         if (grownTree) { // Copy block data to delegate
+-            for (BlockState blockstate : this.world.capturedBlockStates.values()) {
++            for (BlockState blockstate : this.world.capturedBlockStates.get().values()) { // ShreddedPaper - thread local
+                 BlockPos position = ((CraftBlockState) blockstate).getPosition();
+                 net.minecraft.world.level.block.state.BlockState oldBlock = this.world.getBlockState(position);
+                 int flag = ((CraftBlockState) blockstate).getFlag();
+@@ -798,10 +800,10 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+                 net.minecraft.world.level.block.state.BlockState newBlock = this.world.getBlockState(position);
+                 this.world.notifyAndUpdatePhysics(position, null, oldBlock, newBlock, newBlock, flag, 512);
+             }
+-            this.world.capturedBlockStates.clear();
++            this.world.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
+             return true;
+         } else {
+-            this.world.capturedBlockStates.clear();
++            this.world.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
+             return false;
+         }
+     }
+diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+index efdac83c60651818f7d1829be8970cd1c546f3de..ed30feb916daecc1d9b9aaa854ac5b832aa59757 100644
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+@@ -549,15 +549,15 @@ public class CraftBlock implements Block {
+         UseOnContext context = new UseOnContext(world, null, InteractionHand.MAIN_HAND, Items.BONE_MEAL.getDefaultInstance(), new BlockHitResult(Vec3.ZERO, direction, this.getPosition(), false));
+ 
+         // SPIGOT-6895: Call StructureGrowEvent and BlockFertilizeEvent
+-        world.captureTreeGeneration = true;
++        world.captureTreeGeneration.set(true); // ShreddedPaper - thread local
+         InteractionResult result = BoneMealItem.applyBonemeal(context);
+-        world.captureTreeGeneration = false;
++        world.captureTreeGeneration.set(false); // ShreddedPaper - thread local
+ 
+-        if (world.capturedBlockStates.size() > 0) {
++        if (world.capturedBlockStates.get().size() > 0) { // ShreddedPaper - thread local
+             TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - thread local for treeType
+             SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - thread local for treeType
+-            List<BlockState> blocks = new ArrayList<>(world.capturedBlockStates.values());
+-            world.capturedBlockStates.clear();
++            List<BlockState> blocks = new ArrayList<>(world.capturedBlockStates.get().values()); // ShreddedPaper - thread local
++            world.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
+             StructureGrowEvent structureEvent = null;
+ 
+             if (treeType != null) {

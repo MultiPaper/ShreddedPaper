@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Fri, 24 May 2024 00:03:50 +0900
+Subject: [PATCH] EntityLookup accessibleEntities
+
+Use a synchronized block as data is only read rarely for debug reports
+
+diff --git a/src/main/java/io/papermc/paper/command/subcommands/EntityCommand.java b/src/main/java/io/papermc/paper/command/subcommands/EntityCommand.java
+index 777b789fdcdf297309cfb36fc7f77e3fdb6327ca..b35cd0b4434c8f0cf078fc1cdf7c683517dc6b6b 100644
+--- a/src/main/java/io/papermc/paper/command/subcommands/EntityCommand.java
++++ b/src/main/java/io/papermc/paper/command/subcommands/EntityCommand.java
+@@ -103,6 +103,8 @@ public final class EntityCommand implements PaperSubcommand {
+             Map<ResourceLocation, Integer> nonEntityTicking = Maps.newHashMap();
+             ServerChunkCache chunkProviderServer = world.getChunkSource();
+             world.getAllEntities().forEach(e -> {
++                if (e == null) return; // ShreddedPaper - Concurrent modification
++
+                 ResourceLocation key = EntityType.getKey(e.getType());
+ 
+                 MutablePair<Integer, Map<ChunkPos, Integer>> info = list.computeIfAbsent(key, k -> MutablePair.of(0, Maps.newHashMap()));
+diff --git a/src/main/java/net/minecraft/world/level/NaturalSpawner.java b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
+index 061706ee732f9809d6b73305c14871257af8305e..2db1e4f6d96c9dd308c0a72e7d4d1f5528ba6be9 100644
+--- a/src/main/java/net/minecraft/world/level/NaturalSpawner.java
++++ b/src/main/java/net/minecraft/world/level/NaturalSpawner.java
+@@ -80,6 +80,8 @@ public final class NaturalSpawner {
+         while (iterator.hasNext()) {
+             Entity entity = (Entity) iterator.next();
+ 
++            if (entity == null) continue; // ShreddedPaper - concurrent modification
++
+             if (entity instanceof Mob entityinsentient) {
+                 if (entityinsentient.isPersistenceRequired() || entityinsentient.requiresCustomPersistence()) {
+                     continue;

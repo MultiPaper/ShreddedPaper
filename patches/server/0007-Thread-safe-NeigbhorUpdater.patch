@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sun, 5 May 2024 01:31:47 +0900
+Subject: [PATCH] Thread-safe NeigbhorUpdater
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/PerThreadNeighborUpdater.java b/src/main/java/io/multipaper/shreddedpaper/threading/PerThreadNeighborUpdater.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e01ca0d4a18a5cea678d0fd4809291f6b7bdc731
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/PerThreadNeighborUpdater.java
+@@ -0,0 +1,44 @@
++package io.multipaper.shreddedpaper.threading;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.redstone.NeighborUpdater;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.function.Supplier;
++
++public class PerThreadNeighborUpdater implements NeighborUpdater {
++
++    private final ThreadLocal<NeighborUpdater> threadLocalNeighborUpdater;
++
++    public PerThreadNeighborUpdater(Supplier<NeighborUpdater> factory) {
++        this.threadLocalNeighborUpdater = ThreadLocal.withInitial(factory);
++    }
++
++    private NeighborUpdater getOrCreate() {
++        return threadLocalNeighborUpdater.get();
++    }
++
++    @Override
++    public void shapeUpdate(@NotNull Direction direction, @NotNull BlockState neighborState, @NotNull BlockPos pos, @NotNull BlockPos neighborPos, int flags, int maxUpdateDepth) {
++        getOrCreate().shapeUpdate(direction, neighborState, pos, neighborPos, flags, maxUpdateDepth);
++    }
++
++    @Override
++    public void neighborChanged(@NotNull BlockPos pos, @NotNull Block sourceBlock, @NotNull BlockPos sourcePos) {
++        getOrCreate().neighborChanged(pos, sourceBlock, sourcePos);
++    }
++
++    @Override
++    public void neighborChanged(@NotNull BlockState state, @NotNull BlockPos pos, @NotNull Block sourceBlock, @NotNull BlockPos sourcePos, boolean notify) {
++        getOrCreate().neighborChanged(state, pos, sourceBlock, sourcePos, notify);
++    }
++
++    @Override
++    public void updateNeighborsAtExceptFromFacing(@NotNull BlockPos pos, @NotNull Block sourceBlock, @Nullable Direction except) {
++        getOrCreate().updateNeighborsAtExceptFromFacing(pos, sourceBlock, except);
++    }
++}
+diff --git a/src/main/java/net/minecraft/world/level/Level.java b/src/main/java/net/minecraft/world/level/Level.java
+index 26fbc981ec9acafc7ba1753759375c142261b6ab..5607ff5b15795e71f780f443b066efc0e07efaa3 100644
+--- a/src/main/java/net/minecraft/world/level/Level.java
++++ b/src/main/java/net/minecraft/world/level/Level.java
+@@ -101,6 +101,7 @@ import org.bukkit.craftbukkit.block.data.CraftBlockData;
+ import org.bukkit.craftbukkit.util.CraftSpawnCategory;
+ import org.bukkit.entity.SpawnCategory;
+ import org.bukkit.event.block.BlockPhysicsEvent;
++import io.multipaper.shreddedpaper.threading.PerThreadNeighborUpdater;
+ // CraftBukkit end
+ 
+ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel, ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemEntityGetter, ca.spottedleaf.moonrise.patches.collisions.world.CollisionLevel { // Paper - rewrite chunk system // Paper - optimise collisions
+@@ -770,7 +771,7 @@ public abstract class Level implements LevelAccessor, AutoCloseable, ca.spottedl
+         this.thread = Thread.currentThread();
+         this.biomeManager = new BiomeManager(this, i);
+         this.isDebug = flag1;
+-        this.neighborUpdater = new CollectingNeighborUpdater(this, j);
++        this.neighborUpdater = new PerThreadNeighborUpdater(() -> new CollectingNeighborUpdater(this, j)); // ShreddedPaper - thread-safe
+         this.registryAccess = iregistrycustom;
+         this.damageSources = new DamageSources(iregistrycustom);
+         // CraftBukkit start

@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Wed, 7 Aug 2024 13:48:10 +0900
+Subject: [PATCH] Remove firework rocket if entity teleported away
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+index 09d465947a5720e05c350d455c86002682104079..e264da8a5b98eba3e7c5c5a8694897410f6f258c 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+@@ -5,6 +5,8 @@ import java.util.Iterator;
+ import java.util.List;
+ import java.util.OptionalInt;
+ import javax.annotation.Nullable;
++
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.particles.ParticleTypes;
+@@ -12,6 +14,7 @@ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+ import net.minecraft.network.syncher.EntityDataSerializers;
+ import net.minecraft.network.syncher.SynchedEntityData;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.world.damagesource.DamageSource;
+@@ -150,6 +153,12 @@ public class FireworkRocketEntity extends Projectile implements ItemSupplier {
+                     vec3d = Vec3.ZERO;
+                 }
+ 
++                // ShreddedPaper start - remove firework rocket if entity teleported away
++                if (!TickThread.isTickThreadFor((ServerLevel) this.level(), new Vec3(this.attachedToEntity.getX() + vec3d.x, this.attachedToEntity.getY() + vec3d.y, this.attachedToEntity.getZ() + vec3d.z))) {
++                    this.discard();
++                    return;
++                }
++                // ShreddedPaper end - remove firework rocket if entity teleported away
+                 this.setPos(this.attachedToEntity.getX() + vec3d.x, this.attachedToEntity.getY() + vec3d.y, this.attachedToEntity.getZ() + vec3d.z);
+                 this.setDeltaMovement(this.attachedToEntity.getDeltaMovement());
+             }

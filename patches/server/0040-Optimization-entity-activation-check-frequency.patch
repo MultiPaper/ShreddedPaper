@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Wed, 31 Jul 2024 00:46:51 +0900
+Subject: [PATCH] Optimization: entity-activation-check-frequency
+
+
+diff --git a/src/main/java/org/spigotmc/ActivationRange.java b/src/main/java/org/spigotmc/ActivationRange.java
+index ed1cdea66dd117ecafd14a52727f094430f39b60..4f900333ee86aee0a282ac5ba0d82f6f56a996a6 100644
+--- a/src/main/java/org/spigotmc/ActivationRange.java
++++ b/src/main/java/org/spigotmc/ActivationRange.java
+@@ -1,5 +1,6 @@
+ package org.spigotmc;
+ 
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ServerChunkCache;
+@@ -199,7 +200,8 @@ public class ActivationRange
+ 
+         for ( Player player : world.players() )
+         {
+-            player.activatedTick = MinecraftServer.currentTick;
++            if (ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency > 1 && (player.getId() + MinecraftServer.currentTick) % ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency != 0) continue; // ShreddedPaper - Configurable entity activation check frequency
++            player.activatedTick = MinecraftServer.currentTick + Math.max(0, ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency); // ShreddedPaper - Configurable entity activation check frequency
+             if ( world.spigotConfig.ignoreSpectatorActivation && player.isSpectator() )
+             {
+                 continue;
+@@ -261,16 +263,16 @@ public class ActivationRange
+      */
+     private static void activateEntity(Entity entity)
+     {
+-        if ( MinecraftServer.currentTick > entity.activatedTick )
++        if ( MinecraftServer.currentTick + Math.max(0, ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency) > entity.activatedTick ) // ShreddedPaper - Configurable entity activation check frequency
+         {
+             if ( entity.defaultActivationState )
+             { // Pufferfish - diff on change
+-                entity.activatedTick = MinecraftServer.currentTick;
++                entity.activatedTick = MinecraftServer.currentTick + Math.max(0, ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency); // ShreddedPaper - Configurable entity activation check frequency
+                 return;
+             }
+             if ( entity.activationType.boundingBox.intersects( entity.getBoundingBox() ) )
+             {  // Pufferfish - diff on change
+-                entity.activatedTick = MinecraftServer.currentTick;
++                entity.activatedTick = MinecraftServer.currentTick + Math.max(0, ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency); // ShreddedPaper - Configurable entity activation check frequency
+             }
+         }
+     }

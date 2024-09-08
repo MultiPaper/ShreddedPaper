@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Wed, 28 Aug 2024 13:47:10 +0900
+Subject: [PATCH] Don't allow actions outside of our region
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+index 8937c509cdee13349cd4e512f6a90086324dc709..e3ff23ef8c01c30105635e3e7372d461edfd00de 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -3,6 +3,7 @@ package net.minecraft.server.level;
+ import com.mojang.logging.LogUtils;
+ import java.util.Objects;
+ import javax.annotation.Nullable;
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+@@ -133,7 +134,7 @@ public class ServerPlayerGameMode {
+         BlockState iblockdata;
+ 
+         if (this.hasDelayedDestroy) {
+-            iblockdata = this.level.getBlockStateIfLoaded(this.delayedDestroyPos); // Paper - Don't allow digging into unloaded chunks
++            iblockdata = !TickThread.isTickThreadFor(this.level, this.delayedDestroyPos) ? null : this.level.getBlockStateIfLoaded(this.delayedDestroyPos); // Paper - Don't allow digging into unloaded chunks // ShreddedPaper - Don't allow digging into chunks outside our region
+             if (iblockdata == null || iblockdata.isAir()) { // Paper - Don't allow digging into unloaded chunks
+                 this.hasDelayedDestroy = false;
+             } else {
+@@ -146,7 +147,7 @@ public class ServerPlayerGameMode {
+             }
+         } else if (this.isDestroyingBlock) {
+             // Paper start - Don't allow digging into unloaded chunks; don't want to do same logic as above, return instead
+-            iblockdata = this.level.getBlockStateIfLoaded(this.destroyPos);
++            iblockdata = !TickThread.isTickThreadFor(this.level, this.destroyPos) ? null : this.level.getBlockStateIfLoaded(this.destroyPos); // ShreddedPaper - Don't allow digging into chunks outside our region
+             if (iblockdata == null) {
+                 this.isDestroyingBlock = false;
+                 return;

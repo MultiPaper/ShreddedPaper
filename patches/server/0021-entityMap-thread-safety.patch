@@ -1,0 +1,432 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Wed, 10 Jul 2024 23:18:32 +0900
+Subject: [PATCH] entityMap thread safety
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/util/Int2ObjectMapWrapper.java b/src/main/java/io/multipaper/shreddedpaper/util/Int2ObjectMapWrapper.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..28bb91a25b7e473f4e2af48561e6b1086986082d
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/util/Int2ObjectMapWrapper.java
+@@ -0,0 +1,261 @@
++package io.multipaper.shreddedpaper.util;
++
++import com.mojang.logging.LogUtils;
++import it.unimi.dsi.fastutil.ints.AbstractInt2ObjectMap;
++import it.unimi.dsi.fastutil.ints.Int2ObjectFunction;
++import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
++import it.unimi.dsi.fastutil.ints.IntArraySet;
++import it.unimi.dsi.fastutil.ints.IntSet;
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
++import it.unimi.dsi.fastutil.objects.ObjectArraySet;
++import it.unimi.dsi.fastutil.objects.ObjectCollection;
++import it.unimi.dsi.fastutil.objects.ObjectSet;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++import java.util.Map;
++import java.util.function.BiConsumer;
++import java.util.function.BiFunction;
++import java.util.function.Function;
++
++public class Int2ObjectMapWrapper<V> implements Int2ObjectMap<V> {
++    private final Map<Integer, V> map;
++    private boolean hasPrintedDepricatedWarning = false;
++
++    public Int2ObjectMapWrapper(Map<Integer, V> m) {
++        this.map = m;
++    }
++
++    private void printDepricatedWarning() {
++        if (!this.hasPrintedDepricatedWarning) {
++            this.hasPrintedDepricatedWarning = true;
++            LogUtils.getClassLogger().warn("Iterating on the Int2ObjectMapWrapper is inefficient. Please iterate directly on the wrapped map instead.", new Exception("Stack trace"));
++        }
++    }
++
++    @Override
++    public int size() {
++        return this.map.size();
++    }
++
++    @Override
++    public boolean isEmpty() {
++        return this.map.isEmpty();
++    }
++
++    @Override
++    public boolean containsValue(Object value) {
++        return this.map.containsValue(value);
++    }
++
++    @Override
++    public void putAll(@NotNull Map<? extends Integer, ? extends V> m) {
++        this.map.putAll(m);
++    }
++
++    @Override
++    public void defaultReturnValue(V rv) {
++        throw new UnsupportedOperationException();
++    }
++
++    @Override
++    public V defaultReturnValue() {
++        return null;
++    }
++
++    @Override
++    public ObjectSet<Entry<V>> int2ObjectEntrySet() {
++        printDepricatedWarning();
++        ObjectArraySet<Entry<V>> set = new ObjectArraySet<>(this.size());
++        this.map.forEach((k, v) -> set.add(new AbstractInt2ObjectMap.BasicEntry<>(k, v)));
++        return set;
++    }
++
++    @NotNull
++    @Override
++    public IntSet keySet() {
++        printDepricatedWarning();
++        return new IntArraySet(this.map.keySet());
++    }
++
++    @NotNull
++    @Override
++    public ObjectCollection<V> values() {
++        printDepricatedWarning();
++        return new ObjectArrayList<>(this.map.values());
++    }
++
++    @Override
++    public V get(int key) {
++        return this.map.get(key);
++    }
++
++    @Override
++    public boolean containsKey(int key) {
++        return this.map.containsKey(key);
++    }
++
++    @Override
++    public V getOrDefault(final int key, final V defaultValue) {
++        return this.map.getOrDefault(key, defaultValue);
++    }
++
++    @Override
++    public V getOrDefault(final Object key, final V defaultValue) {
++        return this.map.getOrDefault(key, defaultValue);
++    }
++
++    @Override
++    public V putIfAbsent(final int key, final V value) {
++        return this.map.putIfAbsent(key, value);
++    }
++
++    @Override
++    public boolean remove(final int key, final Object value) {
++        return this.map.remove(key, value);
++    }
++
++    @Override
++    public boolean replace(final int key, final V oldValue, final V newValue) {
++        return this.map.replace(key, oldValue, newValue);
++    }
++
++    @Override
++    public V replace(final int key, final V value) {
++        return containsKey(key) ? put(key, value) : defaultReturnValue();
++    }
++
++    @Override
++    public V computeIfAbsent(final int key, final java.util.function.IntFunction<? extends V> mappingFunction) {
++        return this.map.computeIfAbsent(key, mappingFunction::apply);
++    }
++
++    @Override
++    public V computeIfAbsent(final int key, final Int2ObjectFunction<? extends V> mappingFunction) {
++        return this.map.computeIfAbsent(key, mappingFunction);
++    }
++
++    @Override
++    public V computeIfPresent(final int key, final java.util.function.BiFunction<? super Integer, ? super V, ? extends V> remappingFunction) {
++        return this.map.computeIfPresent(key, remappingFunction);
++    }
++
++    @Override
++    public V compute(final int key, final java.util.function.BiFunction<? super Integer, ? super V, ? extends V> remappingFunction) {
++        return this.map.compute(key, remappingFunction);
++    }
++
++    @Override
++    public V merge(final int key, final V value, final java.util.function.BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
++        return this.map.merge(key, value, remappingFunction);
++    }
++
++    @Override
++    public V put(final int key, final V value) {
++        return this.map.put(key, value);
++    }
++
++    @Override
++    public V remove(final int key) {
++        return this.map.remove(key);
++    }
++
++    @Override
++    public V put(final Integer key, final V value) {
++        return this.map.put(key, value);
++    }
++
++    @Override
++    public V get(final Object key) {
++        return this.map.get(key);
++    }
++
++    @Override
++    public V remove(final Object key) {
++        return this.map.remove(key);
++    }
++
++    @Override
++    public void clear() {
++        this.map.clear();
++    }
++
++    @NotNull
++    @Override
++    public ObjectSet<Map.Entry<Integer, V>> entrySet() {
++        printDepricatedWarning();
++        return new ObjectArraySet<>(this.map.entrySet());
++    }
++
++    @Override
++    public boolean containsKey(Object key) {
++        return this.map.containsKey(key);
++    }
++
++    @Override
++    public void forEach(BiConsumer<? super Integer, ? super V> consumer) {
++        this.map.forEach(consumer);
++    }
++
++    @Override
++    public void replaceAll(BiFunction<? super Integer, ? super V, ? extends V> function) {
++        this.map.replaceAll(function);
++    }
++
++    @Nullable
++    @Override
++    public V putIfAbsent(Integer key, V value) {
++        return this.map.putIfAbsent(key, value);
++    }
++
++    @Override
++    public boolean remove(Object key, Object value) {
++        return this.map.remove(key, value);
++    }
++
++    @Override
++    public boolean replace(Integer key, V oldValue, V newValue) {
++        return this.map.replace(key, oldValue, newValue);
++    }
++
++    @Nullable
++    @Override
++    public V replace(Integer key, V value) {
++        return this.map.replace(key, value);
++    }
++
++    @Override
++    public V computeIfAbsent(Integer key, @NotNull Function<? super Integer, ? extends V> mappingFunction) {
++        return this.map.computeIfAbsent(key, mappingFunction);
++    }
++
++    @Override
++    public V computeIfPresent(Integer key, @NotNull BiFunction<? super Integer, ? super V, ? extends V> remappingFunction) {
++        return this.map.computeIfPresent(key, remappingFunction);
++    }
++
++    @Override
++    public V compute(Integer key, @NotNull BiFunction<? super Integer, ? super V, ? extends V> remappingFunction) {
++        return this.map.compute(key, remappingFunction);
++    }
++
++    @Override
++    public V merge(Integer key, @NotNull V value, @NotNull BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
++        return this.map.merge(key, value, remappingFunction);
++    }
++
++    @Override
++    public int hashCode() {
++        return this.map.hashCode();
++    }
++
++    @Override
++    public boolean equals(Object obj) {
++        return this == obj || (obj instanceof Int2ObjectMapWrapper<?> wrapper && this.map.equals(wrapper.map));
++    }
++
++    @Override
++    public String toString() {
++        return this.getClass().getSimpleName() + this.map.toString();
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 6fa6255515d7a9a8d3665635f70bdfe8d9fab7e5..1496717b90f97da985b87667df3162962612cb18 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -10,6 +10,7 @@ import com.google.common.collect.Queues;
+ import com.google.common.collect.Sets;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.util.Int2ObjectMapWrapper;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.Long2ByteMap;
+@@ -39,6 +40,7 @@ import java.util.Set;
+ import java.util.concurrent.CancellationException;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.CompletionException;
++import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.Executor;
+ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.function.BooleanSupplier;
+@@ -139,7 +141,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+     public final AtomicInteger tickingGenerated; // Paper - public
+     private final String storageName;
+     private final PlayerMap playerMap;
+-    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap;
++    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap; // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
++    public final ConcurrentHashMap<Integer, ChunkMap.TrackedEntity> entityConcurrentMap; // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
+     private final Long2ByteMap chunkTypeCache;
+     private final Long2LongMap chunkSaveCooldowns;
+     // Paper - rewrite chunk system
+@@ -183,7 +186,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         this.toDrop = new LongOpenHashSet();
+         this.tickingGenerated = new AtomicInteger();
+         this.playerMap = new PlayerMap();
+-        this.entityMap = new Int2ObjectOpenHashMap();
++        this.entityConcurrentMap = new ConcurrentHashMap<>(); // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
++        this.entityMap = new Int2ObjectMapWrapper(this.entityConcurrentMap); // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
+         this.chunkTypeCache = new Long2ByteOpenHashMap();
+         this.chunkSaveCooldowns = new Long2LongOpenHashMap();
+         // Paper - rewrite chunk system
+@@ -849,9 +853,9 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+     public void addEntity(Entity entity) {
+         org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot
+         // Paper start - ignore and warn about illegal addEntity calls instead of crashing server
+-        if (!entity.valid || entity.level() != this.level || this.entityMap.containsKey(entity.getId())) {
++        if (!entity.valid || entity.level() != this.level || this.entityConcurrentMap.containsKey(entity.getId())) { // ShreddedPaper - use entityConcurrentMap
+             LOGGER.error("Illegal ChunkMap::addEntity for world " + this.level.getWorld().getName()
+-                + ": " + entity  + (this.entityMap.containsKey(entity.getId()) ? " ALREADY CONTAINED (This would have crashed your server)" : ""), new Throwable());
++                + ": " + entity  + (this.entityConcurrentMap.containsKey(entity.getId()) ? " ALREADY CONTAINED (This would have crashed your server)" : ""), new Throwable()); // ShreddedPaper - use entityConcurrentMap
+             return;
+         }
+         // Paper end - ignore and warn about illegal addEntity calls instead of crashing server
+@@ -864,12 +868,12 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             if (i != 0) {
+                 int j = entitytypes.updateInterval();
+ 
+-                if (this.entityMap.containsKey(entity.getId())) {
++                if (this.entityConcurrentMap.containsKey(entity.getId())) { // ShreddedPaper - use entityConcurrentMap
+                     throw (IllegalStateException) Util.pauseInIde(new IllegalStateException("Entity is already tracked!"));
+                 } else {
+                     ChunkMap.TrackedEntity playerchunkmap_entitytracker = new ChunkMap.TrackedEntity(entity, i, j, entitytypes.trackDeltas());
+                     this.level.getChunkSource().tickingRegions.addTrackedEntity(entity); // ShreddedPaper
+-                    this.entityMap.put(entity.getId(), playerchunkmap_entitytracker);
++                    this.entityConcurrentMap.put(entity.getId(), playerchunkmap_entitytracker); // ShreddedPaper - use entityConcurrentMap
+                     // Paper start - optimise entity tracker
+                     if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$getTrackedEntity() != null) {
+                         throw new IllegalStateException("Entity is already tracked");
+@@ -881,7 +885,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                         ServerPlayer entityplayer = (ServerPlayer) entity;
+ 
+                         this.updatePlayerStatus(entityplayer, true);
+-                        ObjectIterator objectiterator = this.entityMap.values().iterator();
++                        Iterator objectiterator = this.entityConcurrentMap.values().iterator(); // ShreddedPaper - use entityConcurrentMap
+ 
+                         while (objectiterator.hasNext()) {
+                             ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) objectiterator.next();
+@@ -901,7 +905,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         org.spigotmc.AsyncCatcher.catchOp("entity untrack"); // Spigot
+         if (entity instanceof ServerPlayer entityplayer) {
+             this.updatePlayerStatus(entityplayer, false);
+-            ObjectIterator objectiterator = this.entityMap.values().iterator();
++            Iterator objectiterator = this.entityConcurrentMap.values().iterator(); // ShreddedPaper - use entityConcurrentMap
+ 
+             while (objectiterator.hasNext()) {
+                 ChunkMap.TrackedEntity playerchunkmap_entitytracker = (ChunkMap.TrackedEntity) objectiterator.next();
+@@ -910,7 +914,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             }
+         }
+ 
+-        ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) this.entityMap.remove(entity.getId());
++        ChunkMap.TrackedEntity playerchunkmap_entitytracker1 = (ChunkMap.TrackedEntity) this.entityConcurrentMap.remove(entity.getId()); // ShreddedPaper - use entityConcurrentMap
+ 
+         if (playerchunkmap_entitytracker1 != null) {
+             this.level.getChunkSource().tickingRegions.removeTrackedEntity(entity); // ShreddedPaper - only remove if it actually existed
+@@ -964,7 +968,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+ 
+         List<ServerPlayer> list = Lists.newArrayList();
+         List<ServerPlayer> list1 = this.level.players();
+-        ObjectIterator objectiterator = this.entityMap.values().iterator();
++        Iterator objectiterator = this.entityConcurrentMap.values().iterator(); // ShreddedPaper - use entityConcurrentMap
+         //this.level.timings.tracker1.startTiming(); // Paper // Purpur
+ 
+         ChunkMap.TrackedEntity playerchunkmap_entitytracker;
+@@ -993,7 +997,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         //this.level.timings.tracker1.stopTiming(); // Paper // Purpur
+ 
+         if (!list.isEmpty()) {
+-            objectiterator = this.entityMap.values().iterator();
++            objectiterator = this.entityConcurrentMap.values().iterator(); // ShreddedPaper - use entityConcurrentMap
+ 
+             //this.level.timings.tracker2.startTiming(); // Paper // Purpur
+             while (objectiterator.hasNext()) {
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index 3c74794e1646bd1622d1099c65b4d6b9cd931184..ee1c4804ff206509ce1745346be43b87e3fb6d42 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -728,7 +728,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     public void resendPossiblyDesyncedEntityData(net.minecraft.server.level.ServerPlayer player) {
+         if (player.getBukkitEntity().canSee(this.getBukkitEntity())) {
+             ServerLevel world = (net.minecraft.server.level.ServerLevel)this.level();
+-            net.minecraft.server.level.ChunkMap.TrackedEntity tracker = world == null ? null : world.getChunkSource().chunkMap.entityMap.get(this.getId());
++            net.minecraft.server.level.ChunkMap.TrackedEntity tracker = world == null ? null : world.getChunkSource().chunkMap.entityConcurrentMap.get(this.getId()); // ShreddedPaper - use entityConcurrentMap
+             if (tracker == null) {
+                 return;
+             }
+diff --git a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+index d1873af9efbed31dcfb0befe131f7a723e080e04..da2a96d8f2a59d22928a12f1862c933265577ad5 100644
+--- a/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
++++ b/src/main/java/net/minecraft/world/entity/item/PrimedTnt.java
+@@ -10,6 +10,7 @@ import net.minecraft.nbt.NbtUtils;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+ import net.minecraft.network.syncher.EntityDataSerializers;
+ import net.minecraft.network.syncher.SynchedEntityData;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.LivingEntity;
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index fb07b0277bef4755c7b24163f2dc3b88555561ce..39391bacfc1d5aed239206f254ce222601698e67 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -1048,7 +1048,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+         }
+ 
+         ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
+-        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
++        ChunkMap.TrackedEntity entityTracker = this.getHandle().moonrise$getTrackedEntity(); // ShreddedPaper - don't use map
+ 
+         if (entityTracker == null) {
+             return;
+@@ -1241,7 +1241,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+     @Override
+     public Set<org.bukkit.entity.Player> getTrackedPlayers() {
+         ServerLevel world = (net.minecraft.server.level.ServerLevel)this.entity.level();
+-        ChunkMap.TrackedEntity tracker = world == null ? null : world.getChunkSource().chunkMap.entityMap.get(this.entity.getId());
++        ChunkMap.TrackedEntity tracker = world == null ? null : this.getHandle().moonrise$getTrackedEntity(); // ShreddedPaper - don't use map
+         if (tracker == null) {
+             return java.util.Collections.emptySet();
+         }
