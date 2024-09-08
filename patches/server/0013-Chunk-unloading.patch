@@ -5,7 +5,7 @@ Subject: [PATCH] Chunk unloading
 
 
 diff --git a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-index e79e07d58a7c82bf9390a473bf61e69a731fe279..1174042c7f8f915d621aebacf61a080cc39819b4 100644
+index e79e07d58a7c82bf9390a473bf61e69a731fe279..5e53a62bb32f9aea01c2c4ffc212d570d0c4d252 100644
 --- a/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/src/main/java/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 @@ -22,6 +22,7 @@ import com.google.gson.JsonArray;
@@ -195,7 +195,7 @@ index e79e07d58a7c82bf9390a473bf61e69a731fe279..1174042c7f8f915d621aebacf61a080c
  
                      // run stage 1
                      for (int i = 0, len = stage1.size(); i < len; ++i) {
-@@ -1203,11 +1216,11 @@ public final class ChunkHolderManager {
+@@ -1203,12 +1216,12 @@ public final class ChunkHolderManager {
                  this.ticketLockArea.unlock(ticketLock);
              }
  
@@ -204,14 +204,16 @@ index e79e07d58a7c82bf9390a473bf61e69a731fe279..1174042c7f8f915d621aebacf61a080c
 -            if (processedCount >= toUnloadCount) {
 -                break;
 -            }
+-        }
 +//            processedCount += stage1.size();
 +//
 +//            if (processedCount >= toUnloadCount) {
 +//                break;
 +//            }
-         }
++//        }
      }
  
+     public enum TicketOperationType {
 @@ -1400,7 +1413,7 @@ public final class ChunkHolderManager {
      public JsonObject getDebugJson() {
          final JsonObject ret = new JsonObject();
