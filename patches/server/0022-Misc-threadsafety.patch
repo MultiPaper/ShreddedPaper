@@ -283,7 +283,7 @@ index cb308808906a8cdb127df8284e106e00553473ca..e0bce00aa34e283bacbeb32a5a7e4e5b
              }
  
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
-index f0411e58d4dd56260b3cd5a0bf1b472452a36660..8cf8077067983b50e4b1a638c229c58b603ed7f6 100644
+index 2c95fdbe7889e4ce292f25f6b19bad1d602c8839..e99caffaac884c0bbbc03ad2aff119c7c737f632 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
 +++ b/src/main/java/net/minecraft/network/Connection.java
 @@ -61,6 +61,7 @@ import net.minecraft.network.protocol.login.ClientboundLoginDisconnectPacket;
@@ -400,10 +400,10 @@ index 4bd64425811c9e99a94613437d3874b7aedc01f0..6dcea51177cba7f818b9f6658109348c
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.game.ClientGamePacketListener;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 3ee422a1e1cef4a074b0065a8dc0312446f353bf..5fad8361e2b3644f5c40e652791d74e092443c0b 100644
+index 386adc0405a0b210094d096723fe25d19e14f7b0..110ad7e82e72f808e460ccec7740e5be366113da 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -855,7 +855,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -854,7 +854,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
      private void wakeUpAllPlayers() {
          this.sleepStatus.removeAllSleepers();
          (this.players.stream().filter(LivingEntity::isSleeping).collect(Collectors.toList())).forEach((entityplayer) -> { // CraftBukkit - decompile error
@@ -412,7 +412,7 @@ index 3ee422a1e1cef4a074b0065a8dc0312446f353bf..5fad8361e2b3644f5c40e652791d74e0
          });
      }
  
-@@ -2058,13 +2058,14 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -2057,13 +2057,14 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
  
          final net.minecraft.world.level.saveddata.SavedData existing = storage.cache.get(id.key());
          if (existing == null && !storage.cache.containsKey(id.key())) {
@@ -430,7 +430,7 @@ index 3ee422a1e1cef4a074b0065a8dc0312446f353bf..5fad8361e2b3644f5c40e652791d74e0
          } else if (existing instanceof MapItemSavedData mapItemSavedData) {
              mapItemSavedData.id = id;
          }
-@@ -2078,7 +2079,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -2077,7 +2078,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
          // CraftBukkit start
          state.id = id;
          MapInitializeEvent event = new MapInitializeEvent(state.mapView);
@@ -439,7 +439,7 @@ index 3ee422a1e1cef4a074b0065a8dc0312446f353bf..5fad8361e2b3644f5c40e652791d74e0
          // CraftBukkit end
          this.getServer().overworld().getDataStorage().set(id.key(), state);
      }
-@@ -2400,7 +2401,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -2399,7 +2400,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
      public void blockUpdated(BlockPos pos, Block block) {
          if (!this.isDebug()) {
              // CraftBukkit start
@@ -448,7 +448,7 @@ index 3ee422a1e1cef4a074b0065a8dc0312446f353bf..5fad8361e2b3644f5c40e652791d74e0
                  return;
              }
              // CraftBukkit end
-@@ -2671,6 +2672,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -2670,6 +2671,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
                      {
                          if ( o instanceof MapItemSavedData )
                          {
@@ -456,7 +456,7 @@ index 3ee422a1e1cef4a074b0065a8dc0312446f353bf..5fad8361e2b3644f5c40e652791d74e0
                              MapItemSavedData map = (MapItemSavedData) o;
                              map.carriedByPlayers.remove( (Player) entity );
                              for ( Iterator<MapItemSavedData.HoldingPlayer> iter = (Iterator<MapItemSavedData.HoldingPlayer>) map.carriedBy.iterator(); iter.hasNext(); )
-@@ -2681,6 +2683,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -2680,6 +2682,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
                                      iter.remove();
                                  }
                              }
@@ -757,15 +757,18 @@ index 21c25026da4117b2cb2c85576d2def945a97dbe2..9b588a6f29f67520cc67aa9ec95d70bf
                  }
              }
 diff --git a/src/main/java/net/minecraft/world/item/component/LodestoneTracker.java b/src/main/java/net/minecraft/world/item/component/LodestoneTracker.java
-index cdd1f6939ce33e62f6609f7eb3a5dff59bf12675..70cbe44b89f7cac1b9b598505c17f8fa77dcee46 100644
+index cdd1f6939ce33e62f6609f7eb3a5dff59bf12675..37a3070088690d41d7c8dbb71804fc9e7fb3d36f 100644
 --- a/src/main/java/net/minecraft/world/item/component/LodestoneTracker.java
 +++ b/src/main/java/net/minecraft/world/item/component/LodestoneTracker.java
-@@ -4,6 +4,8 @@ import com.mojang.serialization.Codec;
+@@ -1,9 +1,11 @@
+ package net.minecraft.world.item.component;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.mojang.serialization.Codec;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
  import io.netty.buffer.ByteBuf;
  import java.util.Optional;
 +
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.GlobalPos;
  import net.minecraft.network.codec.ByteBufCodecs;
@@ -956,15 +959,20 @@ index d262a5a6da57ef9ba9a6fe0dfbc88f577105e74f..99e69f34d4f2dd9a67076e38e094246d
                      java.util.List<BlockState> blocks = new java.util.ArrayList<>(world.capturedBlockStates.values());
                      world.capturedBlockStates.clear();
 diff --git a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-index a7b6c20afd9ec3fe61d2bdf42f96398c8d6751cc..f64843ccf1c8d6b8364d89500dc9511d0d0489ef 100644
+index a7b6c20afd9ec3fe61d2bdf42f96398c8d6751cc..7b2010707b8c2a1489b32eb2b6986eeac5de1a4a 100644
 --- a/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/src/main/java/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -6,6 +6,8 @@ import java.util.HashSet;
+@@ -1,11 +1,13 @@
+ package net.minecraft.world.level.block.entity;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
+ import java.util.HashSet;
  import java.util.Objects;
  import java.util.Set;
  import javax.annotation.Nullable;
 +
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.CrashReportCategory;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.HolderLookup;
@@ -1182,17 +1190,16 @@ index 597599138f69c9ee05dc7657c51c25336337875e..e7a8dd959d43b029f99178dc463b4900
              throw new IllegalArgumentException("Unknown tree generator " + worldgentreeabstract);
          }
 diff --git a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
-index 40f15a30b1a0dd2040e75045f32f33082e70aaeb..902b3caac38e4f9153b9ba003b67a8777e188c3d 100644
+index 40f15a30b1a0dd2040e75045f32f33082e70aaeb..83e1e947df2344f25ab5b6f3e25c13f02cbfe729 100644
 --- a/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/src/main/java/net/minecraft/world/level/block/state/BlockBehaviour.java
-@@ -3,6 +3,7 @@ package net.minecraft.world.level.block.state;
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.level.block.state;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.MapCodec;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
-+import io.papermc.paper.util.TickThread;
- import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
- import java.util.Arrays;
- import java.util.Collections;
 @@ -156,7 +157,7 @@ public abstract class BlockBehaviour implements FeatureElement {
      }
  
@@ -1364,15 +1371,18 @@ index ac11f18690434922179b61ffcc3036dea025b0cb..efdac83c60651818f7d1829be8970cd1
              world.capturedBlockStates.clear();
              StructureGrowEvent structureEvent = null;
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
-index fa63a6cfcfcc4eee4503a82d85333c139c8c8b2b..3e7e1e1f7e4cff93f11b35050af6368a6445da66 100644
+index fa63a6cfcfcc4eee4503a82d85333c139c8c8b2b..c3c867096a7a5de1d057b22ec4738a9de13640b6 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
-@@ -4,6 +4,8 @@ import com.google.common.base.Preconditions;
+@@ -1,9 +1,11 @@
+ package org.bukkit.craftbukkit.block;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.base.Preconditions;
  import java.lang.ref.WeakReference;
  import java.util.List;
  import javax.annotation.Nullable;
 +
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.core.BlockPos;
  import net.minecraft.world.level.LevelAccessor;
  import org.bukkit.Chunk;
@@ -1385,15 +1395,21 @@ index fa63a6cfcfcc4eee4503a82d85333c139c8c8b2b..3e7e1e1f7e4cff93f11b35050af6368a
          if (block.getType() != this.getType()) {
              if (!force) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-index a8568e16301f7fce4baea6942a02b9be94fe7ddc..5cfd3a242912c9b99e1cff0b3e3e31eb282e44f5 100644
+index a8568e16301f7fce4baea6942a02b9be94fe7ddc..6e1c41960f4ed80c321d5781b6dc769716eba339 100644
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftLivingEntity.java
-@@ -9,6 +9,8 @@ import java.util.Iterator;
+@@ -1,5 +1,6 @@
+ package org.bukkit.craftbukkit.entity;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.destroystokyo.paper.entity.TargetEntityInfo;
+ import com.google.common.base.Preconditions;
+ import com.google.common.collect.Sets;
+@@ -9,6 +10,7 @@ import java.util.Iterator;
  import java.util.List;
  import java.util.Set;
  import java.util.UUID;
 +
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.sounds.SoundEvent;
@@ -1469,17 +1485,16 @@ index 3c533df90cf8b1a69b190ffee06c9254e4e4d764..1196393bffe946671e188b0e1051c92b
                  return itemStack;
              }
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
-index eafa54c870c3e2aef30c3f9f96f516607a7cae24..1ba11d3653790464bc9af174daecf351fac07d4e 100644
+index eafa54c870c3e2aef30c3f9f96f516607a7cae24..73571bee11884e00c33d4b1dd93521a5aad28c45 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
-@@ -1,6 +1,7 @@
+@@ -1,5 +1,6 @@
  package org.bukkit.craftbukkit.inventory;
  
++import ca.spottedleaf.moonrise.common.util.TickThread;
  import com.google.common.base.Preconditions;
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
  import net.minecraft.network.protocol.game.ClientboundSetCarriedItemPacket;
- import net.minecraft.server.level.ServerPlayer;
 @@ -70,6 +71,7 @@ public class CraftInventoryPlayer extends CraftInventory implements org.bukkit.i
  
      @Override

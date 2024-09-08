@@ -217,7 +217,7 @@ index 8176fe4cb0d2f4cbb9bc9b8cbedec2aa200a39af..7402eeaa02be21a8b441812e2db6b398
          // Paper end - rewrite chunk system
  
 diff --git a/src/main/java/net/minecraft/world/level/LevelAccessor.java b/src/main/java/net/minecraft/world/level/LevelAccessor.java
-index 54d13eebc9b01e9d77f51011b7de95b80bc21669..4712c018da6b4b8c6c512f71133b76a18c2e966b 100644
+index 54d13eebc9b01e9d77f51011b7de95b80bc21669..585a2c51be2b3d78fcca2ed0a44babca1863d97d 100644
 --- a/src/main/java/net/minecraft/world/level/LevelAccessor.java
 +++ b/src/main/java/net/minecraft/world/level/LevelAccessor.java
 @@ -1,6 +1,8 @@
@@ -225,7 +225,7 @@ index 54d13eebc9b01e9d77f51011b7de95b80bc21669..4712c018da6b4b8c6c512f71133b76a1
  
  import javax.annotation.Nullable;
 +
-+import io.papermc.paper.util.TickThread;
++import ca.spottedleaf.moonrise.common.util.TickThread;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.Holder;

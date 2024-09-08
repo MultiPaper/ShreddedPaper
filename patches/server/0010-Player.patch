@@ -230,15 +230,21 @@ index 0000000000000000000000000000000000000000..5c514aa0e9bb89aa58359752dc15c8b4
 +
 +}
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
-index a937bc49a85c0e565f0400163c1c9174891fb48d..f0411e58d4dd56260b3cd5a0bf1b472452a36660 100644
+index a937bc49a85c0e565f0400163c1c9174891fb48d..2c95fdbe7889e4ce292f25f6b19bad1d602c8839 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
 +++ b/src/main/java/net/minecraft/network/Connection.java
-@@ -42,6 +42,8 @@ import java.util.function.Consumer;
+@@ -1,5 +1,6 @@
+ package net.minecraft.network;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.base.Suppliers;
+ import com.google.common.collect.Queues;
+ import com.google.common.util.concurrent.ThreadFactoryBuilder;
+@@ -42,6 +43,7 @@ import java.util.function.Consumer;
  import java.util.function.Supplier;
  import javax.annotation.Nullable;
  import javax.crypto.Cipher;
 +
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.SharedConstants;
  import net.minecraft.Util;
  import net.minecraft.network.chat.Component;
@@ -545,17 +551,20 @@ index ceb9c794345922772a69a867a96531167e881d24..3c04172fc1056bfc1d6a70953cf256d7
      private int getCoprime(int horizontalSpawnArea) {
          return horizontalSpawnArea <= 16 ? horizontalSpawnArea - 1 : 17;
 diff --git a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-index fac2fb82c381d245f77b7288c34920660ac2c3af..098b7d64aba26f5b1b35ff70863def81d7e168aa 100644
+index fac2fb82c381d245f77b7288c34920660ac2c3af..d142bb4572a9cacfe61f3d09fa97fc26aa446588 100644
 --- a/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
-@@ -4,6 +4,10 @@ import com.mojang.authlib.GameProfile;
+@@ -1,9 +1,13 @@
+ package net.minecraft.server.network;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.mojang.authlib.GameProfile;
  import com.mojang.logging.LogUtils;
  import java.util.Objects;
  import javax.annotation.Nullable;
 +
 +import io.multipaper.shreddedpaper.ShreddedPaper;
 +import io.multipaper.shreddedpaper.region.RegionPos;
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.ChatFormatting;
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;

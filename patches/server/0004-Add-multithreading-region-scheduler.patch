@@ -732,14 +732,14 @@ index 0000000000000000000000000000000000000000..1a0f4e1d5c1de71221d10528c39cd777
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3949e39afcf36c4c5012e157ce95fd4d873126b5
+index 0000000000000000000000000000000000000000..15561441047c77f2ed6d4c69134965fefcb1c290
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 @@ -0,0 +1,57 @@
 +package io.multipaper.shreddedpaper.threading;
 +
++import ca.spottedleaf.moonrise.common.util.TickThread;
 +import com.mojang.logging.LogUtils;
-+import io.papermc.paper.util.TickThread;
 +import org.slf4j.Logger;
 +import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
 +
@@ -822,15 +822,18 @@ index 0000000000000000000000000000000000000000..f98327c487394dd1e1a9798751810278
 +    }
 +}
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..2c82a48867ab347f21822576baa0368273242f82 100644
+index 7ce9ebba8ce304d1f3f21d4f15ee5f3560d7700b..a9a74db4db3667d7186d79a7aac5dd95a821ff7b 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 +++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-@@ -4,6 +4,8 @@ import co.aikar.timings.TimedEventExecutor;
+@@ -1,9 +1,11 @@
+ package io.papermc.paper.plugin.manager;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import co.aikar.timings.TimedEventExecutor;
  import com.destroystokyo.paper.event.server.ServerExceptionEvent;
  import com.destroystokyo.paper.exception.ServerEventException;
  import com.google.common.collect.Sets;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
-+import io.papermc.paper.util.TickThread;
  import org.bukkit.Server;
  import org.bukkit.Warning;
  import org.bukkit.event.Event;

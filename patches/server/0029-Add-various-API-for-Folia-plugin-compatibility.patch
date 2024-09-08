@@ -39,15 +39,21 @@ index df6da15eb1908c0ab1e05bc424e3a9713e4ca002..e8bed883ffd95c4fdfc65dc6a5dced6f
              // Paper start - Improved Watchdog Support
              LOGGER.info("Running delayed init tasks");
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-index fab5e3420e05139722590dc643b278ebf4a100a0..dad4f973c8d73b9a4e412f5ffea4acc0b762f35b 100644
+index fab5e3420e05139722590dc643b278ebf4a100a0..2cb6d417f6d51ac32ac63b41d556675c1f76a216 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -13,6 +13,8 @@ import com.mojang.brigadier.StringReader;
+@@ -1,5 +1,6 @@
+ package org.bukkit.craftbukkit;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.base.Charsets;
+ import com.google.common.base.Function;
+ import com.google.common.base.Joiner;
+@@ -13,6 +14,7 @@ import com.mojang.brigadier.StringReader;
  import com.mojang.brigadier.exceptions.CommandSyntaxException;
  import com.mojang.serialization.Dynamic;
  import com.mojang.serialization.Lifecycle;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
-+import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import java.awt.image.BufferedImage;
  import java.io.ByteArrayOutputStream;

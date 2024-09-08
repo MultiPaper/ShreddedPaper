@@ -36,10 +36,10 @@ index 410ecbe7dbe9ece01c22d2529843d8a2e6ddd9cf..e94997406b410ca8af517a03c52713c5
                      if (treeType != null) {
                          structureEvent = new StructureGrowEvent(location, treeType, false, null, blocks);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 5fad8361e2b3644f5c40e652791d74e092443c0b..ced3e80d1faef804dd3bc020185a5c9f1bed8aa5 100644
+index 110ad7e82e72f808e460ccec7740e5be366113da..e4a196e7b9a52ef85788933ca1b9801cf94ded9f 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1621,8 +1621,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -1620,8 +1620,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity itemEntity && itemEntity.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -50,7 +50,7 @@ index 5fad8361e2b3644f5c40e652791d74e092443c0b..ced3e80d1faef804dd3bc020185a5c9f
                  return true;
              }
              // Paper end - capture all item additions to the world
-@@ -1828,7 +1828,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -1827,7 +1827,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
  
      @Override
      public void updateNeighborsAt(BlockPos pos, Block sourceBlock) {
@@ -425,7 +425,7 @@ index 66716764aa2b0bdf6d546f4a08c774c453415a5d..ffcf0e70eb3a3200d0437f1845ae8a46
              tileentity = (BlockEntity) this.blockEntities.get(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index e9198ac8f6c29b516eac7f5b4f4278988df8ed7a..92d4c68098a12e3f1acf78bc15e8697f713c26e9 100644
+index af220faa05346afa9321d7f70115c4830a2fbc4b..5c7ba7f1ae30064cce133c83b214062ce9c2ba97 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -784,13 +784,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {

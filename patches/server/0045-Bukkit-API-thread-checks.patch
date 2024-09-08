@@ -33,17 +33,17 @@ index 45e262308aebafa377a2353661acdd122933b99e..ef62a08204e6688b66de8df812368f51
          net.minecraft.world.level.chunk.LevelChunk full = this.worldServer.getChunkIfLoaded(this.x, this.z);
          if (full != null) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 92d4c68098a12e3f1acf78bc15e8697f713c26e9..43c5cb536f85d1ffbb4fc599a8dc05f5eddb8abc 100644
+index 5c7ba7f1ae30064cce133c83b214062ce9c2ba97..08d96f0ff0ceea8100b6c493ad17c15e724ea73c 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
+@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
  import com.mojang.datafixers.util.Pair;
  import io.multipaper.shreddedpaper.ShreddedPaper;
  import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
  import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
- import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 @@ -326,6 +327,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
  
      @Override
@@ -53,15 +53,20 @@ index 92d4c68098a12e3f1acf78bc15e8697f713c26e9..43c5cb536f85d1ffbb4fc599a8dc05f5
          // Paper start - add ticket to hold chunk for a little while longer if plugin accesses it
          net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
-index ed30feb916daecc1d9b9aaa854ac5b832aa59757..59f9d77239c03a56eb2dfad4599f32ec77894830 100644
+index ed30feb916daecc1d9b9aaa854ac5b832aa59757..f9c2673c30fe00f3300180401b8a31ace7c18958 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 +++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
-@@ -6,6 +6,8 @@ import java.util.Collection;
+@@ -1,11 +1,13 @@
+ package org.bukkit.craftbukkit.block;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.base.Preconditions;
+ import java.util.ArrayList;
+ import java.util.Collection;
  import java.util.Collections;
  import java.util.List;
  import java.util.stream.Collectors;
 +
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.server.level.ServerLevel;

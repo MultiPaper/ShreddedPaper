@@ -5,15 +5,19 @@ Subject: [PATCH] Remove firework rocket if entity teleported away
 
 
 diff --git a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
-index 09d465947a5720e05c350d455c86002682104079..e264da8a5b98eba3e7c5c5a8694897410f6f258c 100644
+index 09d465947a5720e05c350d455c86002682104079..a890fb6d30e3414fb4cd7f4107419def2d3a468d 100644
 --- a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
 +++ b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
-@@ -5,6 +5,8 @@ import java.util.Iterator;
+@@ -1,10 +1,12 @@
+ package net.minecraft.world.entity.projectile;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
+ import java.util.Iterator;
  import java.util.List;
  import java.util.OptionalInt;
  import javax.annotation.Nullable;
 +
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.component.DataComponents;
  import net.minecraft.core.particles.ParticleTypes;

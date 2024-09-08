@@ -133,7 +133,7 @@ index 6d51ab3ecc9d47a671365b9c82a47ab946c7564e..e849497c41482993a4d7b884f6bb76df
  
              region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index ced3e80d1faef804dd3bc020185a5c9f1bed8aa5..5617d06f02d905d0738308e69c21d7350ab4ffc8 100644
+index e4a196e7b9a52ef85788933ca1b9801cf94ded9f..13b95bebe3b805d09b7388283dfc6ad166351ac1 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
@@ -141,10 +141,10 @@ index ced3e80d1faef804dd3bc020185a5c9f1bed8aa5..5617d06f02d905d0738308e69c21d735
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.region.LevelChunkRegion;
- import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-@@ -16,7 +17,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+@@ -15,7 +16,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectIterator;
@@ -152,7 +152,7 @@ index ced3e80d1faef804dd3bc020185a5c9f1bed8aa5..5617d06f02d905d0738308e69c21d735
  import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
  import java.io.BufferedWriter;
  import java.io.IOException;
-@@ -127,7 +127,6 @@ import net.minecraft.world.level.biome.BiomeSource;
+@@ -126,7 +126,6 @@ import net.minecraft.world.level.biome.BiomeSource;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.SnowLayerBlock;
@@ -160,7 +160,7 @@ index ced3e80d1faef804dd3bc020185a5c9f1bed8aa5..5617d06f02d905d0738308e69c21d735
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.chunk.ChunkAccess;
  import net.minecraft.world.level.chunk.ChunkGenerator;
-@@ -138,7 +137,6 @@ import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
+@@ -137,7 +136,6 @@ import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
  import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
  import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.dimension.end.EndDragonFight;
@@ -168,7 +168,7 @@ index ced3e80d1faef804dd3bc020185a5c9f1bed8aa5..5617d06f02d905d0738308e69c21d735
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelCallback;
  import net.minecraft.world.level.entity.LevelEntityGetter;
-@@ -211,8 +209,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -210,8 +208,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
      final Set<Mob> navigatingMobs;
      final ThreadLocal<Boolean> isUpdatingNavigations = ThreadLocal.withInitial(() -> false); // ShreddedPaper - make thread local
      protected final Raids raids;
@@ -179,7 +179,7 @@ index ced3e80d1faef804dd3bc020185a5c9f1bed8aa5..5617d06f02d905d0738308e69c21d735
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      @Nullable
-@@ -520,8 +518,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -519,8 +517,8 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
          this.fluidTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier()); // ShreddedPaper
          this.pathTypesByPosCache = new PathTypeCache();
          this.navigatingMobs = new ObjectOpenHashSet();
@@ -190,7 +190,7 @@ index ced3e80d1faef804dd3bc020185a5c9f1bed8aa5..5617d06f02d905d0738308e69c21d735
          this.dragonParts = new Int2ObjectOpenHashMap();
          this.tickTime = flag1;
          this.server = minecraftserver;
-@@ -715,7 +713,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -714,7 +712,7 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
          //gameprofilerfiller.popPush("blockEvents"); // Purpur
          if (flag) {
              // this.timings.doSounds.startTiming(); // Spigot // Purpur
@@ -199,7 +199,7 @@ index ced3e80d1faef804dd3bc020185a5c9f1bed8aa5..5617d06f02d905d0738308e69c21d735
              // this.timings.doSounds.stopTiming(); // Spigot // Purpur
          }
  
-@@ -1890,25 +1888,26 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -1889,25 +1887,26 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
  
      @Override
      public void blockEvent(BlockPos pos, Block block, int type, int data) {
@@ -233,7 +233,7 @@ index ced3e80d1faef804dd3bc020185a5c9f1bed8aa5..5617d06f02d905d0738308e69c21d735
      }
  
      private boolean doBlockEvent(BlockEventData event) {
-@@ -2392,9 +2391,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
+@@ -2391,9 +2390,13 @@ public class ServerLevel extends Level implements WorldGenLevel, ca.spottedleaf.
  
      @VisibleForTesting
      public void clearBlockEvents(BoundingBox box) {

@@ -5,17 +5,16 @@ Subject: [PATCH] Don't allow actions outside of our region
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
-index 8937c509cdee13349cd4e512f6a90086324dc709..e3ff23ef8c01c30105635e3e7372d461edfd00de 100644
+index 8937c509cdee13349cd4e512f6a90086324dc709..4d5576a6065bf09ed39187437a8fb28479d26134 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayerGameMode.java
-@@ -3,6 +3,7 @@ package net.minecraft.server.level;
+@@ -1,5 +1,6 @@
+ package net.minecraft.server.level;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
  import com.mojang.logging.LogUtils;
  import java.util.Objects;
  import javax.annotation.Nullable;
-+import io.papermc.paper.util.TickThread;
- import net.minecraft.advancements.CriteriaTriggers;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
 @@ -133,7 +134,7 @@ public class ServerPlayerGameMode {
          BlockState iblockdata;
  

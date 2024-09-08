@@ -5,17 +5,23 @@ Subject: [PATCH] Teleportation
 
 
 diff --git a/src/main/java/net/minecraft/server/commands/TeleportCommand.java b/src/main/java/net/minecraft/server/commands/TeleportCommand.java
-index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b1c6482ba 100644
+index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d4975fd4fa43fdeeabf7d6b78c6edba295f2e9c3 100644
 --- a/src/main/java/net/minecraft/server/commands/TeleportCommand.java
 +++ b/src/main/java/net/minecraft/server/commands/TeleportCommand.java
-@@ -12,7 +12,10 @@ import java.util.EnumSet;
+@@ -1,5 +1,6 @@
+ package net.minecraft.server.commands;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+@@ -12,7 +13,9 @@ import java.util.EnumSet;
  import java.util.Iterator;
  import java.util.Locale;
  import java.util.Set;
 +import java.util.concurrent.CompletableFuture;
  import javax.annotation.Nullable;
 +
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.commands.CommandSourceStack;
  import net.minecraft.commands.arguments.EntityAnchorArgument;
  import net.minecraft.commands.arguments.EntityArgument;
@@ -301,10 +307,10 @@ index 4457070ad5dcaed2abeb69a83885c98b10195f54..07c22ebab91e2c72edf864be54aa5b10
                  break;
              case REQUEST_STATS:
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
-index f1aec2ac55e6f7745527f65276623c6dd4e9ba1b..d44b00e25ec9d8ce4e871c430dd9cc011fec26e0 100644
+index f1aec2ac55e6f7745527f65276623c6dd4e9ba1b..34e896443f9a0ca82734d27ccdc25f0b0fce02d0 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
 +++ b/src/main/java/net/minecraft/server/players/PlayerList.java
-@@ -22,9 +22,13 @@ import java.util.Objects;
+@@ -22,9 +22,12 @@ import java.util.Objects;
  import java.util.Optional;
  import java.util.Set;
  import java.util.UUID;
@@ -314,11 +320,10 @@ index f1aec2ac55e6f7745527f65276623c6dd4e9ba1b..d44b00e25ec9d8ce4e871c430dd9cc01
 +import javax.annotation.Nonnull;
  import javax.annotation.Nullable;
 +
-+import io.papermc.paper.util.TickThread;
  import net.minecraft.ChatFormatting;
  import net.minecraft.FileUtil;
  import net.minecraft.commands.CommandSourceStack;
-@@ -123,6 +127,8 @@ import org.bukkit.event.player.PlayerRespawnEvent;
+@@ -123,6 +126,8 @@ import org.bukkit.event.player.PlayerRespawnEvent;
  import org.bukkit.event.player.PlayerRespawnEvent.RespawnReason;
  import org.bukkit.event.player.PlayerSpawnChangeEvent;
  import io.multipaper.shreddedpaper.ShreddedPaper;
@@ -327,7 +332,7 @@ index f1aec2ac55e6f7745527f65276623c6dd4e9ba1b..d44b00e25ec9d8ce4e871c430dd9cc01
  // CraftBukkit end
  
  public abstract class PlayerList {
-@@ -827,10 +833,22 @@ public abstract class PlayerList {
+@@ -827,10 +832,22 @@ public abstract class PlayerList {
      }
  
      public ServerPlayer respawn(ServerPlayer entityplayer, boolean flag, Entity.RemovalReason entity_removalreason, RespawnReason reason, Location location) {
@@ -353,7 +358,7 @@ index f1aec2ac55e6f7745527f65276623c6dd4e9ba1b..d44b00e25ec9d8ce4e871c430dd9cc01
          /* CraftBukkit start
          DimensionTransition dimensiontransition = entityplayer.findRespawnPositionAndUseSpawnBlock(flag, DimensionTransition.DO_NOTHING);
          WorldServer worldserver = dimensiontransition.newLevel();
-@@ -841,10 +859,11 @@ public abstract class PlayerList {
+@@ -841,10 +858,11 @@ public abstract class PlayerList {
          entityplayer.wonGame = false;
          // CraftBukkit end
  
@@ -369,7 +374,7 @@ index f1aec2ac55e6f7745527f65276623c6dd4e9ba1b..d44b00e25ec9d8ce4e871c430dd9cc01
          // CraftBukkit - not required, just copies old location into reused entity
          /*
          if (!dimensiontransition.missingRespawnBlock()) {
-@@ -853,36 +872,49 @@ public abstract class PlayerList {
+@@ -853,36 +871,50 @@ public abstract class PlayerList {
           */
          // CraftBukkit end
  
@@ -421,12 +426,13 @@ index f1aec2ac55e6f7745527f65276623c6dd4e9ba1b..d44b00e25ec9d8ce4e871c430dd9cc01
 +            boolean isRespawn2 = location == null; // ShreddedPaper
 +            Location location2 = CraftLocation.toBukkit(dimensiontransition.pos(), dimensiontransition.newLevel().getWorld(), dimensiontransition.yRot(), dimensiontransition.xRot()); // ShreddedPaper
 +
-+            return CompletableFuture.supplyAsync(() -> postRespawn(entityplayer1, flag, entity_removalreason, reason, location2, dimensiontransition, isRespawn2), r -> ShreddedPaperRegionScheduler.scheduleAcrossLevels(entityplayer1.serverLevel(), RegionPos.forChunk(entityplayer1.chunkPosition()), dimensiontransition.newLevel(), RegionPos.forLocation(location2), r)); // ShreddedPaper
++            return CompletableFuture.supplyAsync(() -> postRespawn(entityplayer1, flag, entity_removalreason, reason, location2, dimensiontransition, isRespawn2, isBedSpawn, fromWorld), r -> ShreddedPaperRegionScheduler.scheduleAcrossLevels(entityplayer1.serverLevel(), RegionPos.forChunk(entityplayer1.chunkPosition()), dimensiontransition.newLevel(), RegionPos.forLocation(location2), r)); // ShreddedPaper
 +        });
          // Spigot End
 +    }
 +
-+    private ServerPlayer postRespawn(ServerPlayer entityplayer1, boolean flag, Entity.RemovalReason entity_removalreason, RespawnReason reason, Location location, DimensionTransition dimensiontransition, boolean isRespawn) { // ShreddedPaper
++    private ServerPlayer postRespawn(ServerPlayer entityplayer1, boolean flag, Entity.RemovalReason entity_removalreason, RespawnReason reason, Location location, DimensionTransition dimensiontransition, boolean isRespawn, boolean isBedSpawn, Level fromWorld) { // ShreddedPaper
++        ServerPlayer entityplayer = entityplayer1; // ShreddedPaper
 +        entityplayer1.serverLevel().removePlayerImmediately(entityplayer1, entity_removalreason); // ShreddedPaper - doing later
 +
          ServerLevel worldserver = dimensiontransition.newLevel();
@@ -603,7 +609,7 @@ index 36c8735312c885eb153f4ffdf0f2a5495e9c9f65..71526ab506e3128a7518748753462345
  
      @FunctionalInterface
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 4d7d3eac42ef35475f941cb29bc0c5ead2d20bde..68707a9ea41ec6e87a6a2604ce7c9bba7392f190 100644
+index 462fa9c5f4852289888101ea841567016952d16b..d1be89db52eac41fc5a7b538880bf3d7b881d0ef 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -2452,7 +2452,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {

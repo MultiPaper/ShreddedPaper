@@ -226,13 +226,12 @@ index 45eda96fd8a1acb87dbb69ce5495fec7e451416f..bb68bb0a750b7bc0617b1c1765b9ab6a
                          ChunkSystem.onChunkEntityTicking(chunk, this.vanillaChunkHolder);
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0671578ca4a43ff5ba3853440ad8ee96018c9916
+index 0000000000000000000000000000000000000000..d3ff21ac78f4e5c64bbb1e72aecf7397164cabab
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,57 @@
 +package io.multipaper.shreddedpaper;
 +
-+import io.papermc.paper.util.TickThread;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.entity.Entity;
@@ -897,16 +896,20 @@ index ca419102a3d545f7c1b7f07bf262de38d4349325..fab5e3420e05139722590dc643b278eb
      private final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler globalRegionScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 744e8486454b783697fb28f5441d0002d877a9b1..6d4073cb79b28d61126925881a7d411b13976cf8 100644
+index 744e8486454b783697fb28f5441d0002d877a9b1..86639a4d4059bcf92dbc1af4b5eeb6547010a7b1 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -5,6 +5,9 @@ import com.google.common.base.Predicates;
+@@ -1,10 +1,13 @@
+ package org.bukkit.craftbukkit;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.base.Preconditions;
+ import com.google.common.base.Predicates;
  import com.google.common.collect.ImmutableList;
  import com.google.common.collect.ImmutableMap;
  import com.mojang.datafixers.util.Pair;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
 +import io.multipaper.shreddedpaper.region.RegionPos;
-+import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;

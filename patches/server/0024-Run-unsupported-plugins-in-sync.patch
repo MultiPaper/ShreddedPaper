@@ -6,14 +6,14 @@ Subject: [PATCH] Run unsupported plugins in sync
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3625ee53f17766aae695c0d9e35d755e331e6c56
+index 0000000000000000000000000000000000000000..606356fecb145642299b7c35745bd1168b7bccdf
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
 @@ -0,0 +1,180 @@
 +package io.multipaper.shreddedpaper.threading;
 +
++import ca.spottedleaf.moonrise.common.util.TickThread;
 +import com.mojang.logging.LogUtils;
-+import io.papermc.paper.util.TickThread;
 +import org.bukkit.plugin.Plugin;
 +import org.slf4j.Logger;
 +import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
@@ -319,7 +319,7 @@ index 24121a43aeb5e9bce013f30c92dddd15f99736c6..c234deec92e155336078cbbce1f726d8
              }
  
 diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-index 2c82a48867ab347f21822576baa0368273242f82..143638f994a842472e827cb9b4efc160a7235aa4 100644
+index a9a74db4db3667d7186d79a7aac5dd95a821ff7b..bbdaaae914259be74c0e5f4ce42272a3858b8283 100644
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 +++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 @@ -19,6 +19,8 @@ import org.bukkit.plugin.IllegalPluginAccessException;
@@ -349,17 +349,17 @@ index 2c82a48867ab347f21822576baa0368273242f82..143638f994a842472e827cb9b4efc160
                  Plugin plugin = registration.getPlugin();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 0de4fc831f11b38b96c91049380f8facb338649c..e9198ac8f6c29b516eac7f5b4f4278988df8ed7a 100644
+index e9701ff24381ec0311cf0a85d9b69b7bfe63b1eb..af220faa05346afa9321d7f70115c4830a2fbc4b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
+@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
  import com.mojang.datafixers.util.Pair;
  import io.multipaper.shreddedpaper.ShreddedPaper;
  import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
- import io.papermc.paper.util.TickThread;
  import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 @@ -2467,12 +2468,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          }
  
