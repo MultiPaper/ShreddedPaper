@@ -1,0 +1,198 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sun, 8 Sep 2024 17:41:42 +0900
+Subject: [PATCH] Threaded chunk changes broadcasting
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkChangesBroadcaster.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkChangesBroadcaster.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3bcef937b556d152ce24d50ec1924a08c5f4e5ef
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkChangesBroadcaster.java
+@@ -0,0 +1,63 @@
++package io.multipaper.shreddedpaper.threading;
++
++import ca.spottedleaf.moonrise.common.util.TickThread;
++import com.mojang.logging.LogUtils;
++import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
++import net.minecraft.server.level.ServerChunkCache;
++import net.minecraft.world.level.chunk.LevelChunk;
++import org.slf4j.Logger;
++
++import java.util.Set;
++import java.util.concurrent.ConcurrentHashMap;
++
++public class ShreddedPaperChunkChangesBroadcaster {
++
++    private static final Logger LOGGER = LogUtils.getLogger();
++
++    private static final Set<LevelChunk> globalToBroadcast = ConcurrentHashMap.newKeySet();
++    private static final ThreadLocal<Set<LevelChunk>> thisThreadToBroadcast = ThreadLocal.withInitial(null);
++
++    public static void setNeedsBroadcast(LevelChunk chunk) {
++        if (thisThreadToBroadcast.get() != null && TickThread.isTickThreadFor(chunk.getLevel(), chunk.getPos())) {
++            thisThreadToBroadcast.get().add(chunk);
++        } else {
++            globalToBroadcast.add(chunk);
++        }
++    }
++
++    public static void openThisThread() {
++        thisThreadToBroadcast.set(new ReferenceOpenHashSet<>());
++    }
++
++    public static void flushAndCloseThisThread() {
++        Set<LevelChunk> toBroadcast = thisThreadToBroadcast.get();
++
++        if (toBroadcast != null) {
++            broadcast(toBroadcast);
++
++            if (!toBroadcast.isEmpty()) {
++                LOGGER.warn("Could not broadcast all chunk changes for this thread, sending to global broadcast: {}", toBroadcast);
++                globalToBroadcast.addAll(toBroadcast);
++            }
++        }
++
++        thisThreadToBroadcast.remove();
++    }
++
++    public static void flushGlobal() {
++        if (!globalToBroadcast.isEmpty()) {
++            broadcast(globalToBroadcast);
++        }
++    }
++
++    private static void broadcast(Set<LevelChunk> toBroadcast) {
++        toBroadcast.removeIf(chunk -> {
++            ServerChunkCache.ChunkAndHolder holder = chunk.moonrise$getChunkAndHolder();
++            holder.holder().broadcastChanges(holder.chunk());
++
++            return !holder.holder().hasChangedSections;
++        });
++    }
++
++
++}
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+index c2e3b1f34c538d1f7f55eeedaa8853ffd39945ec..b29167f12452f73cf11ffa427a6fd9a4f4ddbdfd 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+@@ -61,6 +61,8 @@ public class ShreddedPaperChunkTicker {
+                 throw new IllegalStateException("Ticking region " + level.convertable.getLevelId() + " " + region.getRegionPos() + " outside of ShreddedPaperTickThread!");
+             }
+ 
++            ShreddedPaperChunkChangesBroadcaster.openThisThread();
++
+             while (region.getInternalTaskQueue().executeTask()) ;
+ 
+             level.moonrise$getChunkTaskScheduler().chunkHolderManager.processUnloads(region);
+@@ -99,11 +101,14 @@ public class ShreddedPaperChunkTicker {
+                 level.chunkSource.tickingRegions.remove(region.getRegionPos());
+             }
+         } finally {
++            ShreddedPaperChunkChangesBroadcaster.flushAndCloseThisThread();
+             currentlyTickingRegion.remove();
+         }
+     }
+ 
+     private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
++        if (chunk1.moonrise$getChunkAndHolder().holder().hasChangedSections) ShreddedPaperChunkChangesBroadcaster.setNeedsBroadcast(chunk1); // ShreddedPaper - ensure queued for broadcasting changes
++
+         // Start - Import the same variables as the original chunk ticking method to make copying new changes easier
+         int j = 1; // Inhabited time increment in ticks
+         boolean flag = level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !level.players().isEmpty(); // Should run mob spawning code
+diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+index d832a3563dea65c896b687b4a3b1bcf94372327c..7c9cbaa3983c3bb48fba7d033f1d1ed8c99b25da 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
++++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+@@ -2,6 +2,7 @@ package net.minecraft.server.level;
+ 
+ import ca.spottedleaf.moonrise.common.util.TickThread;
+ import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkChangesBroadcaster;
+ import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
+ import it.unimi.dsi.fastutil.shorts.ShortSet;
+ import java.util.BitSet;
+@@ -40,7 +41,7 @@ public class ChunkHolder extends GenerationChunkHolder implements ca.spottedleaf
+     private static final CompletableFuture<ChunkResult<LevelChunk>> UNLOADED_LEVEL_CHUNK_FUTURE = CompletableFuture.completedFuture(ChunkHolder.UNLOADED_LEVEL_CHUNK);
+     private final LevelHeightAccessor levelHeightAccessor;
+     // Paper - rewrite chunk system
+-    private boolean hasChangedSections;
++    public boolean hasChangedSections; // ShreddedPaper - make public
+     private final ShortSet[] changedBlocksPerSection;
+     private final BitSet blockChangedLightSectionFilter;
+     private final BitSet skyChangedLightSectionFilter;
+@@ -245,6 +246,7 @@ public class ChunkHolder extends GenerationChunkHolder implements ca.spottedleaf
+ 
+             if (i < 0 || i >= this.changedBlocksPerSection.length) return; // CraftBukkit - SPIGOT-6086, SPIGOT-6296
+             if (this.changedBlocksPerSection[i] == null) {
++                if (!this.hasChangedSections) ShreddedPaperChunkChangesBroadcaster.setNeedsBroadcast(chunk); // ShreddedPaper
+                 this.hasChangedSections = true;
+                 this.changedBlocksPerSection[i] = new ShortOpenHashSet();
+             }
+diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+index 43ee7cd77617bb7adaa55b1d4d88e6bee8d40e49..1886b11a63613da237c3c780d7a46ed44892359c 100644
+--- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
++++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
+@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
+ 
+ import io.multipaper.shreddedpaper.region.LevelChunkRegionMap;
+ import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkChangesBroadcaster;
+ import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
+ 
+ import net.minecraft.Util;
+@@ -557,19 +558,22 @@ public class ServerChunkCache extends ChunkSource implements ca.spottedleaf.moon
+             //gameprofilerfiller.popPush("broadcast"); // Purpur
+             // Paper start - chunk tick iteration optimisations
+             //this.level.timings.broadcastChunkUpdates.startTiming(); // Paper - timing // Purpur
+-            {
+-                final it.unimi.dsi.fastutil.objects.ObjectArrayList<net.minecraft.server.level.ServerChunkCache.ChunkAndHolder> chunks = (it.unimi.dsi.fastutil.objects.ObjectArrayList<net.minecraft.server.level.ServerChunkCache.ChunkAndHolder>)list;
+-                final ServerChunkCache.ChunkAndHolder[] raw = chunks.elements();
+-                final int size = chunks.size();
+-
+-                Objects.checkFromToIndex(0, size, raw.length);
+-                for (int idx = 0; idx < size; ++idx) {
+-                    final ServerChunkCache.ChunkAndHolder holder = raw[idx];
+-                    raw[idx] = null;
+-
+-                    holder.holder().broadcastChanges(holder.chunk());
+-                }
+-            }
++            // ShreddedPaper start - handle broadcasting chunk changes ourselves
++            ShreddedPaperChunkChangesBroadcaster.flushGlobal();
++//            {
++//                final it.unimi.dsi.fastutil.objects.ObjectArrayList<net.minecraft.server.level.ServerChunkCache.ChunkAndHolder> chunks = (it.unimi.dsi.fastutil.objects.ObjectArrayList<net.minecraft.server.level.ServerChunkCache.ChunkAndHolder>)list;
++//                final ServerChunkCache.ChunkAndHolder[] raw = chunks.elements();
++//                final int size = chunks.size();
++//
++//                Objects.checkFromToIndex(0, size, raw.length);
++//                for (int idx = 0; idx < size; ++idx) {
++//                    final ServerChunkCache.ChunkAndHolder holder = raw[idx];
++//                    raw[idx] = null;
++//
++//                    holder.holder().broadcastChanges(holder.chunk());
++//                }
++//            }
++            // ShreddedPaper end - handle broadcasting chunk changes ourselves
+             //this.level.timings.broadcastChunkUpdates.stopTiming(); // Paper - timing // Purpur
+             // Paper end - chunk tick iteration optimisations
+             //gameprofilerfiller.pop(); // Purpur
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index ffcf0e70eb3a3200d0437f1845ae8a461c13b8fe..e2720ecc6bab0deb3786f3860dfe4948af86c661 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -133,6 +133,13 @@ public class LevelChunk extends ChunkAccess implements ca.spottedleaf.moonrise.p
+         this.lightningTick = java.util.concurrent.ThreadLocalRandom.current().nextInt(100000) << 1; // Pufferfish - initialize lightning tick // Purpur - any random will do
+     }
+ 
++    // ShreddedPaper start - toString
++    @Override
++    public String toString() {
++        return this.getClass().getSimpleName() + "{level=" + this.level.convertable.getLevelId() + ",pos=" + this.getPos() + "}";
++    }
++    // ShreddedPaper end - toString
++
+     // CraftBukkit start
+     public boolean mustNotSave;
+     public boolean needsDecoration;
