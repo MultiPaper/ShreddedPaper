@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: UnlimitedBytes <admin@unlimitedbytes.ovh>
+Date: Mon, 9 Jun 2025 00:56:14 +0200
+Subject: [PATCH] Fix missing @Nullable annotations in SentryContext
+
+Add missing @Nullable annotations to SentryContext.setEventContext parameters
+and all getter/setter methods in SentryContext.State class to fix
+AnnotationTest failures.
+
+diff --git a/src/main/java/gg/pufferfish/pufferfish/sentry/SentryContext.java b/src/main/java/gg/pufferfish/pufferfish/sentry/SentryContext.java
+index 10310fdd53de28efb8a8250f6d3b0c8eb08fb68a..397a739ae4de50ad7cd83746cfe955208320e090 100644
+--- a/src/main/java/gg/pufferfish/pufferfish/sentry/SentryContext.java
++++ b/src/main/java/gg/pufferfish/pufferfish/sentry/SentryContext.java
+@@ -45,7 +45,7 @@ public class SentryContext {
+ 		ThreadContext.remove("pufferfishsentry_playerid");
+ 	}
+ 	
+-	public static void setEventContext(Event event, RegisteredListener registration) {
++	public static void setEventContext(@Nullable Event event, @Nullable RegisteredListener registration) {
+ 		setPluginContext(registration.getPlugin());
+ 		
+ 		try {
+@@ -118,43 +118,48 @@ public class SentryContext {
+ 		private Event event;
+ 		private RegisteredListener registeredListener;
+ 		
++		@Nullable
+ 		public Plugin getPlugin() {
+ 			return plugin;
+ 		}
+ 		
+-		public void setPlugin(Plugin plugin) {
++		public void setPlugin(@Nullable Plugin plugin) {
+ 			this.plugin = plugin;
+ 		}
+ 		
++		@Nullable
+ 		public Command getCommand() {
+ 			return command;
+ 		}
+ 		
+-		public void setCommand(Command command) {
++		public void setCommand(@Nullable Command command) {
+ 			this.command = command;
+ 		}
+ 		
++		@Nullable
+ 		public String getCommandLine() {
+ 			return commandLine;
+ 		}
+ 		
+-		public void setCommandLine(String commandLine) {
++		public void setCommandLine(@Nullable String commandLine) {
+ 			this.commandLine = commandLine;
+ 		}
+ 		
++		@Nullable
+ 		public Event getEvent() {
+ 			return event;
+ 		}
+ 		
+-		public void setEvent(Event event) {
++		public void setEvent(@Nullable Event event) {
+ 			this.event = event;
+ 		}
+ 		
++		@Nullable
+ 		public RegisteredListener getRegisteredListener() {
+ 			return registeredListener;
+ 		}
+ 		
+-		public void setRegisteredListener(RegisteredListener registeredListener) {
++		public void setRegisteredListener(@Nullable RegisteredListener registeredListener) {
+ 			this.registeredListener = registeredListener;
+ 		}
+ 	}
