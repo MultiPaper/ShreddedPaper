@@ -517,10 +517,10 @@ index 0000000000000000000000000000000000000000..1a0f4e1d5c1de71221d10528c39cd777
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..3949e39afcf36c4c5012e157ce95fd4d873126b5
+index 0000000000000000000000000000000000000000..6794d2979074b8468e0859e06de4d2dcc087e57b
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
-@@ -0,0 +1,57 @@
+@@ -0,0 +1,61 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
@@ -536,6 +536,8 @@ index 0000000000000000000000000000000000000000..3949e39afcf36c4c5012e157ce95fd4d
 +
 +    private static final Logger LOGGER = LogUtils.getClassLogger();
 +
++    public static final int THREAD_COUNT;
++
 +    private static final AtomicInteger ID_GENERATOR = new AtomicInteger();
 +
 +    private static final ScheduledThreadPoolExecutor executor;
@@ -547,9 +549,11 @@ index 0000000000000000000000000000000000000000..3949e39afcf36c4c5012e157ce95fd4d
 +            threadCount = Math.max(Runtime.getRuntime().availableProcessors() - 1, 1);
 +        }
 +
-+        executor = new ScheduledThreadPoolExecutor(threadCount, r -> new ShreddedPaperTickThread(r, "ShreddedPaperTickThread-%d"));
++        THREAD_COUNT = threadCount;
 +
-+        LOGGER.info("Using {} threads", threadCount);
++        executor = new ScheduledThreadPoolExecutor(THREAD_COUNT, r -> new ShreddedPaperTickThread(r, "ShreddedPaperTickThread-%d"));
++
++        LOGGER.info("Using {} threads", THREAD_COUNT);
 +    }
 +
 +    public ShreddedPaperTickThread(Runnable run, String name) {

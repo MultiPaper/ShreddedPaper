@@ -312,7 +312,7 @@ index cb308808906a8cdb127df8284e106e00553473ca..e0bce00aa34e283bacbeb32a5a7e4e5b
              }
  
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
-index b6d8d471d045263f9455e8fd738c680891c0b1e5..4dc0b2d15ff2c0a84df08186d2a8e29d30136dac 100644
+index 61327dfa158b385bfba4768493fd7724c4da73c5..d2494f38d1208e2e21daf7c45ccbfe07f3e02f7c 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
 +++ b/src/main/java/net/minecraft/network/Connection.java
 @@ -61,6 +61,7 @@ import net.minecraft.network.protocol.login.ClientboundLoginDisconnectPacket;
@@ -323,7 +323,7 @@ index b6d8d471d045263f9455e8fd738c680891c0b1e5..4dc0b2d15ff2c0a84df08186d2a8e29d
  import net.minecraft.server.RunningOnDifferentThreadException;
  import net.minecraft.server.network.ServerGamePacketListenerImpl;
  import net.minecraft.util.Mth;
-@@ -341,6 +342,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -340,6 +341,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
  
      private static void syncAfterConfigurationChange(ChannelFuture future) {
          try {
@@ -416,7 +416,7 @@ index 12f1345ff70388fb217100bfc717ef861785381d..9c0f561a65ed5f5b45ce4c30754f71b3
      }
  }
 diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
-index 6542c67e753245cd131de872c28862f83e7ff2f3..f355833ee748e25af228ad9bd3dc06606308e490 100644
+index 073743301c2e70fcd148c33e97be2a3069d6109e..7fb77df2cfcab5e71cefced216f5e5760e1f328b 100644
 --- a/src/main/java/net/minecraft/server/level/ServerEntity.java
 +++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
 @@ -13,6 +13,8 @@ import java.util.Set;

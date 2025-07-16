@@ -5,7 +5,7 @@ Subject: [PATCH] Player
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index a31559ba6d385f961d08d12a4cbe62a53b766ab2..0a6cb829f89af7c8c6efd08c5f06051302e1afd4 100644
+index e7ad3b17b47e7a2e7bc38d8f414d3920e6aa5b28..d1d8b5010228b8c8d6759967515e62d850a3dc25 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -2,7 +2,10 @@ package io.multipaper.shreddedpaper.region;
@@ -239,7 +239,7 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..0e0097c49b893b56921bd1f92329de29
              if (this.removed) {
                  throw new IllegalStateException("Updating removed player chunk loader");
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
-index 3b66ecc4f110d0f2dc0ef6c560801296d7e0be64..b6d8d471d045263f9455e8fd738c680891c0b1e5 100644
+index 3b66ecc4f110d0f2dc0ef6c560801296d7e0be64..61327dfa158b385bfba4768493fd7724c4da73c5 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
 +++ b/src/main/java/net/minecraft/network/Connection.java
 @@ -42,6 +42,8 @@ import java.util.function.Consumer;
@@ -251,7 +251,7 @@ index 3b66ecc4f110d0f2dc0ef6c560801296d7e0be64..b6d8d471d045263f9455e8fd738c6808
  import net.minecraft.SharedConstants;
  import net.minecraft.Util;
  import net.minecraft.network.chat.Component;
-@@ -60,12 +62,14 @@ import net.minecraft.network.protocol.login.LoginProtocols;
+@@ -60,6 +62,7 @@ import net.minecraft.network.protocol.login.LoginProtocols;
  import net.minecraft.network.protocol.status.ClientStatusPacketListener;
  import net.minecraft.network.protocol.status.StatusProtocols;
  import net.minecraft.server.RunningOnDifferentThreadException;
@@ -259,14 +259,7 @@ index 3b66ecc4f110d0f2dc0ef6c560801296d7e0be64..b6d8d471d045263f9455e8fd738c6808
  import net.minecraft.util.Mth;
  import net.minecraft.util.debugchart.LocalSampleLogger;
  import org.apache.commons.lang3.Validate;
- import org.slf4j.Logger;
- import org.slf4j.Marker;
- import org.slf4j.MarkerFactory;
-+import io.multipaper.shreddedpaper.ShreddedPaper;
- 
- public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
- 
-@@ -611,6 +615,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -611,6 +614,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
      private static int currTick; // Paper - Buffer joins to world
      private static int tickSecond; // Purpur
      public void tick() {

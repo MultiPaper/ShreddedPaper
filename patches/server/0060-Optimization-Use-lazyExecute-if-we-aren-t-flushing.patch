@@ -5,7 +5,7 @@ Subject: [PATCH] Optimization: Use lazyExecute if we aren't flushing
 
 
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
-index 4dc0b2d15ff2c0a84df08186d2a8e29d30136dac..a5b519624b7230ec7bb8d199acf895270dc6239a 100644
+index d2494f38d1208e2e21daf7c45ccbfe07f3e02f7c..bb28c13015a2aa7622d2f762dc797eb0344400db 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
 +++ b/src/main/java/net/minecraft/network/Connection.java
 @@ -4,6 +4,7 @@ import com.google.common.base.Suppliers;
@@ -16,13 +16,7 @@ index 4dc0b2d15ff2c0a84df08186d2a8e29d30136dac..a5b519624b7230ec7bb8d199acf89527
  import io.netty.bootstrap.Bootstrap;
  import io.netty.channel.Channel;
  import io.netty.channel.ChannelException;
-@@ -38,11 +39,13 @@ import java.nio.channels.ClosedChannelException;
- import java.util.Objects;
- import java.util.Queue;
- import java.util.concurrent.RejectedExecutionException;
-+import java.util.concurrent.TimeUnit;
- import java.util.function.Consumer;
- import java.util.function.Supplier;
+@@ -43,6 +44,7 @@ import java.util.function.Supplier;
  import javax.annotation.Nullable;
  import javax.crypto.Cipher;
  
@@ -30,7 +24,7 @@ index 4dc0b2d15ff2c0a84df08186d2a8e29d30136dac..a5b519624b7230ec7bb8d199acf89527
  import io.papermc.paper.util.TickThread;
  import net.minecraft.SharedConstants;
  import net.minecraft.Util;
-@@ -492,6 +495,14 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -491,6 +493,14 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
          if (this.channel.eventLoop().inEventLoop()) {
              this.doSendPacket(packet, callbacks, flush);
          } else {

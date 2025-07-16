@@ -48,4 +48,11 @@ optimizations:
   # 'true' to increase performance. 
   use-lazy-execute-when-not-flushing: true
 
+  # Flush the players' connection queues in parallel. Set to 'true' to increase
+  # performance.
+  flush-queue-in-parallel: true
+  
+  # Process the track queue in parallel. Set to 'true' to increase performance.
+  process-track-queue-in-parallel: true
+
 ```

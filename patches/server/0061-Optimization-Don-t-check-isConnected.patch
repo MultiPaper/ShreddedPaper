@@ -5,10 +5,10 @@ Subject: [PATCH] Optimization: Don't check isConnected
 
 
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
-index a5b519624b7230ec7bb8d199acf895270dc6239a..8fe953204596c7f9f4cc6000698dda0107b98fc5 100644
+index bb28c13015a2aa7622d2f762dc797eb0344400db..51f67289fcf62614a5fd610474ab423544f84ebe 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
 +++ b/src/main/java/net/minecraft/network/Connection.java
-@@ -446,7 +446,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
+@@ -444,7 +444,7 @@ public class Connection extends SimpleChannelInboundHandler<Packet<?>> {
  
      public void send(Packet<?> packet, @Nullable PacketSendListener callbacks, boolean flush) {
          // Paper start - Optimize network: Handle oversized packets better
