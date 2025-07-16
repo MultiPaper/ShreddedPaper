@@ -39,5 +39,13 @@ optimizations:
   # Check entity activation range less often. Spigot does this every tick
   # unnecessarily. Set to '0' to disable.
   entity-activation-check-frequency: 20
+  
+  # Disable Bukkit's vanish api. Set to 'true' to increase performance. This
+  # will break plugins using this api.
+  disable-vanish-api: false
+  
+  # Don't wake up the event loop thread when not flushing packets. Set to
+  # 'true' to increase performance. 
+  use-lazy-execute-when-not-flushing: true
 
 ```
