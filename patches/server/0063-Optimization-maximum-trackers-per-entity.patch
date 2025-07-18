@@ -1,0 +1,191 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Fri, 18 Jul 2025 14:24:19 +0900
+Subject: [PATCH] Optimization: maximum trackers per entity
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b866c9ec0 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -13,6 +13,8 @@ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.JsonOps;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
+ import io.multipaper.shreddedpaper.util.Int2ObjectMapWrapper;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+@@ -25,12 +27,14 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
+ import it.unimi.dsi.fastutil.longs.LongIterator;
+ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+ import it.unimi.dsi.fastutil.longs.LongSet;
++import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
+ import it.unimi.dsi.fastutil.objects.ObjectIterator;
+ import java.io.IOException;
+ import java.io.Writer;
+ import java.nio.file.Path;
+ import java.util.ArrayList;
++import java.util.Collection;
+ import java.util.HashMap;
+ import java.util.Iterator;
+ import java.util.List;
+@@ -40,6 +44,7 @@ import java.util.Objects;
+ import java.util.Optional;
+ import java.util.Queue;
+ import java.util.Set;
++import java.util.TreeSet;
+ import java.util.concurrent.CancellationException;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.CompletionException;
+@@ -52,6 +57,8 @@ import java.util.function.IntFunction;
+ import java.util.function.IntSupplier;
+ import java.util.function.Supplier;
+ import javax.annotation.Nullable;
++
++import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+@@ -106,6 +113,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
+ import net.minecraft.world.level.storage.LevelStorageSource;
+ import net.minecraft.world.phys.Vec3;
+ import org.apache.commons.lang3.mutable.MutableBoolean;
++import org.jetbrains.annotations.NotNull;
+ import org.slf4j.Logger;
+ 
+ // CraftBukkit start
+@@ -1125,6 +1133,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                         ServerPlayer entityplayer = (ServerPlayer) entity;
+ 
+                         this.updatePlayerStatus(entityplayer, true);
++                        if (true) return; // ShreddedPaper - handled elsewhere
+                         Iterator objectiterator = this.entityConcurrentMap.values().iterator(); // ShreddedPaper - use entityConcurrentMap
+ 
+                         while (objectiterator.hasNext()) {
+@@ -1349,10 +1358,15 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> oldTrackerCandidates = this.lastTrackerCandidates;
+             this.lastTrackerCandidates = newTrackerCandidates;
+ 
++            boolean addNewPlayers = (newTrackerCandidates != oldTrackerCandidates) || (level.getGameTime() ^ (long) this.entity.getId()) % ShreddedPaperConfiguration.get().optimizations.trackerFullUpdateFrequency == 0L; // ShreddedPaper - trackerFullUpdateFrequency
++            if (addNewPlayers && this.entity instanceof ServerPlayer player) player.hasMaximumTrackerBypassPermission = player.getBukkitEntity().hasPermission("shreddedpaper.maximumtrackerbypass"); // ShreddedPaper
++            if (this.lastTrackerCandidates != null && this.lastTrackerCandidates.size() > ShreddedPaperConfiguration.get().optimizations.maximumTrackersPerEntity) { updatePlayersLimitedAndOrdered(oldTrackerCandidates != newTrackerCandidates, addNewPlayers); return; } // ShreddedPaper - maximum trackers per entity
++
+             if (newTrackerCandidates != null) {
+-                Object[] rawData = newTrackerCandidates.getBackingSet();
++                Object[] rawData = addNewPlayers ? newTrackerCandidates.getBackingSet() : this.seenBy.toArray(Object[]::new); // ShreddedPaper - trackerFullUpdateFrequency
+                 for (int i = 0, len = rawData.length; i < len; ++i) {
+                     Object raw = rawData[i];
++                    if (raw instanceof ServerPlayerConnection conn) raw = conn.getPlayer(); // ShreddedPaper - trackerFullUpdateFrequency
+                     if (!(raw instanceof ServerPlayer)) {
+                         continue;
+                     }
+@@ -1378,6 +1392,94 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         }
+         // Paper end - use distance map to optimise tracker
+ 
++        // ShreddedPaper start - maximum trackers per entity
++        private record DistancedServerPlayer(ServerPlayer serverPlayer, double distanceSqr, boolean hasBypassPerm) implements Comparable<DistancedServerPlayer> {
++            DistancedServerPlayer(ServerPlayer serverPlayer, Entity entity) {
++                this(serverPlayer, distanceBetween(serverPlayer, entity), serverPlayer.hasMaximumTrackerBypassPermission);
++            }
++
++            private static double distanceBetween(ServerPlayer serverPlayer, Entity entity) {
++                double vec3d_dx = serverPlayer.getX() - entity.getX();
++                double vec3d_dz = serverPlayer.getZ() - entity.getZ();
++                return vec3d_dx * vec3d_dx + vec3d_dz * vec3d_dz;
++            }
++
++            @Override
++            public int compareTo(@NotNull ChunkMap.TrackedEntity.DistancedServerPlayer o) {
++                return Double.compare(hasBypassPerm ? 0 : this.distanceSqr, o.hasBypassPerm ? 0 : o.distanceSqr);
++            }
++        }
++
++        public void updatePlayersLimitedAndOrdered(boolean hasTrackerCandidatesChanged, boolean addNewPlayers) {
++            Collection<DistancedServerPlayer> playerSet;
++            Object[] rawData;
++            if (!addNewPlayers) {
++                playerSet = new ObjectArrayList<>();
++                rawData = this.seenBy.toArray(Object[]::new);
++            } else {
++                playerSet = new TreeSet<>();
++                rawData = this.lastTrackerCandidates.getBackingSet();
++            }
++
++            for (int index = 0, len = rawData.length; index < len; ++index) {
++                Object raw = rawData[index];
++                if (raw instanceof ServerPlayerConnection conn) raw = conn.getPlayer();
++                if (!(raw instanceof ServerPlayer player)) {
++                    continue;
++                }
++                if (player == this.entity) continue;
++                DistancedServerPlayer distancedPlayer = new DistancedServerPlayer(player, this.entity);
++                int i = ChunkMap.this.getPlayerViewDistance(player);
++                double d0 = (double) Math.min(this.getEffectiveRange(), i * 16);
++                double d2 = d0 * d0;
++                boolean flag = distancedPlayer.distanceSqr <= d2 && this.entity.broadcastToPlayer(player) && ChunkMap.this.isChunkTracked(player, this.entity.chunkPosition().x, this.entity.chunkPosition().z);
++                // Paper start - Configurable entity tracking range by Y
++                if (flag && level.paperConfig().entities.trackingRangeY.enabled) {
++                    double rangeY = level.paperConfig().entities.trackingRangeY.get(this.entity, -1);
++                    if (rangeY != -1) {
++                        double vec3d_dy = player.getY() - this.entity.getY();
++                        flag = vec3d_dy * vec3d_dy <= rangeY * rangeY;
++                    }
++                }
++                // Paper end - Configurable entity tracking range by Y
++
++                // CraftBukkit start - respect vanish API
++                if (flag && !player.getBukkitEntity().canSee(this.entity.getBukkitEntity())) { // Paper - only consider hits
++                    flag = false;
++                }
++
++                if (flag) {
++                    playerSet.add(distancedPlayer);
++                }
++            }
++
++            Set<ServerPlayer> canBeSeenBy = new ReferenceOpenHashSet<>(Math.min(ShreddedPaperConfiguration.get().optimizations.maximumTrackersPerEntity, playerSet.size()));
++            Iterator<DistancedServerPlayer> playerSetIterator = playerSet.iterator();
++            int count = 0;
++            while (playerSetIterator.hasNext() && count++ < ShreddedPaperConfiguration.get().optimizations.maximumTrackersPerEntity) { // ShreddedPaper - maximum trackers per entity
++                DistancedServerPlayer distancedPlayer = playerSetIterator.next();
++                ServerPlayer player = distancedPlayer.serverPlayer();
++                canBeSeenBy.add(player);
++                if (this.seenBy.add(player.connection)) {
++                    // Paper start - entity tracking events
++                    if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(player.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
++                        this.serverEntity.addPairing(player);
++                    }
++                    // Paper end - entity tracking events
++                    this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
++                }
++            }
++
++            if (this.seenBy.size() != canBeSeenBy.size()) {
++                for (ServerPlayerConnection conn : this.seenBy.toArray(new ServerPlayerConnection[0])) { // avoid CME
++                    if (!canBeSeenBy.contains(conn.getPlayer()) && this.seenBy.remove(conn)) {
++                        this.serverEntity.removePairing(conn.getPlayer());
++                    }
++                }
++            }
++        }
++        // ShreddedPaper end - maximum trackers per entity
++
+         public boolean equals(Object object) {
+             return object instanceof ChunkMap.TrackedEntity ? ((ChunkMap.TrackedEntity) object).entity.getId() == this.entity.getId() : false;
+         }
+diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+index ac08e7bc5b4e25ad5bba149f358f0c46312b40d9..6f98a104e1ca1d0c66a0babae3ed31fd3b579e79 100644
+--- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
++++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
+@@ -257,6 +257,7 @@ public class ServerPlayer extends Player {
+     private BlockPos respawnPosition;
+     private boolean respawnForced;
+     private float respawnAngle;
++    public boolean hasMaximumTrackerBypassPermission; // ShreddedPaper
+     private final TextFilter textFilter;
+     private boolean textFilteringEnabled;
+     private boolean allowsListing;

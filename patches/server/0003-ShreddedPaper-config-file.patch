@@ -20,10 +20,10 @@ index 0000000000000000000000000000000000000000..df97bb240655934b62cfb1647f2dc327
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java b/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..b3f814d3682cfb37b5c7101ce352b450018cdbe9
+index 0000000000000000000000000000000000000000..9da1a1fde62c78ee7a504672bcda5d99b472f2d8
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,54 @@
 +package io.multipaper.shreddedpaper.config;
 +
 +import io.papermc.paper.configuration.ConfigurationPart;
@@ -71,6 +71,8 @@ index 0000000000000000000000000000000000000000..b3f814d3682cfb37b5c7101ce352b450
 +        public boolean useLazyExecuteWhenNotFlushing = true;
 +        public boolean processTrackQueueInParallel = true;
 +        public boolean flushQueueInParallel = true;
++        public int maximumTrackersPerEntity = 500;
++        public long trackerFullUpdateFrequency = 20;
 +
 +    }
 +
@@ -235,13 +237,14 @@ index 0000000000000000000000000000000000000000..53dcfbdf38f007fc86064ac1a495288d
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperPermissions.java b/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperPermissions.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..4999f297b04d151e8000fdc309081b5cee8b11ae
+index 0000000000000000000000000000000000000000..a72566749fce7c3e0a89e16afc31caf01117034a
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperPermissions.java
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,19 @@
 +package io.multipaper.shreddedpaper.permissions;
 +
 +import org.bukkit.permissions.Permission;
++import org.bukkit.permissions.PermissionDefault;
 +import org.bukkit.util.permissions.DefaultPermissions;
 +
 +public class ShreddedPaperPermissions {
@@ -249,6 +252,8 @@ index 0000000000000000000000000000000000000000..4999f297b04d151e8000fdc309081b5c
 +
 +    public static void registerCorePermissions() {
 +        Permission parent = DefaultPermissions.registerPermission(ROOT, "Gives the user the ability to use all ShreddedPaper utilities and commands");
++
++        DefaultPermissions.registerPermission(ROOT + ".maximumtrackerbypass", "Gives the user the ability to see all entities regardless of the maximum tracker config", PermissionDefault.OP, parent);
 +
 +        ShreddedPaperCommandPermissions.registerPermissions(parent);
 +

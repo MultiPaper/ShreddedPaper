@@ -54,5 +54,13 @@ optimizations:
   
   # Process the track queue in parallel. Set to 'true' to increase performance.
   process-track-queue-in-parallel: true
+  
+  # Maximum number of players to render each entity to. Can be bypassed with the
+  # permission 'shreddedpaper.maximumtrackerbypass'
+  maximum-trackers-per-entity: 500
+
+  # How often (in ticks) to do a full tracker update per entity. The vanilla
+  # default is '1'.
+  tracker-full-update-frequency: 20
 
 ```
