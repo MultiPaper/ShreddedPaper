@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sat, 19 Jul 2025 13:47:32 +0900
+Subject: [PATCH] Optimization: Cache chunk packets
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+index a0a862a617b28375d89afb19697606e4ad97f7a2..aa8453c6cf0bdd1e784f26bc55d63e49dac68921 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+@@ -163,6 +163,12 @@ public class ShreddedPaperChunkTicker {
+     private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
+         if (chunk1.getChunkHolder().vanillaChunkHolder.needsBroadcastChanges()) ShreddedPaperChangesBroadcaster.add(chunk1.getChunkHolder().vanillaChunkHolder); // ShreddedPaper
+ 
++        // ShreddedPaper start - clear chunk packet cache
++        if (chunk1.cachedChunkPacket != null && chunk1.cachedChunkPacketLastAccessed < level.getGameTime() - ShreddedPaperConfiguration.get().optimizations.chunkPacketCaching.expireAfter) {
++            chunk1.cachedChunkPacket = null;
++        }
++        // ShreddedPaper end - clear chunk packet cache
++
+         // Start - Import the same variables as the original chunk ticking method to make copying new changes easier
+         int j = 1; // Inhabited time increment in ticks
+         boolean flag = level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !level.players().isEmpty(); // Should run mob spawning code
+diff --git a/src/main/java/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java b/src/main/java/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
+index cfcac0fdc130120cb1f8d97c6353d93db7ddf81b..0b75fe53817f291b80a80f5fe4432bca256d65bb 100644
+--- a/src/main/java/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
++++ b/src/main/java/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
+@@ -20,6 +20,7 @@ public class ClientboundLevelChunkWithLightPacket implements Packet<ClientGamePa
+     private final ClientboundLightUpdatePacketData lightData;
+     // Paper start - Async-Anti-Xray - Ready flag for the connection
+     private volatile boolean ready;
++    public boolean modifyBlocks; // ShreddedPaper
+ 
+     @Override
+     public boolean isReady() {
+@@ -37,6 +38,7 @@ public class ClientboundLevelChunkWithLightPacket implements Packet<ClientGamePa
+         ChunkPos chunkPos = chunk.getPos();
+         this.x = chunkPos.x;
+         this.z = chunkPos.z;
++        this.modifyBlocks = modifyBlocks; // ShreddedPaper
+         com.destroystokyo.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo = modifyBlocks ? chunk.getLevel().chunkPacketBlockController.getChunkPacketInfo(this, chunk) : null;
+         this.chunkData = new ClientboundLevelChunkPacketData(chunk, chunkPacketInfo);
+         // Paper end
+diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+index d1d0bc714ddb0ba148c215b69f62d0d195459b37..31a40d5699ec2ecae9b757786ad8e1becd9bedc6 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
++++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+@@ -288,6 +288,7 @@ public class ChunkHolder {
+ 
+     public void broadcastChanges(LevelChunk chunk) {
+         if (this.needsBroadcastChanges()) { // Paper - optimise chunk tick iteration; moved into above, other logic needs to call
++            if (chunk.cachedChunkPacket != null) chunk.cachedChunkPacket = null; // ShreddedPaper
+             Level world = chunk.getLevel();
+             List list;
+ 
+diff --git a/src/main/java/net/minecraft/server/network/PlayerChunkSender.java b/src/main/java/net/minecraft/server/network/PlayerChunkSender.java
+index 442bb60eb35002e54dcd6a893aca4a4584a8e017..e89e2398570a37dc3e4072254baaffaeab55eee1 100644
+--- a/src/main/java/net/minecraft/server/network/PlayerChunkSender.java
++++ b/src/main/java/net/minecraft/server/network/PlayerChunkSender.java
+@@ -2,8 +2,13 @@ package net.minecraft.server.network;
+ 
+ import com.google.common.collect.Comparators;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
+ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+ import it.unimi.dsi.fastutil.longs.LongSet;
++
++import java.lang.ref.Reference;
++import java.lang.ref.SoftReference;
++import java.lang.ref.WeakReference;
+ import java.util.Comparator;
+ import java.util.List;
+ import java.util.Objects;
+@@ -89,7 +94,16 @@ public class PlayerChunkSender {
+         handler.player.serverLevel().chunkSource.chunkMap.getVisibleChunkIfPresent(chunk.getPos().toLong()).addPlayer(handler.player);
+         // Paper start - Anti-Xray
+         final boolean shouldModify = world.chunkPacketBlockController.shouldModify(handler.player, chunk);
+-        handler.send(new ClientboundLevelChunkWithLightPacket(chunk, world.getLightEngine(), null, null, shouldModify));
++        // ShreddedPaper start - Cache chunk packet
++        Reference<ClientboundLevelChunkWithLightPacket> cachedChunkPacket = chunk.cachedChunkPacket;
++        ClientboundLevelChunkWithLightPacket chunkPacket;
++        if (cachedChunkPacket == null || (chunkPacket = chunk.cachedChunkPacket.get()) == null || chunkPacket.modifyBlocks != shouldModify) {
++            chunkPacket = new ClientboundLevelChunkWithLightPacket(chunk, world.getLightEngine(), null, null, shouldModify);
++            if (ShreddedPaperConfiguration.get().optimizations.chunkPacketCaching.enabled) chunk.cachedChunkPacket = ShreddedPaperConfiguration.get().optimizations.chunkPacketCaching.useSoftReferences ? new SoftReference<>(chunkPacket) : new WeakReference<>(chunkPacket);
++        }
++        chunk.cachedChunkPacketLastAccessed = world.getGameTime();
++        handler.send(chunkPacket);
++        // ShreddedPaper end - Cache chunk packet
+         // Paper end - Anti-Xray
+         // Paper start - PlayerChunkLoadEvent
+         if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {
+diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+index f90f1a6166a91ab41200e475d0fd0cd8df3e0291..4f4e416220e254e0521d1d97b3f416362794983b 100644
+--- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -8,6 +8,9 @@ import com.mojang.logging.LogUtils;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.shorts.ShortListIterator;
++
++import java.lang.ref.Reference;
++import java.lang.ref.WeakReference;
+ import java.util.Iterator;
+ import java.util.Map;
+ import java.util.Map.Entry;
+@@ -24,6 +27,7 @@ import net.minecraft.core.registries.Registries;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;
++import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
+ import net.minecraft.server.level.FullChunkStatus;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.profiling.ProfilerFiller;
+@@ -87,6 +91,8 @@ public class LevelChunk extends ChunkAccess {
+     private final LevelChunkTicks<Block> blockTicks;
+     private final LevelChunkTicks<Fluid> fluidTicks;
+     public volatile FullChunkStatus chunkStatus = FullChunkStatus.INACCESSIBLE; // Paper - rewrite chunk system
++    public @Nullable Reference<ClientboundLevelChunkWithLightPacket> cachedChunkPacket; // ShreddedPaper
++    public long cachedChunkPacketLastAccessed; // ShreddedPaper
+ 
+     // Pufferfish start - instead of using a random every time the chunk is ticked, define when lightning strikes preemptively
+     private int lightningTick;

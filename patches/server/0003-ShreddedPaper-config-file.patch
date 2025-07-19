@@ -20,10 +20,10 @@ index 0000000000000000000000000000000000000000..df97bb240655934b62cfb1647f2dc327
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java b/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..9da1a1fde62c78ee7a504672bcda5d99b472f2d8
+index 0000000000000000000000000000000000000000..bd50ca13d6b2612b404cc33b403549edb2f99f1b
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,63 @@
 +package io.multipaper.shreddedpaper.config;
 +
 +import io.papermc.paper.configuration.ConfigurationPart;
@@ -73,6 +73,15 @@ index 0000000000000000000000000000000000000000..9da1a1fde62c78ee7a504672bcda5d99
 +        public boolean flushQueueInParallel = true;
 +        public int maximumTrackersPerEntity = 500;
 +        public long trackerFullUpdateFrequency = 20;
++        public ChunkPacketCaching chunkPacketCaching;
++
++        public class ChunkPacketCaching extends ConfigurationPart {
++
++            public boolean enabled = true;
++            public boolean useSoftReferences = true;
++            public long expireAfter = 1200;
++
++        }
 +
 +    }
 +
