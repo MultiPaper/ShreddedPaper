@@ -46,8 +46,8 @@ out/
 # other stuff
 run/
 
-ShreddedPaper-Server
-ShreddedPaper-API
+shreddedpaper-server
+shreddedpaper-api
 paper-api-generator
 
 *.sh
