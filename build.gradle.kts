@@ -5,7 +5,7 @@ plugins {
     java
     `maven-publish`
     id("io.github.goooler.shadow") version "8.1.7"
-    id("io.papermc.paperweight.patcher") version "1.7.1"
+    id("io.papermc.paperweight.patcher") version "1.7.7"
 }
 
 repositories {
