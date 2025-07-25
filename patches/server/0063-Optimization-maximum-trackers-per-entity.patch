@@ -5,7 +5,7 @@ Subject: [PATCH] Optimization: maximum trackers per entity
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b866c9ec0 100644
+index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..536977931f630b0f9a4a3db1bbef08451028ad3c 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -13,6 +13,8 @@ import com.mojang.datafixers.DataFixer;
@@ -17,7 +17,7 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b
  import io.multipaper.shreddedpaper.util.Int2ObjectMapWrapper;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-@@ -25,12 +27,14 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
+@@ -25,12 +27,15 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry;
  import it.unimi.dsi.fastutil.longs.LongIterator;
  import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
  import it.unimi.dsi.fastutil.longs.LongSet;
@@ -29,10 +29,11 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b
  import java.nio.file.Path;
  import java.util.ArrayList;
 +import java.util.Collection;
++import java.util.ConcurrentModificationException;
  import java.util.HashMap;
  import java.util.Iterator;
  import java.util.List;
-@@ -40,6 +44,7 @@ import java.util.Objects;
+@@ -40,6 +45,7 @@ import java.util.Objects;
  import java.util.Optional;
  import java.util.Queue;
  import java.util.Set;
@@ -40,7 +41,7 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b
  import java.util.concurrent.CancellationException;
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.CompletionException;
-@@ -52,6 +57,8 @@ import java.util.function.IntFunction;
+@@ -52,6 +58,8 @@ import java.util.function.IntFunction;
  import java.util.function.IntSupplier;
  import java.util.function.Supplier;
  import javax.annotation.Nullable;
@@ -49,7 +50,7 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
  import net.minecraft.ReportedException;
-@@ -106,6 +113,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
+@@ -106,6 +114,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import net.minecraft.world.phys.Vec3;
  import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -57,7 +58,7 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b
  import org.slf4j.Logger;
  
  // CraftBukkit start
-@@ -1125,6 +1133,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1125,6 +1134,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                          ServerPlayer entityplayer = (ServerPlayer) entity;
  
                          this.updatePlayerStatus(entityplayer, true);
@@ -65,24 +66,42 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b
                          Iterator objectiterator = this.entityConcurrentMap.values().iterator(); // ShreddedPaper - use entityConcurrentMap
  
                          while (objectiterator.hasNext()) {
-@@ -1349,10 +1358,15 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1349,6 +1359,10 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> oldTrackerCandidates = this.lastTrackerCandidates;
              this.lastTrackerCandidates = newTrackerCandidates;
  
-+            boolean addNewPlayers = (newTrackerCandidates != oldTrackerCandidates) || (level.getGameTime() ^ (long) this.entity.getId()) % ShreddedPaperConfiguration.get().optimizations.trackerFullUpdateFrequency == 0L; // ShreddedPaper - trackerFullUpdateFrequency
-+            if (addNewPlayers && this.entity instanceof ServerPlayer player) player.hasMaximumTrackerBypassPermission = player.getBukkitEntity().hasPermission("shreddedpaper.maximumtrackerbypass"); // ShreddedPaper
-+            if (this.lastTrackerCandidates != null && this.lastTrackerCandidates.size() > ShreddedPaperConfiguration.get().optimizations.maximumTrackersPerEntity) { updatePlayersLimitedAndOrdered(oldTrackerCandidates != newTrackerCandidates, addNewPlayers); return; } // ShreddedPaper - maximum trackers per entity
++            boolean fullTrackerUpdate = (level.getGameTime() ^ (long) this.entity.getId()) % ShreddedPaperConfiguration.get().optimizations.trackerFullUpdateFrequency == 0L; // ShreddedPaper - trackerFullUpdateFrequency
++            if (fullTrackerUpdate && this.entity instanceof ServerPlayer player) player.hasMaximumTrackerBypassPermission = player.getBukkitEntity().hasPermission("shreddedpaper.maximumtrackerbypass"); // ShreddedPaper
++            if (this.lastTrackerCandidates != null && this.lastTrackerCandidates.size() > ShreddedPaperConfiguration.get().optimizations.maximumTrackersPerEntity) { updatePlayersLimitedAndOrdered(oldTrackerCandidates != newTrackerCandidates && (oldTrackerCandidates == null || newTrackerCandidates == null || oldTrackerCandidates.size() != newTrackerCandidates.size()), fullTrackerUpdate); return; } // ShreddedPaper - maximum trackers per entity
 +
              if (newTrackerCandidates != null) {
--                Object[] rawData = newTrackerCandidates.getBackingSet();
-+                Object[] rawData = addNewPlayers ? newTrackerCandidates.getBackingSet() : this.seenBy.toArray(Object[]::new); // ShreddedPaper - trackerFullUpdateFrequency
+                 Object[] rawData = newTrackerCandidates.getBackingSet();
                  for (int i = 0, len = rawData.length; i < len; ++i) {
-                     Object raw = rawData[i];
-+                    if (raw instanceof ServerPlayerConnection conn) raw = conn.getPlayer(); // ShreddedPaper - trackerFullUpdateFrequency
-                     if (!(raw instanceof ServerPlayer)) {
+@@ -1357,10 +1371,12 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                          continue;
                      }
-@@ -1378,6 +1392,94 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                     ServerPlayer player = (ServerPlayer)raw;
+-                    this.updatePlayer(player);
++                    if (fullTrackerUpdate || !this.seenBy.contains(player.connection)) this.updatePlayer(player); // ShreddedPaper - trackerFullUpdateFrequency
+                 }
+             }
+ 
++            if (!fullTrackerUpdate) return; // ShreddedPaper - trackerFullUpdateFrequency
++
+             if (oldTrackerCandidates == newTrackerCandidates) {
+                 // this is likely the case.
+                 // means there has been no range changes, so we can just use the above for tracking.
+@@ -1370,14 +1386,100 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             // stuff could have been removed, so we need to check the trackedPlayers set
+             // for players that were removed
+ 
++            try { // ShreddedPaper - Catch and ignore CME
+             for (ServerPlayerConnection conn : this.seenBy.toArray(new ServerPlayerConnection[0])) { // avoid CME
+                 if (newTrackerCandidates == null || !newTrackerCandidates.contains(conn.getPlayer())) {
+                     this.updatePlayer(conn.getPlayer());
+                 }
+             }
++            } catch (ConcurrentModificationException ignored) {} // ShreddedPaper - Catch and ignore CME
          }
          // Paper end - use distance map to optimise tracker
  
@@ -104,20 +123,14 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b
 +            }
 +        }
 +
-+        public void updatePlayersLimitedAndOrdered(boolean hasTrackerCandidatesChanged, boolean addNewPlayers) {
-+            Collection<DistancedServerPlayer> playerSet;
-+            Object[] rawData;
-+            if (!addNewPlayers) {
-+                playerSet = new ObjectArrayList<>();
-+                rawData = this.seenBy.toArray(Object[]::new);
-+            } else {
-+                playerSet = new TreeSet<>();
-+                rawData = this.lastTrackerCandidates.getBackingSet();
-+            }
++        public void updatePlayersLimitedAndOrdered(boolean hasTrackerCandidatesChanged, boolean fullTrackerUpdate) {
++            if (!hasTrackerCandidatesChanged || !fullTrackerUpdate) return;
++
++            TreeSet<DistancedServerPlayer> playerSet = new TreeSet<>();
++            Object[] rawData = this.lastTrackerCandidates.getBackingSet();
 +
 +            for (int index = 0, len = rawData.length; index < len; ++index) {
 +                Object raw = rawData[index];
-+                if (raw instanceof ServerPlayerConnection conn) raw = conn.getPlayer();
 +                if (!(raw instanceof ServerPlayer player)) {
 +                    continue;
 +                }
@@ -165,11 +178,13 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..2db39cf2e87fe950ddc152cb0852c87b
 +            }
 +
 +            if (this.seenBy.size() != canBeSeenBy.size()) {
-+                for (ServerPlayerConnection conn : this.seenBy.toArray(new ServerPlayerConnection[0])) { // avoid CME
-+                    if (!canBeSeenBy.contains(conn.getPlayer()) && this.seenBy.remove(conn)) {
-+                        this.serverEntity.removePairing(conn.getPlayer());
++                try {
++                    for (ServerPlayerConnection conn : this.seenBy.toArray(new ServerPlayerConnection[0])) { // avoid CME
++                        if (!canBeSeenBy.contains(conn.getPlayer()) && this.seenBy.remove(conn)) {
++                            this.serverEntity.removePairing(conn.getPlayer());
++                        }
 +                    }
-+                }
++                } catch (ConcurrentModificationException ignored) {}
 +            }
 +        }
 +        // ShreddedPaper end - maximum trackers per entity
