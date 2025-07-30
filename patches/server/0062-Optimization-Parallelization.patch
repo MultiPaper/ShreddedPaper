@@ -101,6 +101,21 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..a0a862a617b28375d89afb19697606e4
  
              level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
  
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
+index 29b823763c01ee5ff6f9c09c848ed2895bf495bb..2c442396594c6026afa2cd11d1ece4caa66e9210 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
+@@ -40,7 +40,10 @@ public class ShreddedPaperEntityTicker {
+ 
+     public static void processTrackQueue(Entity entity) {
+         ChunkMap.TrackedEntity tracker = Objects.requireNonNull(entity.tracker);
++        tracker.seenByModifyLock.lock(); // ShreddedPaper
++        try { // ShreddedPaper
+         tracker.updatePlayers(entity.getPlayersInTrackRange());
+         tracker.serverEntity.sendChanges();
++        } finally { tracker.seenByModifyLock.unlock(); } // ShreddedPaper
+     }
+ }
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
 index 51f67289fcf62614a5fd610474ab423544f84ebe..d7374a603bd1d9a8dfc0fd1755a0c779e7e3b428 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
@@ -123,3 +138,37 @@ index 51f67289fcf62614a5fd610474ab423544f84ebe..d7374a603bd1d9a8dfc0fd1755a0c779
          // Paper start - Buffer joins to world
          if (Connection.currTick != net.minecraft.server.MinecraftServer.currentTick) {
              Connection.currTick = net.minecraft.server.MinecraftServer.currentTick;
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..82dc3339a3c45b4f7d63f74522ad3087e80a2d25 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -46,6 +46,8 @@ import java.util.concurrent.CompletionException;
+ import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.Executor;
+ import java.util.concurrent.atomic.AtomicInteger;
++import java.util.concurrent.locks.Lock;
++import java.util.concurrent.locks.ReentrantLock;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.Consumer;
+ import java.util.function.IntFunction;
+@@ -1334,6 +1336,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         private final int range;
+         SectionPos lastSectionPos;
+         public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
++        public final Lock seenByModifyLock = new ReentrantLock(); // ShreddedPaper - lock seenBy modifications
+ 
+         public TrackedEntity(final Entity entity, final int i, final int j, final boolean flag) {
+             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, j, flag, this::broadcast, this.seenBy); // CraftBukkit
+@@ -1418,9 +1421,12 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+ 
+         public void removePlayer(ServerPlayer player) {
+             org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot
++            seenByModifyLock.lock(); // ShreddedPaper
++            try { // ShreddedPaper
+             if (this.seenBy.remove(player.connection)) {
+                 this.serverEntity.removePairing(player);
+             }
++            } finally { seenByModifyLock.unlock(); } // ShreddedPaper
+ 
+         }
+ 
