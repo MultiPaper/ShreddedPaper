@@ -1315,7 +1315,7 @@ index e26f6215ca42885cb0635a3183a8df93a924ba7f..5d01e9c124047ab89be5727ec4ecd044
      public final Map<Player, MapItemSavedData.HoldingPlayer> carriedByPlayers = Maps.newHashMap();
      private final Map<String, MapBanner> bannerMarkers = Maps.newHashMap();
 diff --git a/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java b/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
-index 6e23e69abd56eeda3b52a22019e1b74ae10682e7..3fdbec5ab625e5d1e9c7cbad2377a8e673a64765 100644
+index 6e23e69abd56eeda3b52a22019e1b74ae10682e7..f3d1dfb2cca74ecfc123f1c06a20462a1295d60f 100644
 --- a/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
 +++ b/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
 @@ -25,7 +25,7 @@ import org.slf4j.Logger;
@@ -1327,23 +1327,30 @@ index 6e23e69abd56eeda3b52a22019e1b74ae10682e7..3fdbec5ab625e5d1e9c7cbad2377a8e6
      private final DataFixer fixerUpper;
      private final HolderLookup.Provider registries;
      private final File dataFolder;
-@@ -43,25 +43,23 @@ public class DimensionDataStorage implements java.io.Closeable { // Paper - Writ
+@@ -43,25 +43,29 @@ public class DimensionDataStorage implements java.io.Closeable { // Paper - Writ
      }
  
      public <T extends SavedData> T computeIfAbsent(SavedData.Factory<T> type, String id) {
 -        T savedData = this.get(type, id);
 -        if (savedData != null) {
-+        // ShreddedPaper start - thread-safe
-+        return (T) this.cache.compute(id, (key, savedData) -> {
-+            if (savedData == null) {
-+                return type.constructor().get();
-+            }
-             return savedData;
+-            return savedData;
 -        } else {
 -            T savedData2 = (T)type.constructor().get();
 -            this.set(id, savedData2);
 -            return savedData2;
 -        }
++        // ShreddedPaper start - thread-safe
++        return (T) this.cache.compute(id, (key, savedData) -> {
++            if (savedData != null) {
++                return savedData;
++            }
++
++            savedData = this.readSavedData(type.deserializer(), type.type(), key);
++            if (savedData != null) {
++                return  savedData;
++            }
++
++            return type.constructor().get();
 +        });
 +        // ShreddedPaper end - thread-safe
      }
@@ -1365,6 +1372,17 @@ index 6e23e69abd56eeda3b52a22019e1b74ae10682e7..3fdbec5ab625e5d1e9c7cbad2377a8e6
      }
  
      @Nullable
+@@ -88,8 +92,8 @@ public class DimensionDataStorage implements java.io.Closeable { // Paper - Writ
+ 
+         CompoundTag var9;
+         try (
+-            InputStream inputStream = new FileInputStream(file);
+-            PushbackInputStream pushbackInputStream = new PushbackInputStream(new FastBufferedInputStream(inputStream), 2);
++                InputStream inputStream = new FileInputStream(file);
++                PushbackInputStream pushbackInputStream = new PushbackInputStream(new FastBufferedInputStream(inputStream), 2);
+         ) {
+             CompoundTag compoundTag;
+             if (this.isGzip(pushbackInputStream)) {
 diff --git a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
 index ac11f18690434922179b61ffcc3036dea025b0cb..efdac83c60651818f7d1829be8970cd1c546f3de 100644
 --- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
