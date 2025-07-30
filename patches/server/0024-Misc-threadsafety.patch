@@ -507,18 +507,10 @@ index a50ce5d0920638dd10e9c21f4bf0ce854c91428f..5fdc29db603108698d4eca489eef9db6
  
      }
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 0d54b7e4d05423918f80b27c418edb2e8b4c99ff..ad225ec3cddeb689634777629ac52cde0ec00751 100644
+index b2e68bfb4c338f54edf4409bd2c738c4442be921..2b7f6dc472452c96fea0e47834921360b37ed7a3 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -7,6 +7,7 @@ import com.mojang.brigadier.ParseResults;
- import com.mojang.brigadier.StringReader;
- import com.mojang.brigadier.suggestion.Suggestions;
- import com.mojang.logging.LogUtils;
-+import io.multipaper.shreddedpaper.ShreddedPaper;
- import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
- import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
- import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-@@ -3531,7 +3532,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -3531,7 +3531,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
  
          this.filterTextPacket(list).thenAcceptAsync((list1) -> {
              this.updateSignText(packet, list1);

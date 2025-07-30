@@ -142,10 +142,10 @@ index ca36526379158b027b3ccebb78c0a0f4978a2c40..a50ce5d0920638dd10e9c21f4bf0ce85
          ChunkPos chunkcoordintpair = new ChunkPos(BlockPos.containing(d0, d1, d2));
  
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index ea85e5ca1244c12fbf187050702a3d3c9e17c962..0d54b7e4d05423918f80b27c418edb2e8b4c99ff 100644
+index ca7895a57139352d2f1c522dc7b64b62dc679c4c..b2e68bfb4c338f54edf4409bd2c738c4442be921 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2114,7 +2114,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -2115,7 +2115,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                  Entity entity = packet.getEntity(worldserver);
  
                  if (entity != null) {

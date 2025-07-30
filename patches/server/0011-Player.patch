@@ -570,10 +570,18 @@ index dcc3cb2c476831d6093928ce0a14424634b100ec..efd4456c59c51862ffaf0c17d5b49514
              } catch (InterruptedException e) {
                  Thread.currentThread().interrupt();
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index 176e54f1c5f4feb98bee8876c304f6e248909e9c..ea85e5ca1244c12fbf187050702a3d3c9e17c962 100644
+index 176e54f1c5f4feb98bee8876c304f6e248909e9c..ca7895a57139352d2f1c522dc7b64b62dc679c4c 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2148,9 +2148,11 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -7,6 +7,7 @@ import com.mojang.brigadier.ParseResults;
+ import com.mojang.brigadier.StringReader;
+ import com.mojang.brigadier.suggestion.Suggestions;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+@@ -2148,9 +2149,11 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
              this.processedDisconnect = true;
          }
          // CraftBukkit end
@@ -585,23 +593,15 @@ index 176e54f1c5f4feb98bee8876c304f6e248909e9c..ea85e5ca1244c12fbf187050702a3d3c
      }
  
      // Paper start - Fix kick event leave message not being sent
-@@ -2248,6 +2250,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
- 
-     @Override
-     public void handleChatCommand(ServerboundChatCommandPacket packet) {
-+        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.serverLevel()); // ShreddedPaper - run commands in sync
-         this.tryHandleChat(packet.command(), () -> {
-             // CraftBukkit start - SPIGOT-7346: Prevent disconnected players from executing commands
-             if (this.player.hasDisconnected()) {
-@@ -2256,7 +2259,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
-             // CraftBukkit end
-             this.performUnsignedChatCommand(packet.command());
-             this.detectRateSpam("/" + packet.command()); // Spigot
--        }, true); // CraftBukkit - sync commands
-+        }, false); // CraftBukkit - sync commands // ShreddedPaper - we ensure the command is run in sync by ourselves
-     }
- 
-     private void performUnsignedChatCommand(String command) {
+@@ -2418,7 +2421,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+             this.player.resetLastActionTime();
+             // CraftBukkit start
+             if (sync) {
+-                this.server.execute(runnable);
++                ShreddedPaper.runSync(player, runnable); // ShreddedPaper - run on player's thread
+             } else {
+                 runnable.run();
+             }
 diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
 index b863f6fe65c796a1d3102cc3eddb5d6c5becd3ac..900891527ca401858d9c2678ae154928e5f64b08 100644
 --- a/src/main/java/net/minecraft/server/players/PlayerList.java
