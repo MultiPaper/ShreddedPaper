@@ -5,7 +5,7 @@ Subject: [PATCH] Optimization: maximum trackers per entity
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 82dc3339a3c45b4f7d63f74522ad3087e80a2d25..a361fc4800e9f6ae5c450b762866f8d58836e85e 100644
+index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..536977931f630b0f9a4a3db1bbef08451028ad3c 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -13,6 +13,8 @@ import com.mojang.datafixers.DataFixer;
@@ -41,7 +41,7 @@ index 82dc3339a3c45b4f7d63f74522ad3087e80a2d25..a361fc4800e9f6ae5c450b762866f8d5
  import java.util.concurrent.CancellationException;
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.CompletionException;
-@@ -54,6 +60,8 @@ import java.util.function.IntFunction;
+@@ -52,6 +58,8 @@ import java.util.function.IntFunction;
  import java.util.function.IntSupplier;
  import java.util.function.Supplier;
  import javax.annotation.Nullable;
@@ -50,7 +50,7 @@ index 82dc3339a3c45b4f7d63f74522ad3087e80a2d25..a361fc4800e9f6ae5c450b762866f8d5
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
  import net.minecraft.ReportedException;
-@@ -108,6 +116,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
+@@ -106,6 +114,7 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
  import net.minecraft.world.level.storage.LevelStorageSource;
  import net.minecraft.world.phys.Vec3;
  import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -58,7 +58,7 @@ index 82dc3339a3c45b4f7d63f74522ad3087e80a2d25..a361fc4800e9f6ae5c450b762866f8d5
  import org.slf4j.Logger;
  
  // CraftBukkit start
-@@ -1127,6 +1136,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1125,6 +1134,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                          ServerPlayer entityplayer = (ServerPlayer) entity;
  
                          this.updatePlayerStatus(entityplayer, true);
@@ -66,7 +66,7 @@ index 82dc3339a3c45b4f7d63f74522ad3087e80a2d25..a361fc4800e9f6ae5c450b762866f8d5
                          Iterator objectiterator = this.entityConcurrentMap.values().iterator(); // ShreddedPaper - use entityConcurrentMap
  
                          while (objectiterator.hasNext()) {
-@@ -1352,6 +1362,10 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1349,6 +1359,10 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              com.destroystokyo.paper.util.misc.PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<ServerPlayer> oldTrackerCandidates = this.lastTrackerCandidates;
              this.lastTrackerCandidates = newTrackerCandidates;
  
@@ -77,7 +77,7 @@ index 82dc3339a3c45b4f7d63f74522ad3087e80a2d25..a361fc4800e9f6ae5c450b762866f8d5
              if (newTrackerCandidates != null) {
                  Object[] rawData = newTrackerCandidates.getBackingSet();
                  for (int i = 0, len = rawData.length; i < len; ++i) {
-@@ -1360,10 +1374,12 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1357,10 +1371,12 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                          continue;
                      }
                      ServerPlayer player = (ServerPlayer)raw;
@@ -91,7 +91,7 @@ index 82dc3339a3c45b4f7d63f74522ad3087e80a2d25..a361fc4800e9f6ae5c450b762866f8d5
              if (oldTrackerCandidates == newTrackerCandidates) {
                  // this is likely the case.
                  // means there has been no range changes, so we can just use the above for tracking.
-@@ -1373,14 +1389,100 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1370,14 +1386,100 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              // stuff could have been removed, so we need to check the trackedPlayers set
              // for players that were removed
  

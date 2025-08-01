@@ -5,7 +5,7 @@ Subject: [PATCH] Optimization: Parallelization
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..a0a862a617b28375d89afb19697606e4ad97f7a2 100644
+index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..32d0a50201d66731751a419149595384776a28b9 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -1,12 +1,15 @@
@@ -33,7 +33,7 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..a0a862a617b28375d89afb19697606e4
      public static void tickChunks(ServerLevel level, NaturalSpawner.SpawnState spawnercreature_d) {
          List<CompletableFuture<Void>> futures = new ArrayList<>();
  
-@@ -34,15 +39,56 @@ public class ShreddedPaperChunkTicker {
+@@ -34,15 +39,61 @@ public class ShreddedPaperChunkTicker {
                  region -> futures.add(tickRegion(level, region, spawnercreature_d))
          );
  
@@ -62,21 +62,26 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..a0a862a617b28375d89afb19697606e4
  
 -        tickingChunks = false;
 +    private static void processTrackQueueInParallel(ServerLevel level) {
-+        List<CompletableFuture<Void>> futures = new ArrayList<>();
++        level.getChunkSource().mainThreadProcessor.managedBlock(() -> level.chunkScheduler.getRegionLocker().globalLock().tryWriteLock() != 0);
++        try {
++            List<CompletableFuture<Void>> futures = new ArrayList<>();
  
 -        MinecraftServer.getServer().executeMidTickTasks();
-+        trackedEntitiesWorkerList.clear();
-+        level.chunkSource.tickingRegions.forEach(
-+                region -> region.forEachTrackedEntity(trackedEntitiesWorkerList::add)
-+        );
++            trackedEntitiesWorkerList.clear();
++            level.chunkSource.tickingRegions.forEach(
++                    region -> region.forEachTrackedEntity(trackedEntitiesWorkerList::add)
++            );
 +
-+        List<List<Entity>> trackedEntitiesTasks = Lists.partition(trackedEntitiesWorkerList, Math.max(1, trackedEntitiesWorkerList.size() / ShreddedPaperTickThread.THREAD_COUNT / 3));
-+        for (List<Entity> trackedEntities : trackedEntitiesTasks) {
-+            if (trackedEntities.isEmpty()) continue;
-+            futures.add(CompletableFuture.runAsync(() -> trackedEntities.forEach(ShreddedPaperEntityTicker::processTrackQueue), ShreddedPaperTickThread.getExecutor()));
++            List<List<Entity>> trackedEntitiesTasks = Lists.partition(trackedEntitiesWorkerList, Math.max(1, trackedEntitiesWorkerList.size() / ShreddedPaperTickThread.THREAD_COUNT / 3));
++            for (List<Entity> trackedEntities : trackedEntitiesTasks) {
++                if (trackedEntities.isEmpty()) continue;
++                futures.add(CompletableFuture.runAsync(() -> trackedEntities.forEach(ShreddedPaperEntityTicker::processTrackQueue), ShreddedPaperTickThread.getExecutor()));
++            }
++
++            waitForFutures(level, futures);
++        } finally {
++            level.chunkScheduler.getRegionLocker().globalLock().tryUnlockWrite();
 +        }
-+
-+        waitForFutures(level, futures);
 +    }
 +
 +    private static void flushQueueInParallel(ServerLevel level) {
@@ -92,7 +97,7 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..a0a862a617b28375d89afb19697606e4
      }
  
      public static CompletableFuture<Void> tickRegion(ServerLevel level, LevelChunkRegion region, NaturalSpawner.SpawnState spawnercreature_d) {
-@@ -96,7 +142,7 @@ public class ShreddedPaperChunkTicker {
+@@ -96,7 +147,7 @@ public class ShreddedPaperChunkTicker {
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
@@ -101,20 +106,52 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..a0a862a617b28375d89afb19697606e4
  
              level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
  
-diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
-index 29b823763c01ee5ff6f9c09c848ed2895bf495bb..2c442396594c6026afa2cd11d1ece4caa66e9210 100644
---- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
-+++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperEntityTicker.java
-@@ -40,7 +40,10 @@ public class ShreddedPaperEntityTicker {
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
+index 39262659b6b0793880378fb49220c30de3d78485..c0d6579fc2a09109d0a8c55c496b517703a24bb1 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
+@@ -11,6 +11,7 @@ import java.util.List;
+ import java.util.Set;
+ import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.locks.LockSupport;
++import java.util.concurrent.locks.StampedLock;
+ import java.util.function.Supplier;
  
-     public static void processTrackQueue(Entity entity) {
-         ChunkMap.TrackedEntity tracker = Objects.requireNonNull(entity.tracker);
-+        tracker.seenByModifyLock.lock(); // ShreddedPaper
-+        try { // ShreddedPaper
-         tracker.updatePlayers(entity.getPlayersInTrackRange());
-         tracker.serverEntity.sendChanges();
-+        } finally { tracker.seenByModifyLock.unlock(); } // ShreddedPaper
+ /**
+@@ -28,6 +29,7 @@ public class ShreddedPaperRegionLocker {
+     public static final int REGION_LOCK_RADIUS = 1;
+ 
+     private final ConcurrentHashMap<RegionPos, Thread> lockedRegions = new ConcurrentHashMap<>();
++    private final StampedLock globalLock = new StampedLock();
+ 
+     private final ThreadLocal<Set<RegionPos>> localLocks = ThreadLocal.withInitial(ObjectOpenHashSet::new);
+     private final ThreadLocal<Set<RegionPos>> readOnlyLocks = ThreadLocal.withInitial(ObjectOpenHashSet::new);
+@@ -128,6 +130,10 @@ public class ShreddedPaperRegionLocker {
+         List<RegionPos> regionsToUnlock = new ArrayList<>((REGION_LOCK_RADIUS * 2 + 1) * (REGION_LOCK_RADIUS * 2 + 1));
+         Thread currentThread = Thread.currentThread();
+ 
++        if (this.globalLock.tryReadLock() != 0) {
++            return false;
++        }
++
+         try {
+             for (int x = -REGION_LOCK_RADIUS; x <= REGION_LOCK_RADIUS; x++) {
+                 for (int z = -REGION_LOCK_RADIUS; z <= REGION_LOCK_RADIUS; z++) {
+@@ -163,7 +169,15 @@ public class ShreddedPaperRegionLocker {
+                 localLocks.get().remove(regionPos);
+                 readOnlyLocks.get().remove(regionPos);
+             }
++            this.globalLock.tryUnlockRead();
+         }
      }
+ 
++    /**
++     * globalLock.writeLock() will claim all regions
++     */
++    public StampedLock globalLock() {
++        return this.globalLock;
++    }
++
  }
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
 index 51f67289fcf62614a5fd610474ab423544f84ebe..d7374a603bd1d9a8dfc0fd1755a0c779e7e3b428 100644
@@ -138,37 +175,3 @@ index 51f67289fcf62614a5fd610474ab423544f84ebe..d7374a603bd1d9a8dfc0fd1755a0c779
          // Paper start - Buffer joins to world
          if (Connection.currTick != net.minecraft.server.MinecraftServer.currentTick) {
              Connection.currTick = net.minecraft.server.MinecraftServer.currentTick;
-diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..82dc3339a3c45b4f7d63f74522ad3087e80a2d25 100644
---- a/src/main/java/net/minecraft/server/level/ChunkMap.java
-+++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -46,6 +46,8 @@ import java.util.concurrent.CompletionException;
- import java.util.concurrent.ConcurrentHashMap;
- import java.util.concurrent.Executor;
- import java.util.concurrent.atomic.AtomicInteger;
-+import java.util.concurrent.locks.Lock;
-+import java.util.concurrent.locks.ReentrantLock;
- import java.util.function.BooleanSupplier;
- import java.util.function.Consumer;
- import java.util.function.IntFunction;
-@@ -1334,6 +1336,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-         private final int range;
-         SectionPos lastSectionPos;
-         public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
-+        public final Lock seenByModifyLock = new ReentrantLock(); // ShreddedPaper - lock seenBy modifications
- 
-         public TrackedEntity(final Entity entity, final int i, final int j, final boolean flag) {
-             this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, j, flag, this::broadcast, this.seenBy); // CraftBukkit
-@@ -1418,9 +1421,12 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
- 
-         public void removePlayer(ServerPlayer player) {
-             org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot
-+            seenByModifyLock.lock(); // ShreddedPaper
-+            try { // ShreddedPaper
-             if (this.seenBy.remove(player.connection)) {
-                 this.serverEntity.removePairing(player);
-             }
-+            } finally { seenByModifyLock.unlock(); } // ShreddedPaper
- 
-         }
- 
