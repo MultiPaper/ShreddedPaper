@@ -107,7 +107,7 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..32d0a50201d66731751a419149595384
              level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
  
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-index 39262659b6b0793880378fb49220c30de3d78485..c0d6579fc2a09109d0a8c55c496b517703a24bb1 100644
+index 39262659b6b0793880378fb49220c30de3d78485..707ce9b2435dde0dfe9e38cfde3684c57b291791 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 @@ -11,6 +11,7 @@ import java.util.List;
@@ -130,7 +130,7 @@ index 39262659b6b0793880378fb49220c30de3d78485..c0d6579fc2a09109d0a8c55c496b5177
          List<RegionPos> regionsToUnlock = new ArrayList<>((REGION_LOCK_RADIUS * 2 + 1) * (REGION_LOCK_RADIUS * 2 + 1));
          Thread currentThread = Thread.currentThread();
  
-+        if (this.globalLock.tryReadLock() != 0) {
++        if (this.globalLock.tryReadLock() == 0) {
 +            return false;
 +        }
 +
