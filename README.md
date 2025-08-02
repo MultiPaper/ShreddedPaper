@@ -91,8 +91,8 @@ Requirements:
 
 Build instructions:
 1. Patch paper with: `./gradlew applyPatches`
-2. Build the shreddedpaper jars with: `./gradlew shadowjar createReobfPaperclipJar`
-3. Get the shreddedpaper jar from `build/libs`
+2. Build the shreddedpaper jar with: `./gradlew shadowjar createMojmapPaperclipJar`
+3. Get the shreddedpaper jar from `build/libs/shreddedpaper-paperclip-*-mojmap.jar`
 
 ## Publishing to maven local
 Publish to your local maven repository with: `./gradlew publishToMavenLocal`
