@@ -5,7 +5,7 @@ Subject: [PATCH] Optimization: maximum trackers per entity
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..536977931f630b0f9a4a3db1bbef08451028ad3c 100644
+index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..3accee9ecb7b70c634e751bed17f1a91a55261dc 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -13,6 +13,8 @@ import com.mojang.datafixers.DataFixer;
@@ -91,7 +91,7 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..536977931f630b0f9a4a3db1bbef0845
              if (oldTrackerCandidates == newTrackerCandidates) {
                  // this is likely the case.
                  // means there has been no range changes, so we can just use the above for tracking.
-@@ -1370,14 +1386,100 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+@@ -1370,14 +1386,101 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              // stuff could have been removed, so we need to check the trackedPlayers set
              // for players that were removed
  
@@ -119,7 +119,8 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..536977931f630b0f9a4a3db1bbef0845
 +
 +            @Override
 +            public int compareTo(@NotNull ChunkMap.TrackedEntity.DistancedServerPlayer o) {
-+                return Double.compare(hasBypassPerm ? 0 : this.distanceSqr, o.hasBypassPerm ? 0 : o.distanceSqr);
++                int compareResult = Double.compare(hasBypassPerm ? 0 : this.distanceSqr, o.hasBypassPerm ? 0 : o.distanceSqr);
++                return compareResult == 0 ? Integer.compare(this.serverPlayer.getId(), o.serverPlayer.getId()) : compareResult;
 +            }
 +        }
 +
