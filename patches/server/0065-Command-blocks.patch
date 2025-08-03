@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sun, 3 Aug 2025 15:24:04 +0900
+Subject: [PATCH] Command blocks
+
+
+diff --git a/src/main/java/net/minecraft/world/level/BaseCommandBlock.java b/src/main/java/net/minecraft/world/level/BaseCommandBlock.java
+index e6bfcc50cdf728216084bc00a5bb8b6b3b8f72e4..14fc959b1ec12a0edb67b4fc528fc2580056ed7c 100644
+--- a/src/main/java/net/minecraft/world/level/BaseCommandBlock.java
++++ b/src/main/java/net/minecraft/world/level/BaseCommandBlock.java
+@@ -3,11 +3,14 @@ package net.minecraft.world.level;
+ import java.text.SimpleDateFormat;
+ import java.util.Date;
+ import javax.annotation.Nullable;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+ import net.minecraft.commands.CommandSource;
+ import net.minecraft.commands.CommandSourceStack;
++import net.minecraft.core.BlockPos;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.chat.CommonComponents;
+@@ -178,12 +181,14 @@ public abstract class BaseCommandBlock implements CommandSource {
+     @Override
+     public void sendSystemMessage(Component message) {
+         if (this.trackOutput) {
++            ShreddedPaper.ensureSync(this.getLevel(), new BlockPos((int) this.getPosition().x(), (int) this.getPosition().y(), (int) this.getPosition().z()), () -> { // ShreddedPaper - run sync
+             org.spigotmc.AsyncCatcher.catchOp("sendSystemMessage to a command block"); // Paper - Don't broadcast messages to command blocks
+             SimpleDateFormat simpledateformat = BaseCommandBlock.TIME_FORMAT;
+             Date date = new Date();
+ 
+             this.lastOutput = Component.literal("[" + simpledateformat.format(date) + "] ").append(message);
+             this.onUpdated();
++            }); // ShreddedPaper - run sync
+         }
+ 
+     }
