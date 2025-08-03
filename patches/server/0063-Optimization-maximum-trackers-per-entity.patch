@@ -5,7 +5,7 @@ Subject: [PATCH] Optimization: maximum trackers per entity
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..3accee9ecb7b70c634e751bed17f1a91a55261dc 100644
+index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..efd97af8a8545e7329c56350b49b306922fc1dc7 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -13,6 +13,8 @@ import com.mojang.datafixers.DataFixer;
@@ -125,7 +125,7 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..3accee9ecb7b70c634e751bed17f1a91
 +        }
 +
 +        public void updatePlayersLimitedAndOrdered(boolean hasTrackerCandidatesChanged, boolean fullTrackerUpdate) {
-+            if (!hasTrackerCandidatesChanged || !fullTrackerUpdate) return;
++            if (!hasTrackerCandidatesChanged && !fullTrackerUpdate) return;
 +
 +            TreeSet<DistancedServerPlayer> playerSet = new TreeSet<>();
 +            Object[] rawData = this.lastTrackerCandidates.getBackingSet();
