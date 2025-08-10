@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe AreaMap
 
 
 diff --git a/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java b/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
-index 091b1ae822e1c0517e59572e7a9bda11e998c0ee..4ffbf6c8d00db0d94e0e2b022202632aed2f3385 100644
+index 091b1ae822e1c0517e59572e7a9bda11e998c0ee..e6a46b9902a9c9b546bfb62de37d0c6cfdab4b82 100644
 --- a/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
 +++ b/src/main/java/com/destroystokyo/paper/util/misc/AreaMap.java
 @@ -1,5 +1,6 @@
@@ -24,7 +24,7 @@ index 091b1ae822e1c0517e59572e7a9bda11e998c0ee..4ffbf6c8d00db0d94e0e2b022202632a
      public AreaMap() {
          this(new PooledLinkedHashSets<>());
      }
-@@ -54,35 +57,36 @@ public abstract class AreaMap<E> {
+@@ -54,37 +57,48 @@ public abstract class AreaMap<E> {
  
      @Nullable
      public final PooledLinkedHashSets.PooledObjectLinkedOpenHashSet<E> getObjectsInRange(final long key) {
@@ -63,11 +63,24 @@ index 091b1ae822e1c0517e59572e7a9bda11e998c0ee..4ffbf6c8d00db0d94e0e2b022202632a
      }
  
      public final void addOrUpdate(final E object, final int chunkX, final int chunkZ, final int viewDistance) {
-+        this.lock.write(() -> { // ShreddedPaper - Multi-threaded access
-         final int oldViewDistance = this.objectToViewDistance.put(object, viewDistance);
+-        final int oldViewDistance = this.objectToViewDistance.put(object, viewDistance);
++        // ShreddedPaper start - Don't recalculate if not needed
          final long newPos = MCUtil.getCoordinateKey(chunkX, chunkZ);
++        try {
++            final int oldViewDistance = this.objectToViewDistance.getInt(object);
++            final long oldPos = this.objectToLastCoordinate.getLong(object);
++            if (oldViewDistance == viewDistance && oldPos == newPos) {
++                return; // no change, don't recalculate
++            }
++        } catch (Exception ignored) { /* Probably just a concurrent modification error */ }
++        // ShreddedPaper end - Don't recalculate if not needed
++        this.lock.write(() -> { // ShreddedPaper - Multi-threaded access
++        final int oldViewDistance = this.objectToViewDistance.put(object, viewDistance);
++        // final long newPos = MCUtil.getCoordinateKey(chunkX, chunkZ); // ShreddedPaper - moved up
          final long oldPos = this.objectToLastCoordinate.put(object, newPos);
-@@ -95,9 +99,11 @@ public abstract class AreaMap<E> {
+ 
+         if (oldViewDistance == -1) {
+@@ -95,20 +109,33 @@ public abstract class AreaMap<E> {
              this.updateObjectCallback(object, oldPos, newPos, oldViewDistance, viewDistance);
          }
          //this.validate(object, viewDistance);
@@ -75,11 +88,26 @@ index 091b1ae822e1c0517e59572e7a9bda11e998c0ee..4ffbf6c8d00db0d94e0e2b022202632a
      }
  
      public final boolean update(final E object, final int chunkX, final int chunkZ, final int viewDistance) {
++        // ShreddedPaper start - Don't recalculate if not needed
++        final long newPos = MCUtil.getCoordinateKey(chunkX, chunkZ);
++        try {
++            final int oldViewDistance = this.objectToViewDistance.getInt(object);
++            final long oldPos = this.objectToLastCoordinate.getLong(object);
++            if (oldViewDistance == viewDistance && oldPos == newPos) {
++                return false; // no change, don't recalculate
++            }
++        } catch (Exception ignored) { /* Probably just a concurrent modification error */ }
++        // ShreddedPaper end - Don't recalculate if not needed
 +        return this.lock.write(() -> { // ShreddedPaper - Multi-threaded access
          final int oldViewDistance = this.objectToViewDistance.replace(object, viewDistance);
          if (oldViewDistance == -1) {
              return false;
-@@ -109,6 +115,7 @@ public abstract class AreaMap<E> {
+         } else {
+-            final long newPos = MCUtil.getCoordinateKey(chunkX, chunkZ);
++            // final long newPos = MCUtil.getCoordinateKey(chunkX, chunkZ); // ShreddedPaper - moved up
+             final long oldPos = this.objectToLastCoordinate.put(object, newPos);
+             this.updateObject(object, oldPos, newPos, oldViewDistance, viewDistance);
+             this.updateObjectCallback(object, oldPos, newPos, oldViewDistance, viewDistance);
          }
          //this.validate(object, viewDistance);
          return true;
@@ -87,7 +115,7 @@ index 091b1ae822e1c0517e59572e7a9bda11e998c0ee..4ffbf6c8d00db0d94e0e2b022202632a
      }
  
      // called after the distance map updates
-@@ -119,6 +126,7 @@ public abstract class AreaMap<E> {
+@@ -119,6 +146,7 @@ public abstract class AreaMap<E> {
      }
  
      public final boolean add(final E object, final int chunkX, final int chunkZ, final int viewDistance) {
@@ -95,7 +123,7 @@ index 091b1ae822e1c0517e59572e7a9bda11e998c0ee..4ffbf6c8d00db0d94e0e2b022202632a
          final int oldViewDistance = this.objectToViewDistance.putIfAbsent(object, viewDistance);
          if (oldViewDistance != -1) {
              return false;
-@@ -132,12 +140,14 @@ public abstract class AreaMap<E> {
+@@ -132,12 +160,14 @@ public abstract class AreaMap<E> {
          //this.validate(object, viewDistance);
  
          return true;
@@ -110,7 +138,7 @@ index 091b1ae822e1c0517e59572e7a9bda11e998c0ee..4ffbf6c8d00db0d94e0e2b022202632a
          final long position = this.objectToLastCoordinate.removeLong(object);
          final int viewDistance = this.objectToViewDistance.removeInt(object);
  
-@@ -152,6 +162,7 @@ public abstract class AreaMap<E> {
+@@ -152,6 +182,7 @@ public abstract class AreaMap<E> {
          this.removeObjectCallback(object, currentX, currentZ, viewDistance);
          //this.validate(object, -1);
          return true;
