@@ -416,7 +416,7 @@ index 12f1345ff70388fb217100bfc717ef861785381d..9c0f561a65ed5f5b45ce4c30754f71b3
      }
  }
 diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
-index 073743301c2e70fcd148c33e97be2a3069d6109e..7fb77df2cfcab5e71cefced216f5e5760e1f328b 100644
+index 073743301c2e70fcd148c33e97be2a3069d6109e..b7f5bae372b75805c759b3ce9a91557b6fe1b27c 100644
 --- a/src/main/java/net/minecraft/server/level/ServerEntity.java
 +++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
 @@ -13,6 +13,8 @@ import java.util.Set;
@@ -428,6 +428,22 @@ index 073743301c2e70fcd148c33e97be2a3069d6109e..7fb77df2cfcab5e71cefced216f5e576
  import net.minecraft.core.component.DataComponents;
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.game.ClientGamePacketListener;
+@@ -130,6 +132,7 @@ public class ServerEntity {
+                     MapItemSavedData worldmap = MapItem.getSavedData(mapid, this.level);
+ 
+                     if (worldmap != null) {
++                        synchronized (worldmap) { // ShreddedPaper - thread-safe
+                         Iterator<ServerPlayerConnection> iterator = this.trackedPlayers.iterator(); // CraftBukkit
+ 
+                         while (iterator.hasNext()) {
+@@ -141,6 +144,7 @@ public class ServerEntity {
+                             if (packet != null) {
+                                 entityplayer.connection.send(packet);
+                             }
++                        } // ShreddedPaper - thread-safe
+                         }
+                     }
+                 }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index 099251e47f8a8bd303fec64a157f78eeda416f21..dbdb0db0836315a7f7d4234a20608df1b0b3071c 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
@@ -599,6 +615,20 @@ index c6f193339fdcbcc938d4eafdcad0b112cf1698d5..256fbdc2a287a8232c8ecb9d0e06290a
          this.villageDistanceTracker.propagateUpdates(); // Paper - rewrite chunk system
      }
  
+diff --git a/src/main/java/net/minecraft/world/entity/player/Player.java b/src/main/java/net/minecraft/world/entity/player/Player.java
+index 30c6f3ee109207c4eaa4244b6838f56514113d38..3fce197ad51db1fa5d498d5126920752014b7dd5 100644
+--- a/src/main/java/net/minecraft/world/entity/player/Player.java
++++ b/src/main/java/net/minecraft/world/entity/player/Player.java
+@@ -832,7 +832,9 @@ public abstract class Player extends LivingEntity {
+             if (itemstack.getItem() == Items.FILLED_MAP) {
+                 net.minecraft.world.level.saveddata.maps.MapItemSavedData worldmap = net.minecraft.world.item.MapItem.getSavedData(itemstack, this.level());
+                 if (worldmap != null) {
++                    synchronized (worldmap) { // ShreddedPaper - thread-safe
+                     worldmap.tickCarriedBy(this, itemstack);
++                    } // ShreddedPaper - thread-safe
+                 }
+             }
+             // Paper end
 diff --git a/src/main/java/net/minecraft/world/item/ArmorItem.java b/src/main/java/net/minecraft/world/item/ArmorItem.java
 index b108ca4c7900ccf6a14ebea01c21c103459054f8..4576722aac8cb7f5310fc4c981a78488b17918bb 100644
 --- a/src/main/java/net/minecraft/world/item/ArmorItem.java
