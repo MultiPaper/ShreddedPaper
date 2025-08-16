@@ -135,23 +135,23 @@ index 0000000000000000000000000000000000000000..5c514aa0e9bb89aa58359752dc15c8b4
 +
 +}
 diff --git a/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java b/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
-index 149cfb0587299f72fcfddf395fb71b70438986c1..0e0097c49b893b56921bd1f92329de29437a3b34 100644
+index 149cfb0587299f72fcfddf395fb71b70438986c1..cab027d5bde4fe7f4123f35a0a7a8a871da4dd1b 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/RegionizedPlayerChunkLoader.java
-@@ -3,6 +3,8 @@ package io.papermc.paper.chunk.system;
+@@ -3,6 +3,9 @@ package io.papermc.paper.chunk.system;
  import ca.spottedleaf.concurrentutil.collection.SRSWLinkedQueue;
  import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedExecutor;
  import ca.spottedleaf.concurrentutil.util.ConcurrentUtil;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
  import io.papermc.paper.chunk.system.scheduling.ChunkHolderManager;
  import io.papermc.paper.configuration.GlobalConfiguration;
  import io.papermc.paper.util.CoordinateUtils;
-@@ -32,6 +34,8 @@ import net.minecraft.world.level.chunk.LevelChunk;
+@@ -32,6 +35,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.levelgen.BelowZeroRetrogen;
  import org.bukkit.craftbukkit.entity.CraftPlayer;
  import org.bukkit.entity.Player;
-+import io.multipaper.shreddedpaper.region.RegionPos;
 +
  import java.lang.invoke.VarHandle;
  import java.util.ArrayDeque;
@@ -164,7 +164,15 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..0e0097c49b893b56921bd1f92329de29
          long currTime = System.nanoTime();
          for (final ServerPlayer player : new java.util.ArrayList<>(this.world.players())) {
              final PlayerChunkLoaderData loader = player.chunkLoader;
-@@ -609,7 +614,7 @@ public class RegionizedPlayerChunkLoader {
+@@ -393,6 +398,7 @@ public class RegionizedPlayerChunkLoader {
+                 Math.abs(c2x - centerX) + Math.abs(c2z - centerZ)
+             );
+         };
++        private final LongArrayList retryLaterSendQueue = new LongArrayList(); // ShreddedPaper
+         private final LongHeapPriorityQueue sendQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);
+         private final LongHeapPriorityQueue tickingQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);
+         private final LongHeapPriorityQueue generatingQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);
+@@ -609,7 +615,7 @@ public class RegionizedPlayerChunkLoader {
              return Math.max(Math.abs(dx), Math.abs(dz)) <= this.lastTickDistance;
          }
  
@@ -173,7 +181,13 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..0e0097c49b893b56921bd1f92329de29
              TickThread.ensureTickThread(this.player, "Cannot tick player chunk loader async");
              if (this.removed) {
                  throw new IllegalStateException("Ticking removed player chunk loader");
-@@ -801,22 +806,47 @@ public class RegionizedPlayerChunkLoader {
+@@ -796,17 +802,31 @@ public class RegionizedPlayerChunkLoader {
+             final long maxSends = Math.max(0L, Math.min(MAX_RATE, Integer.MAX_VALUE)); // no logic to track concurrent sends
+             final int maxSendsThisTick = Math.min((int)this.chunkSendLimiter.takeAllocation(time, sendRate, maxSends), this.sendQueue.size());
+             // we do not return sends that we took from the allocation back because we want to limit the max send rate, not target it
++            int j = 0; // ShreddedPaper
+             for (int i = 0; i < maxSendsThisTick; ++i) {
+                 final long pendingSend = this.sendQueue.firstLong();
                  final int pendingSendX = CoordinateUtils.getChunkX(pendingSend);
                  final int pendingSendZ = CoordinateUtils.getChunkZ(pendingSend);
                  final LevelChunk chunk = this.world.chunkSource.getChunkAtIfLoadedMainThreadNoCache(pendingSendX, pendingSendZ);
@@ -184,52 +198,57 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..0e0097c49b893b56921bd1f92329de29
                      break;
                  }
                  if (!chunk.isPostProcessingDone) {
--                    // not yet post-processed, need to do this so that tile entities can properly be sent to clients
--                    chunk.postProcessGeneration();
--                    // check if there was any recursive action
--                    if (this.removed || this.sendQueue.isEmpty() || this.sendQueue.firstLong() != pendingSend) {
-+                    // ShreddedPaper start - run on region's thread with write lock
-+                    Runnable postProcessingRunOnThread = () -> {
-+                        // not yet post-processed, need to do this so that tile entities can properly be sent to clients
-+                        chunk.postProcessGeneration();
-+                        // check if there was any recursive action
-+                        if (this.removed || this.sendQueue.isEmpty() || this.sendQueue.firstLong() != pendingSend) {
-+                            return;
-+                        } // else: good to dequeue and send, fall through
-+                    };
-+
-+                    if (ShreddedPaperChunkTicker.isCurrentlyTickingRegion(this.world, RegionPos.forChunk(chunk.getPos()))) {
-+                        postProcessingRunOnThread.run();
-+                    } else {
-+                        ShreddedPaper.runSync(this.world, chunk.getPos(), postProcessingRunOnThread);
-+                        return;
++                    // ShreddedPaper start - run post-processing on the tick thread
++                    if (!ShreddedPaperChunkTicker.isCurrentlyTickingRegion(this.world, RegionPos.forChunk(chunk.getPos()))) {
++                        this.retryLaterSendQueue.add(this.sendQueue.dequeueLong());
++                        ShreddedPaper.runSync(this.world, chunk.getPos(), () -> {
++                            final LevelChunk chunk2 = this.world.chunkSource.getChunkAtIfLoadedMainThreadNoCache(pendingSendX, pendingSendZ);
++                            if (chunk2 != null && chunk2.areNeighboursLoaded(1) && !chunk2.isPostProcessingDone) {
++                                chunk2.postProcessGeneration();
++                            }
++                        });
++                        if (maxSendsThisTick - i - 1 > this.sendQueue.size() && j++ < maxSendsThisTick * 2) i--; // Let us try sending more chunks, up to a threshold
++                        continue;
 +                    }
-+                    // ShreddedPaper end
-+                }
-+
-+                // ShreddedPaper start - run on region's thread
-+                Runnable runOnThread = () -> {
-+                    this.sendQueue.dequeueLong();
-+
-+                    this.sendChunk(pendingSendX, pendingSendZ);
-+                };
-+
-+                if (TickThread.isTickThreadFor(this.world, chunk.getPos())) {
-+                    runOnThread.run();
-+                } else {
-+                    if (!this.world.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(RegionPos.forChunk(chunk.getPos()), runOnThread)) {
-                         return;
--                    } // else: good to dequeue and send, fall through
-+                    }
++                    // ShreddedPaper end - run post-processing on the tick thread
+                     // not yet post-processed, need to do this so that tile entities can properly be sent to clients
+                     chunk.postProcessGeneration();
+                     // check if there was any recursive action
+@@ -816,13 +836,32 @@ public class RegionizedPlayerChunkLoader {
                  }
--                this.sendQueue.dequeueLong();
-+                // ShreddedPaper end - run on region's thread
+                 this.sendQueue.dequeueLong();
  
 -                this.sendChunk(pendingSendX, pendingSendZ);
++                // ShreddedPaper start - send on both player and tick thread
++                if (TickThread.isTickThreadFor(this.world, chunk.getPos())) {
++                    this.sendChunk(pendingSendX, pendingSendZ);
++                } else if (!this.world.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(RegionPos.forChunk(chunk.getPos()), () -> {
++                    this.sendChunk(pendingSendX, pendingSendZ);
++                })) {
++                    this.retryLaterSendQueue.add(pendingSend);
++                    if (maxSendsThisTick - i - 1 > this.sendQueue.size() && j++ < maxSendsThisTick * 2) i--; // Let us try sending more chunks, up to a threshold
++                    continue;
++                }
++                // ShreddedPaper end - send on both player and tick thread
                  if (this.removed) {
                      // sendChunk may invoke plugin logic
                      return;
-@@ -873,7 +903,7 @@ public class RegionizedPlayerChunkLoader {
+                 }
+             }
+ 
++            // ShreddedPaper start - requeue retry send chunks
++            if (!this.retryLaterSendQueue.isEmpty()) {
++                for (final long chunk : this.retryLaterSendQueue) {
++                    this.sendQueue.enqueue(chunk);
++                }
++                this.retryLaterSendQueue.clear();
++            }
++            // ShreddedPaper end - requeue retry send chunks
++
+             this.flushDelayedTicketOps();
+             // we assume propagate ticket levels happens after this call
+         }
+@@ -873,7 +912,7 @@ public class RegionizedPlayerChunkLoader {
              );
          }
  
@@ -238,6 +257,22 @@ index 149cfb0587299f72fcfddf395fb71b70438986c1..0e0097c49b893b56921bd1f92329de29
              TickThread.ensureTickThread(this.player, "Cannot update player asynchronously");
              if (this.removed) {
                  throw new IllegalStateException("Updating removed player chunk loader");
+@@ -930,6 +969,7 @@ public class RegionizedPlayerChunkLoader {
+                 this.player.connection.send(this.updateClientSimulationDistance(tickViewDistance));
+             }
+ 
++            this.retryLaterSendQueue.clear(); // ShreddedPaper
+             this.sendQueue.clear();
+             this.tickingQueue.clear();
+             this.generatingQueue.clear();
+@@ -1036,6 +1076,7 @@ public class RegionizedPlayerChunkLoader {
+             this.tickMap.remove();
+ 
+             // purge queues
++            this.retryLaterSendQueue.clear(); // ShreddedPaper
+             this.sendQueue.clear();
+             this.tickingQueue.clear();
+             this.generatingQueue.clear();
 diff --git a/src/main/java/net/minecraft/network/Connection.java b/src/main/java/net/minecraft/network/Connection.java
 index 3b66ecc4f110d0f2dc0ef6c560801296d7e0be64..61327dfa158b385bfba4768493fd7724c4da73c5 100644
 --- a/src/main/java/net/minecraft/network/Connection.java
