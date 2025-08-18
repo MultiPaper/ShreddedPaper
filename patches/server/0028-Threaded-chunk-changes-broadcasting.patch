@@ -134,7 +134,7 @@ index 0e0c3a010d5cfaa0c15bcb38c4e3b1a8d7ad39a1..8da6278f841e0ac032ae74ed75b7689d
      // Paper end - optimise chunk tick iteration
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 4b54afb0e543c12583aa2514fc2e2a0378cd0ae1..806c1ab972c81b519b95aa48bc4cde2ef4c482d6 100644
+index fc32dbe44f4bbd8da0795c1e573b9666dc99534c..da00194885d7f9a3de90e326a890dc98b3254709 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -15,6 +15,7 @@ import java.util.function.Supplier;
@@ -145,7 +145,7 @@ index 4b54afb0e543c12583aa2514fc2e2a0378cd0ae1..806c1ab972c81b519b95aa48bc4cde2e
  import io.papermc.paper.util.TickThread;
  import net.minecraft.Util;
  import net.minecraft.core.BlockPos;
-@@ -678,17 +679,19 @@ public class ServerChunkCache extends ChunkSource {
+@@ -680,17 +681,19 @@ public class ServerChunkCache extends ChunkSource {
              // Paper - optimise chunk tick iteration
                  //this.level.timings.broadcastChunkUpdates.startTiming(); // Paper - timing // Purpur
              // Paper start - optimise chunk tick iteration

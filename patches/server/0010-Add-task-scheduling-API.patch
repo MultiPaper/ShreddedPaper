@@ -104,7 +104,7 @@ index 0000000000000000000000000000000000000000..7f3344a89ceab9c362c48eabc8ec4b14
 +
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index ea45d119640d42d4d22d3db0e5c7d2456e1b64e4..a31559ba6d385f961d08d12a4cbe62a53b766ab2 100644
+index 616beda72d0e6fb94e54da45484559b651b7ebdd..e7ad3b17b47e7a2e7bc38d8f414d3920e6aa5b28 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -1,5 +1,6 @@
@@ -748,7 +748,7 @@ index c617f12b7e44859a4edafc0deff844cd2148268d..975121cd07dd284bcbab65d6a679c223
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          //this.profiler.push("commandFunctions"); // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..92b2ee5cc413f7ca85e67cf3a84b1a5c08e3134e 100644
+index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..bcba012eff482031f7160cd113753128ede85760 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -13,10 +13,14 @@ import java.util.function.BooleanSupplier;
@@ -774,7 +774,20 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..92b2ee5cc413f7ca85e67cf3a84b1a5c
  
  public class ServerChunkCache extends ChunkSource {
  
-@@ -252,10 +257,12 @@ public class ServerChunkCache extends ChunkSource {
+@@ -151,10 +156,12 @@ public class ServerChunkCache extends ChunkSource {
+ 
+         long chunkKey = ChunkPos.asLong(x, z);
+ 
++        try { // ShreddedPaper - ignore exceptions caused by concurrent modification
+         cachedChunk = this.loadedChunkMap.get(chunkKey);
+         // Skipping a null check to avoid extra instructions to improve inline capability
+         this.lastLoadedChunks[cacheKey] = cachedChunk;
+         return cachedChunk;
++        } catch (Exception ignored) { return null; } // ShreddedPaper - ignore exceptions caused by concurrent modification
+     }
+ 
+     public final LevelChunk getChunkAtIfLoadedMainThreadNoCache(int x, int z) {
+@@ -252,10 +259,12 @@ public class ServerChunkCache extends ChunkSource {
      @Override
      public ChunkAccess getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
          final int x1 = x; final int z1 = z; // Paper - conflict on variable change
@@ -790,7 +803,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..92b2ee5cc413f7ca85e67cf3a84b1a5c
          } else {
              // Paper start - Perf: Optimise getChunkAt calls for loaded chunks
              LevelChunk ifLoaded = this.getChunkAtIfLoadedMainThread(x, z);
-@@ -312,7 +319,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -312,7 +321,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
@@ -799,7 +812,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..92b2ee5cc413f7ca85e67cf3a84b1a5c
          CompletableFuture completablefuture;
  
          if (flag1) {
-@@ -324,7 +331,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -324,7 +333,7 @@ public class ServerChunkCache extends ChunkSource {
          } else {
              completablefuture = CompletableFuture.supplyAsync(() -> {
                  return this.getChunkFutureMainThread(chunkX, chunkZ, leastStatus, create);
@@ -808,7 +821,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..92b2ee5cc413f7ca85e67cf3a84b1a5c
                  return completablefuture1;
              });
          }
-@@ -779,7 +786,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -779,7 +788,7 @@ public class ServerChunkCache extends ChunkSource {
  
      @Override
      public void onLightUpdate(LightLayer type, SectionPos pos) {
@@ -817,7 +830,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..92b2ee5cc413f7ca85e67cf3a84b1a5c
              ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos.chunk().toLong());
  
              if (playerchunk != null) {
-@@ -903,7 +910,22 @@ public class ServerChunkCache extends ChunkSource {
+@@ -903,7 +912,22 @@ public class ServerChunkCache extends ChunkSource {
              if (ServerChunkCache.this.runDistanceManagerUpdates()) {
                  return true;
              }

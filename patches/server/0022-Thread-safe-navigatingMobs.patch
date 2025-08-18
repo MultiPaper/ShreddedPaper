@@ -5,7 +5,7 @@ Subject: [PATCH] Thread-safe navigatingMobs
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 875648bd826c60cba129c72f39aa35bed3434f5a..43bd6b7780226afadd196687dfb3d398b0f610cc 100644
+index 1ae8b6b9b0a63c1c93e9add5c5dfe4739476444d..8086978b2a48acf23bf3de1a4082efb4ad6b8f28 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
@@ -135,10 +135,10 @@ index 52c7ce154c4cef680143f635d99d162bdac569c4..80acf2a25921c7b674d0758c0c29a735
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 92b2ee5cc413f7ca85e67cf3a84b1a5c08e3134e..4b54afb0e543c12583aa2514fc2e2a0378cd0ae1 100644
+index bcba012eff482031f7160cd113753128ede85760..fc32dbe44f4bbd8da0795c1e573b9666dc99534c 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -414,6 +414,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -416,6 +416,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public boolean pollTask() {
