@@ -510,10 +510,10 @@ index 099251e47f8a8bd303fec64a157f78eeda416f21..dbdb0db0836315a7f7d4234a20608df1
                      }
                  } );
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index a50ce5d0920638dd10e9c21f4bf0ce854c91428f..5fdc29db603108698d4eca489eef9db6ec25ea6e 100644
+index 509601a62a2bcbaefb7aed6856a4076e874311c7..9fa73f3848f89364ac46b7bdffc5591b53a64e16 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -2857,6 +2857,8 @@ public class ServerPlayer extends Player {
+@@ -2862,6 +2862,8 @@ public class ServerPlayer extends Player {
  
                  this.connection.send(new ClientboundRemoveMobEffectPacket(entity.getId(), mobeffect.getEffect()));
              }

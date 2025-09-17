@@ -5,21 +5,22 @@ Subject: [PATCH] Teleportation
 
 
 diff --git a/src/main/java/net/minecraft/server/commands/TeleportCommand.java b/src/main/java/net/minecraft/server/commands/TeleportCommand.java
-index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b1c6482ba 100644
+index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..75370e6fe7894d4d33997ed872d022fb5b55ce9f 100644
 --- a/src/main/java/net/minecraft/server/commands/TeleportCommand.java
 +++ b/src/main/java/net/minecraft/server/commands/TeleportCommand.java
-@@ -12,7 +12,10 @@ import java.util.EnumSet;
+@@ -12,7 +12,11 @@ import java.util.EnumSet;
  import java.util.Iterator;
  import java.util.Locale;
  import java.util.Set;
 +import java.util.concurrent.CompletableFuture;
  import javax.annotation.Nullable;
 +
++import io.multipaper.shreddedpaper.ShreddedPaper;
 +import io.papermc.paper.util.TickThread;
  import net.minecraft.commands.CommandSourceStack;
  import net.minecraft.commands.arguments.EntityAnchorArgument;
  import net.minecraft.commands.arguments.EntityArgument;
-@@ -29,6 +32,7 @@ import net.minecraft.world.entity.Entity;
+@@ -29,6 +33,7 @@ import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.LivingEntity;
  import net.minecraft.world.entity.PathfinderMob;
  import net.minecraft.world.entity.RelativeMovement;
@@ -27,7 +28,7 @@ index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b
  import net.minecraft.world.level.Level;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
-@@ -37,6 +41,8 @@ import org.bukkit.Location;
+@@ -37,6 +42,8 @@ import org.bukkit.Location;
  import org.bukkit.craftbukkit.CraftWorld;
  import org.bukkit.event.entity.EntityTeleportEvent;
  import org.bukkit.event.player.PlayerTeleportEvent;
@@ -36,7 +37,7 @@ index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b
  // CraftBukkit end
  
  public class TeleportCommand {
-@@ -162,9 +168,19 @@ public class TeleportCommand {
+@@ -162,9 +169,14 @@ public class TeleportCommand {
              float f3 = Mth.wrapDegrees(pitch);
  
              // CraftBukkit start - Teleport event
@@ -45,20 +46,15 @@ index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b
 +            CompletableFuture<Boolean> result = new CompletableFuture<>();
              if (target instanceof ServerPlayer player) {
 -                result = player.teleportTo(world, x, y, z, movementFlags, f2, f3, PlayerTeleportEvent.TeleportCause.COMMAND);
-+                ChunkPos toPos = new ChunkPos(new BlockPos((int) x, (int) y, (int) z));
-+                Runnable task = () -> {
++                ChunkPos toChunkPos = new ChunkPos(new BlockPos((int) x, (int) y, (int) z));
++                ShreddedPaper.ensureSync(target, world, toChunkPos, () -> {
 +                    result.complete(player.teleportTo(world, x, y, z, movementFlags, f2, f3, PlayerTeleportEvent.TeleportCause.COMMAND));
-+                };
-+                if (TickThread.isTickThreadFor(target) && TickThread.isTickThreadFor(world, toPos)) {
-+                    task.run();
-+                } else {
-+                    ShreddedPaperRegionScheduler.scheduleAcrossLevels((ServerLevel) target.level(), RegionPos.forChunk(target.chunkPosition()), world, RegionPos.forChunk(toPos), task);
-+                }
++                });
 +                // ShreddedPaper end - Run teleports on the correct thread
              } else {
                  Location to = new Location(world.getWorld(), x, y, z, f2, f3);
                  EntityTeleportEvent event = new EntityTeleportEvent(target.getBukkitEntity(), target.getBukkitEntity().getLocation(), to);
-@@ -174,17 +190,29 @@ public class TeleportCommand {
+@@ -174,17 +186,24 @@ public class TeleportCommand {
                  }
                  to = event.getTo(); // Paper - actually track new location
  
@@ -78,15 +74,10 @@ index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b
 +                float finalF3 = to.getPitch();
 +                ServerLevel finalWorld = ((CraftWorld) to.getWorld()).getHandle();
 +
-+                ChunkPos toPos = new ChunkPos(new BlockPos((int) finalX, (int) finalY, (int) finalZ));
-+                Runnable task = () -> {
++                ChunkPos toChunkPos = new ChunkPos(new BlockPos((int) finalX, (int) finalY, (int) finalZ));
++                ShreddedPaper.ensureSync(target, finalWorld, toChunkPos, () -> {
 +                    result.complete(target.teleportTo(finalWorld, finalX, finalY, finalZ, movementFlags, finalF2, finalF3));
-+                };
-+                if (TickThread.isTickThreadFor(target) && TickThread.isTickThreadFor(finalWorld, toPos)) {
-+                    task.run();
-+                } else {
-+                    ShreddedPaperRegionScheduler.scheduleAcrossLevels((ServerLevel) target.level(), RegionPos.forChunk(target.chunkPosition()), finalWorld, RegionPos.forChunk(toPos), task);
-+                }
++                });
 +                // ShreddedPaper end - Run teleports on the correct thread
              }
  
@@ -97,7 +88,7 @@ index 54851f6cc0d5fddb32a9a1e84a4f5ae41af18758..d44b564847acb57793c30dfe343e078b
                  // CraftBukkit end
                  if (facingLocation != null) {
                      facingLocation.perform(source, target);
-@@ -209,8 +237,7 @@ public class TeleportCommand {
+@@ -209,8 +228,7 @@ public class TeleportCommand {
  
                      entitycreature.getNavigation().stop();
                  }
@@ -129,10 +120,26 @@ index 6542c67e753245cd131de872c28862f83e7ff2f3..073743301c2e70fcd148c33e97be2a30
  
              });
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index ca36526379158b027b3ccebb78c0a0f4978a2c40..a50ce5d0920638dd10e9c21f4bf0ce854c91428f 100644
+index ca36526379158b027b3ccebb78c0a0f4978a2c40..509601a62a2bcbaefb7aed6856a4076e874311c7 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-@@ -2176,6 +2176,8 @@ public class ServerPlayer extends Player {
+@@ -828,8 +828,13 @@ public class ServerPlayer extends Player {
+ 
+         if (entity != this) {
+             if (entity.isAlive()) {
+-                this.absMoveTo(entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot());
+-                this.serverLevel().getChunkSource().move(this);
++                // ShreddedPaper start - ensure sync
++                final Vec3 toPosition = entity.position(); // The entity's position could change once the ensureSync method is called
++                ShreddedPaper.ensureSync(this, (ServerLevel) entity.level(), entity.chunkPosition(), () -> {
++                    this.absMoveTo(toPosition.x(), toPosition.y(), toPosition.z(), entity.getYRot(), entity.getXRot());
++                    this.serverLevel().getChunkSource().move(this);
++                });
++                // ShreddedPaper end - ensure sync
+                 if (this.wantsToStopRiding()) {
+                     this.setCamera(this);
+                 }
+@@ -2176,6 +2181,8 @@ public class ServerPlayer extends Player {
      }
  
      public boolean teleportTo(ServerLevel worldserver, double d0, double d1, double d2, Set<RelativeMovement> set, float f, float f1, TeleportCause cause) {

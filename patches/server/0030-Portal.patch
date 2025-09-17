@@ -354,7 +354,7 @@ index 0000000000000000000000000000000000000000..3da4655448755a1af37bb4e5a5fdc7dc
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerPlayer.java b/src/main/java/net/minecraft/server/level/ServerPlayer.java
-index 5fdc29db603108698d4eca489eef9db6ec25ea6e..ac08e7bc5b4e25ad5bba149f358f0c46312b40d9 100644
+index 9fa73f3848f89364ac46b7bdffc5591b53a64e16..de42949f9754b73ca03873c7a97ccdaba0455a5a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerPlayer.java
 +++ b/src/main/java/net/minecraft/server/level/ServerPlayer.java
 @@ -20,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
@@ -386,7 +386,7 @@ index 5fdc29db603108698d4eca489eef9db6ec25ea6e..ac08e7bc5b4e25ad5bba149f358f0c46
      @Nullable
      private Vec3 enteredLavaOnVehiclePosition;
      private SectionPos lastSectionPos;
-@@ -1421,7 +1423,7 @@ public class ServerPlayer extends Player {
+@@ -1426,7 +1428,7 @@ public class ServerPlayer extends Player {
  
      // CraftBukkit start
      @Override
@@ -395,7 +395,7 @@ index 5fdc29db603108698d4eca489eef9db6ec25ea6e..ac08e7bc5b4e25ad5bba149f358f0c46
          Location enter = this.getBukkitEntity().getLocation();
          Location exit = CraftLocation.toBukkit(exitPosition, exitWorldServer.getWorld(), this.getYRot(), this.getXRot());
          PlayerPortalEvent event = new PlayerPortalEvent(this.getBukkitEntity(), enter, exit, cause, searchRadius, true, creationRadius);
-@@ -1433,7 +1435,7 @@ public class ServerPlayer extends Player {
+@@ -1438,7 +1440,7 @@ public class ServerPlayer extends Player {
      }
      // CraftBukkit end
  
@@ -404,7 +404,7 @@ index 5fdc29db603108698d4eca489eef9db6ec25ea6e..ac08e7bc5b4e25ad5bba149f358f0c46
          BlockPos.MutableBlockPos blockposition_mutableblockposition = centerPos.mutable();
          org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(world); // CraftBukkit
  
-@@ -1457,7 +1459,7 @@ public class ServerPlayer extends Player {
+@@ -1462,7 +1464,7 @@ public class ServerPlayer extends Player {
      }
  
      @Override

@@ -6,13 +6,13 @@ Subject: [PATCH] Add task scheduling API
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0671578ca4a43ff5ba3853440ad8ee96018c9916
+index 0000000000000000000000000000000000000000..25899aea12e866834b7513e69b30aa14437bc945
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-@@ -0,0 +1,58 @@
+@@ -0,0 +1,78 @@
 +package io.multipaper.shreddedpaper;
 +
-+import io.papermc.paper.util.TickThread;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.world.entity.Entity;
@@ -39,6 +39,10 @@ index 0000000000000000000000000000000000000000..0671578ca4a43ff5ba3853440ad8ee96
 +        serverLevel.getChunkSource().tickingRegions.scheduleTask(RegionPos.forChunk(chunkPos), runnable);
 +    }
 +
++    public static void runSync(ServerLevel serverLevel1, ChunkPos chunkPos1, ServerLevel serverLevel2, ChunkPos chunkPos2, Runnable runnable) {
++        ShreddedPaperRegionScheduler.scheduleAcrossLevels(serverLevel1, RegionPos.forChunk(chunkPos1), serverLevel2, RegionPos.forChunk(chunkPos2), runnable);
++    }
++
 +    public static void ensureSync(Location location, Runnable runnable) {
 +        ensureSync(((CraftWorld) location.getWorld()).getHandle(), new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ()), runnable);
 +    }
@@ -58,6 +62,22 @@ index 0000000000000000000000000000000000000000..0671578ca4a43ff5ba3853440ad8ee96
 +    public static void ensureSync(ServerLevel serverLevel, ChunkPos chunkPos, Runnable runnable) {
 +        if (!isSync(serverLevel, chunkPos)) {
 +            runSync(serverLevel, chunkPos, runnable);
++        } else {
++            runnable.run();
++        }
++    }
++
++    public static void ensureSync(Entity entity1, ServerLevel serverLevel2, ChunkPos chunkPos2, Runnable runnable) {
++        if (!isSync((ServerLevel) entity1.level(), entity1.chunkPosition()) || !isSync(serverLevel2, chunkPos2)) {
++            runSync((ServerLevel) entity1.level(), entity1.chunkPosition(), serverLevel2, chunkPos2, runnable);
++        } else {
++            runnable.run();
++        }
++    }
++
++    public static void ensureSync(ServerLevel serverLevel1, ChunkPos chunkPos1, ServerLevel serverLevel2, ChunkPos chunkPos2, Runnable runnable) {
++        if (!isSync(serverLevel1, chunkPos1) || !isSync(serverLevel2, chunkPos2)) {
++            runSync(serverLevel1, chunkPos1, serverLevel2, chunkPos2, runnable);
 +        } else {
 +            runnable.run();
 +        }
