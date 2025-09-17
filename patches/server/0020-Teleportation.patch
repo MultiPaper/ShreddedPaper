@@ -422,6 +422,33 @@ index 3304b486a0906dce96905d0fd63b4f87432ad646..6b89a13729c32d2b8ba1c11e1dd56c9e
                              ServerLevel.makeObsidianPlatform(worldserver, this); // CraftBukkit
                          }
                      }
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/FishingHook.java b/src/main/java/net/minecraft/world/entity/projectile/FishingHook.java
+index 7dd5e0b935d98d552c916f8412569ff4aa0e9b04..9a85983fac4cb14e19832d4921311107e7365fd1 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/FishingHook.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/FishingHook.java
+@@ -5,6 +5,8 @@ import java.util.Collections;
+ import java.util.Iterator;
+ import java.util.List;
+ import javax.annotation.Nullable;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.particles.ParticleTypes;
+@@ -209,7 +211,12 @@ public class FishingHook extends Projectile {
+                 if (this.currentState == FishingHook.FishHookState.HOOKED_IN_ENTITY) {
+                     if (this.hookedIn != null) {
+                         if (!this.hookedIn.isRemoved() && this.hookedIn.level().dimension() == this.level().dimension()) {
+-                            this.setPos(this.hookedIn.getX(), this.hookedIn.getY(0.8D), this.hookedIn.getZ());
++                            // ShreddedPaper start - ensure sync
++                            final Vec3 toPosition = this.hookedIn.position(); // The entity's position could change once the ensureSync method is called
++                            ShreddedPaper.ensureSync(this, (ServerLevel) this.hookedIn.level(), this.hookedIn.chunkPosition(), () -> {
++                                this.setPos(toPosition.x(), this.hookedIn.getY(0.8D), toPosition.z());
++                            });
++                            // ShreddedPaper end - ensure sync
+                         } else {
+                             this.setHookedEntity((Entity) null);
+                             this.currentState = FishingHook.FishHookState.FLYING;
 diff --git a/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java b/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
 index 61bd2459f2b9164dce90134103abaddce42b0621..39d3e08148f2bf3cee2ee6377e28df6fb21d1cef 100644
 --- a/src/main/java/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
