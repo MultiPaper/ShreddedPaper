@@ -5,7 +5,7 @@ Subject: [PATCH] seenBy thread safety
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..d6c52c70bfb9ac9c59f3c6ec2800c94c0d4ff228 100644
+index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..192f0fcfe9415b4ccdf2d48cfe7ac73cc524de54 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -46,6 +46,7 @@ import java.util.concurrent.CompletionException;
@@ -28,9 +28,8 @@ index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..d6c52c70bfb9ac9c59f3c6ec2800c94c
              // stuff could have been removed, so we need to check the trackedPlayers set
              // for players that were removed
  
--            for (ServerPlayerConnection conn : this.seenBy.toArray(new ServerPlayerConnection[0])) { // avoid CME
 +            seenByLock.lock(); try { // ShreededPaper - seenBy thread safety
-+            for (ServerPlayerConnection conn : this.seenBy) { // avoid CME // ShreededPaper - seenBy thread safety
+             for (ServerPlayerConnection conn : this.seenBy.toArray(new ServerPlayerConnection[0])) { // avoid CME
                  if (newTrackerCandidates == null || !newTrackerCandidates.contains(conn.getPlayer())) {
                      this.updatePlayer(conn.getPlayer());
                  }

@@ -5,7 +5,7 @@ Subject: [PATCH] Optimization: maximum trackers per entity
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index d6c52c70bfb9ac9c59f3c6ec2800c94c0d4ff228..ff47a1256944e292f69a39fe8ddc5523a3167e89 100644
+index 192f0fcfe9415b4ccdf2d48cfe7ac73cc524de54..456b8450c0c55f1213701ed53c5aa9f8fbc56518 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -13,6 +13,8 @@ import com.mojang.datafixers.DataFixer;
@@ -171,7 +171,7 @@ index d6c52c70bfb9ac9c59f3c6ec2800c94c0d4ff228..ff47a1256944e292f69a39fe8ddc5523
 +                }
 +
 +                if (this.seenBy.size() != canBeSeenBy.size()) {
-+                    for (ServerPlayerConnection conn : this.seenBy) {
++                    for (ServerPlayerConnection conn : this.seenBy.toArray(new ServerPlayerConnection[0])) { // avoid CME
 +                        if (!canBeSeenBy.contains(conn.getPlayer()) && this.seenBy.remove(conn)) {
 +                            this.serverEntity.removePairing(conn.getPlayer());
 +                        }
