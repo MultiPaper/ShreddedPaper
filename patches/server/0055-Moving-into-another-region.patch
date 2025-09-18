@@ -26,7 +26,7 @@ index c8caf9240e1aa5e434a47cbdf4b7bf68e4025586..c5fc229de6f086a0fe66d05380b612d2
  
      public final int x;
 diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
-index 6b2c2e2f782630a3b7e25532260cc61e02c8049f..cd3e9bb2af31d0105885d8bda1ab580233144b95 100644
+index 6b2c2e2f782630a3b7e25532260cc61e02c8049f..cbed509e5ea85396279b5c410413a7fa70c9089d 100644
 --- a/src/main/java/net/minecraft/world/entity/Entity.java
 +++ b/src/main/java/net/minecraft/world/entity/Entity.java
 @@ -1176,7 +1176,9 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
@@ -34,9 +34,9 @@ index 6b2c2e2f782630a3b7e25532260cc61e02c8049f..cd3e9bb2af31d0105885d8bda1ab5802
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
 -        io.papermc.paper.util.TickThread.ensureTickThread("Cannot move an entity off-main");
-+        io.papermc.paper.util.TickThread.ensureTickThread(this, "Cannot move an entity off-main"); // ShreddedPaper - check source
++        io.papermc.paper.util.TickThread.ensureTickThread(this, "Cannot move an entity off-main"); // ShreddedPaper - check source region
 +        BlockPos newPos = new BlockPos((int) (this.getX() + movement.x), (int) (this.getY() + movement.y), (int) (this.getZ() + movement.z)); // ShreddedPaper - check destination
-+        io.papermc.paper.util.TickThread.ensureTickThread((ServerLevel) this.level, newPos, "Trying to move %s from %s to %s!!! movement=%s getDeltaMovement=%s".formatted(this, this.blockPosition(), newPos, movement, this.getDeltaMovement())); // ShreddedPaper - check destination
++        io.papermc.paper.util.TickThread.ensureTickThread((ServerLevel) this.level, newPos, "Cannot move an entity into off-main"); // ShreddedPaper - check destination region
          synchronized (this.posLock) {
              this.moveStartX = this.getX();
              this.moveStartY = this.getY();
