@@ -78,15 +78,15 @@ index 0000000000000000000000000000000000000000..33b427802ec5bdcbf6c8fed236fe718d
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index efd97af8a8545e7329c56350b49b306922fc1dc7..7bb63bf76edb8ab4de19d1f5cf77649dd16d7c4a 100644
+index ff47a1256944e292f69a39fe8ddc5523a3167e89..39356ecfc7251ab8d58699749f63a37f619f98de 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
-@@ -1498,6 +1498,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
-                 serverplayerconnection.send(packet);
+@@ -1505,6 +1505,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
              }
  
-+            new io.multipaper.shreddedpaper.event.BroadcastPacketEvent(ChunkMap.this.level.getWorld(), packet, this.entity.getBukkitEntity()).callEvent(); // ShreddedPaper - BroadcastPacketEvent
+             } finally { seenByLock.unlock(); } // ShreededPaper - seenBy thread safety
 +
++            new io.multipaper.shreddedpaper.event.BroadcastPacketEvent(ChunkMap.this.level.getWorld(), packet, this.entity.getBukkitEntity()).callEvent(); // ShreddedPaper - BroadcastPacketEvent
          }
  
          public void broadcastAndSend(Packet<?> packet) {

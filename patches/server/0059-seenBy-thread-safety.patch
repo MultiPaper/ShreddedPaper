@@ -1,0 +1,99 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Fri, 19 Sep 2025 00:22:11 +0900
+Subject: [PATCH] seenBy thread safety
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 9178bb86c11140b1f8813e2c05efdb384d9ae5c3..d6c52c70bfb9ac9c59f3c6ec2800c94c0d4ff228 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -46,6 +46,7 @@ import java.util.concurrent.CompletionException;
+ import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.Executor;
+ import java.util.concurrent.atomic.AtomicInteger;
++import java.util.concurrent.locks.ReentrantLock;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.Consumer;
+ import java.util.function.IntFunction;
+@@ -1333,6 +1334,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         final Entity entity;
+         private final int range;
+         SectionPos lastSectionPos;
++        private final ReentrantLock seenByLock = new ReentrantLock(); // ShreededPaper - seenBy thread safety
+         public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
+ 
+         public TrackedEntity(final Entity entity, final int i, final int j, final boolean flag) {
+@@ -1370,11 +1372,13 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             // stuff could have been removed, so we need to check the trackedPlayers set
+             // for players that were removed
+ 
+-            for (ServerPlayerConnection conn : this.seenBy.toArray(new ServerPlayerConnection[0])) { // avoid CME
++            seenByLock.lock(); try { // ShreededPaper - seenBy thread safety
++            for (ServerPlayerConnection conn : this.seenBy) { // avoid CME // ShreededPaper - seenBy thread safety
+                 if (newTrackerCandidates == null || !newTrackerCandidates.contains(conn.getPlayer())) {
+                     this.updatePlayer(conn.getPlayer());
+                 }
+             }
++            } finally { seenByLock.unlock(); } // ShreededPaper - seenBy thread safety
+         }
+         // Paper end - use distance map to optimise tracker
+ 
+@@ -1387,6 +1391,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         }
+ 
+         public void broadcast(Packet<?> packet) {
++            seenByLock.lock(); try { // ShreededPaper - seenBy thread safety
+             Iterator iterator = this.seenBy.iterator();
+ 
+             while (iterator.hasNext()) {
+@@ -1395,6 +1400,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 serverplayerconnection.send(packet);
+             }
+ 
++            } finally { seenByLock.unlock(); } // ShreededPaper - seenBy thread safety
+         }
+ 
+         public void broadcastAndSend(Packet<?> packet) {
+@@ -1406,6 +1412,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+         }
+ 
+         public void broadcastRemoved() {
++            seenByLock.lock(); try { // ShreededPaper - seenBy thread safety
+             Iterator iterator = this.seenBy.iterator();
+ 
+             while (iterator.hasNext()) {
+@@ -1414,14 +1421,17 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 this.serverEntity.removePairing(serverplayerconnection.getPlayer());
+             }
+ 
++            } finally { seenByLock.unlock(); } // ShreededPaper - seenBy thread safety
+         }
+ 
+         public void removePlayer(ServerPlayer player) {
++            seenByLock.lock(); try { // ShreededPaper - seenBy thread safety
+             org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot
+             if (this.seenBy.remove(player.connection)) {
+                 this.serverEntity.removePairing(player);
+             }
+ 
++            } finally { seenByLock.unlock(); } // ShreededPaper - seenBy thread safety
+         }
+ 
+         public void updatePlayer(ServerPlayer player) {
+@@ -1452,6 +1462,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                     flag = false;
+                 }
+                 // CraftBukkit end
++                seenByLock.lock(); try { // ShreededPaper - seenBy thread safety
+                 if (flag) {
+                     if (this.seenBy.add(player.connection)) {
+                         // Paper start - entity tracking events
+@@ -1464,6 +1475,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+                 } else if (this.seenBy.remove(player.connection)) {
+                     this.serverEntity.removePairing(player);
+                 }
++                } finally { seenByLock.unlock(); } // ShreededPaper - seenBy thread safety
+ 
+             }
+         }
