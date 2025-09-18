@@ -149,10 +149,32 @@ index ca36526379158b027b3ccebb78c0a0f4978a2c40..509601a62a2bcbaefb7aed6856a4076e
          ChunkPos chunkcoordintpair = new ChunkPos(BlockPos.containing(d0, d1, d2));
  
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index ca7895a57139352d2f1c522dc7b64b62dc679c4c..b2e68bfb4c338f54edf4409bd2c738c4442be921 100644
+index ca7895a57139352d2f1c522dc7b64b62dc679c4c..6189ba831a32dd61e32d52f61301ae01bf3d33e1 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -2115,7 +2115,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -8,6 +8,7 @@ import com.mojang.brigadier.StringReader;
+ import com.mojang.brigadier.suggestion.Suggestions;
+ import com.mojang.logging.LogUtils;
+ import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+@@ -586,6 +587,13 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+                 }
+                 // Paper end - Prevent moving into unloaded chunks
+ 
++                // ShreddedPaper start - Check we own the destination location
++                if (!TickThread.isTickThreadFor(worldserver, new Vec3(toX, toY, toZ))) {
++                    this.connection.send(new ClientboundMoveVehiclePacket(entity));
++                    return;
++                }
++                // ShreddedPaper end - Check we own the destination location
++
+                 if (d10 - d9 > Math.max(100.0D, Math.pow((double) (org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed), 2)) && !this.isSingleplayerOwner()) {
+                 // CraftBukkit end
+                     ServerGamePacketListenerImpl.LOGGER.warn("{} (vehicle of {}) moved too quickly! {},{},{}", new Object[]{entity.getName().getString(), this.player.getName().getString(), d6, d7, d8});
+@@ -2115,7 +2123,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
                  Entity entity = packet.getEntity(worldserver);
  
                  if (entity != null) {
@@ -161,7 +183,7 @@ index ca7895a57139352d2f1c522dc7b64b62dc679c4c..b2e68bfb4c338f54edf4409bd2c738c4
                      return;
                  }
              }
-@@ -2982,19 +2982,27 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -2982,19 +2990,27 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
          switch (packetplayinclientcommand_enumclientcommand) {
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {

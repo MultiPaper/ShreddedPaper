@@ -30,10 +30,10 @@ index efd4456c59c51862ffaf0c17d5b49514a93a7b57..d9527c7627a1b10ba65b8be283a4ce64
          // Paper start - give clients a longer time to respond to pings as per pre 1.12.2 timings
          // This should effectively place the keepalive handling back to "as it was" before 1.12.2
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index ad225ec3cddeb689634777629ac52cde0ec00751..ee8f2fce3b6b2ddd6fb7a767a30dcf4d0e4888e7 100644
+index 96b58f95866c12e03d96f10e4f5b31311e663a23..28b85349908829ddbe90718e4c5729a36952847f 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -397,7 +397,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -398,7 +398,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
              this.aboveGroundVehicleTickCount = 0;
          }
  

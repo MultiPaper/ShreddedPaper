@@ -523,10 +523,10 @@ index 509601a62a2bcbaefb7aed6856a4076e874311c7..9fa73f3848f89364ac46b7bdffc5591b
  
      }
 diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-index b2e68bfb4c338f54edf4409bd2c738c4442be921..2b7f6dc472452c96fea0e47834921360b37ed7a3 100644
+index 6189ba831a32dd61e32d52f61301ae01bf3d33e1..96b58f95866c12e03d96f10e4f5b31311e663a23 100644
 --- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
 +++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
-@@ -3531,7 +3531,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+@@ -3539,7 +3539,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
  
          this.filterTextPacket(list).thenAcceptAsync((list1) -> {
              this.updateSignText(packet, list1);
