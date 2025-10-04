@@ -566,7 +566,7 @@ index e1ffd62f4ebceecb9bc5471df3da406cffea0483..bb31681d91f54c7d4e242579081f64df
          synchronized (this.chunkHolders) {
              this.chunkHolders.remove(CoordinateUtils.getChunkKey(holder.chunkX, holder.chunkZ));
 diff --git a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
-index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106cd9e75d6 100644
+index 049e20407033073b06fcdeb46c38485f4926d778..2db01a0cdec0eb5c83d54736500d33d3c07851ff 100644
 --- a/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
 +++ b/src/main/java/io/papermc/paper/chunk/system/scheduling/ChunkTaskScheduler.java
 @@ -11,6 +11,8 @@ import io.papermc.paper.chunk.system.scheduling.queue.RadiusAwarePrioritisedExec
@@ -589,7 +589,7 @@ index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106
  import java.io.File;
  import java.util.ArrayDeque;
  import java.util.ArrayList;
-@@ -309,6 +315,19 @@ public final class ChunkTaskScheduler {
+@@ -309,6 +315,36 @@ public final class ChunkTaskScheduler {
      }
  
      public boolean executeMainThreadTask() {
@@ -601,6 +601,23 @@ index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106
 +                ret |= region.getInternalTaskQueue().executeTask();
 +            }
 +        }
++        if (!ret) {
++            // Try bordering regions to our locked regions
++            for (RegionPos regionPos : world.chunkScheduler.getRegionLocker().getLockedRegions()) {
++                for (int x = -1; x <= 1; x++) {
++                    for (int z = -1; z <= 1; z++) {
++                        RegionPos borderRegionPos = new RegionPos(regionPos.x + x, regionPos.z + z);
++                        if (world.chunkScheduler.getRegionLocker().hasLock(borderRegionPos)) continue; // Don't bother trying regions we already have locked
++                        LevelChunkRegion region = world.chunkSource.tickingRegions.get(borderRegionPos);
++                        if (region != null && !region.getInternalTaskQueue().haveAllTasksExecuted()) {
++                            ret |= world.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(regionPos, () -> {
++                                region.getInternalTaskQueue().executeTask();
++                            });
++                        }
++                    }
++                }
++            }
++        }
 +        if (ret || ShreddedPaperTickThread.isShreddedPaperTickThread()) {
 +            // Don't run the mainThreadExecutor tasks below if we're a ShreddedPaperTickThread
 +            return ret;
@@ -609,7 +626,7 @@ index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106
          TickThread.ensureTickThread("Cannot execute main thread task off-main");
          return this.mainThreadExecutor.executeTask();
      }
-@@ -486,7 +505,7 @@ public final class ChunkTaskScheduler {
+@@ -486,7 +522,7 @@ public final class ChunkTaskScheduler {
  
      public void scheduleChunkLoad(final int chunkX, final int chunkZ, final ChunkStatus toStatus, final boolean addTicket,
                                    final PrioritisedExecutor.Priority priority, final Consumer<ChunkAccess> onComplete) {
@@ -618,7 +635,7 @@ index 049e20407033073b06fcdeb46c38485f4926d778..fc69faa4b832c93f67b22ff9bdcd2106
              this.scheduleChunkTask(chunkX, chunkZ, () -> {
                  ChunkTaskScheduler.this.scheduleChunkLoad(chunkX, chunkZ, toStatus, addTicket, priority, onComplete);
              }, priority);
-@@ -774,16 +793,19 @@ public final class ChunkTaskScheduler {
+@@ -774,16 +810,19 @@ public final class ChunkTaskScheduler {
  
      public PrioritisedExecutor.PrioritisedTask createChunkTask(final int chunkX, final int chunkZ, final Runnable run,
                                                                 final PrioritisedExecutor.Priority priority) {
