@@ -150,10 +150,10 @@ index 0000000000000000000000000000000000000000..c8caf9240e1aa5e434a47cbdf4b7bf68
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..d82795c57f15c6d96ad2e78dc5e715e194f467cc
+index 0000000000000000000000000000000000000000..0d0fb9030a66b62b42fc090778ec791a386fa987
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,169 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -163,6 +163,7 @@ index 0000000000000000000000000000000000000000..d82795c57f15c6d96ad2e78dc5e715e1
 +import java.util.ArrayList;
 +import java.util.Collections;
 +import java.util.List;
++import java.util.Map;
 +import java.util.Set;
 +import java.util.concurrent.ConcurrentHashMap;
 +import java.util.concurrent.locks.LockSupport;
@@ -211,6 +212,13 @@ index 0000000000000000000000000000000000000000..d82795c57f15c6d96ad2e78dc5e715e1
 +    public Set<RegionPos> getLockedRegions() {
 +        // Use an unmodifiable view to ensure the underlying set doesn't get accidentally modified
 +        return unmodifiableLocalLocks.get();
++    }
++
++    /**
++     * Returns an unmodifiable view of all locked regions across all threads.
++     */
++    public Set<Map.Entry<RegionPos, Thread>> getAllLockedRegions() {
++        return Collections.unmodifiableSet(lockedRegions.entrySet());
 +    }
 +
 +    /**

@@ -1570,23 +1570,29 @@ index 114f273dd7f8b8a3c02f0651f6944859b33a65d4..bc501ce058f001a4c87bf2d513a855f1
  
      abstract BossBar createBossBar();
 diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..3862ddfdb2581c3517d2ee174d56afa5ee1d6d97 100644
+index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..f737502ab5aa64109aa55f3a43b1eda0503288b7 100644
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
-@@ -3,8 +3,12 @@ package org.spigotmc;
+@@ -3,9 +3,18 @@ package org.spigotmc;
  import java.lang.management.ManagementFactory;
  import java.lang.management.MonitorInfo;
  import java.lang.management.ThreadInfo;
++import java.util.ArrayList;
 +import java.util.Arrays;
 +import java.util.List;
++import java.util.Map;
++import java.util.Set;
  import java.util.logging.Level;
  import java.util.logging.Logger;
 +
++import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
  import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
  import org.bukkit.Bukkit;
  
-@@ -193,6 +197,11 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
+ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Paper - rewrite chunk system
+@@ -193,6 +202,11 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
                  io.papermc.paper.chunk.system.scheduling.ChunkTaskScheduler.dumpAllChunkLoadInfo(isLongTimeout); // Paper - rewrite chunk system
                  this.dumpTickingInfo(); // Paper - log detailed tick information
                  WatchdogThread.dumpThread( ManagementFactory.getThreadMXBean().getThreadInfo( MinecraftServer.getServer().serverThread.getId(), Integer.MAX_VALUE ), log );
@@ -1598,10 +1604,11 @@ index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..3862ddfdb2581c3517d2ee174d56afa5
                  log.log( Level.SEVERE, "------------------------------" );
                  //
                  // Paper start - Only print full dump on long timeouts
-@@ -245,6 +254,14 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
+@@ -245,6 +259,29 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
          }
      }
  
++    // ShreddedPaper start
 +    private List<ThreadInfo> getStuckTickWorkerThreads() {
 +        ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads( true, true );
 +        return Arrays.stream(threads)
@@ -1610,6 +1617,35 @@ index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..3862ddfdb2581c3517d2ee174d56afa5
 +                .toList();
 +    }
 +
++    private static List<String> getCurrentLocksHeld(ThreadInfo thread) {
++        List<String> strings = new ArrayList<>();
++
++        for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
++            List<RegionPos> regions = level.chunkScheduler.getRegionLocker().getAllLockedRegions().stream().filter(entry -> entry.getValue().threadId() == thread.getThreadId()).map(Map.Entry::getKey).toList();
++            if (!regions.isEmpty()) {
++                strings.add(level.convertable.getLevelId() + "=" + regions.stream().map(region -> "[" + region.x + "," + region.z + "]").toList());
++            }
++        }
++
++        return strings;
++    }
++    // ShreddedPaper end
++
      private static void dumpThread(ThreadInfo thread, Logger log)
      {
          log.log( Level.SEVERE, "------------------------------" );
+@@ -254,6 +291,14 @@ public final class WatchdogThread extends io.papermc.paper.util.TickThread // Pa
+                 + " | Suspended: " + thread.isSuspended()
+                 + " | Native: " + thread.isInNative()
+                 + " | State: " + thread.getThreadState() );
++
++        // ShreddedPaper start - Dump region locks held by this thread
++        List<String> locksHeld = getCurrentLocksHeld(thread);
++        if (!locksHeld.isEmpty()) {
++            log.log( Level.SEVERE, "\tRegion locks held (regionSize=" + RegionPos.REGION_SIZE + " chunks): " + locksHeld);
++        }
++        // ShreddedPaper end - Dump region locks held by this thread
++
+         if ( thread.getLockedMonitors().length != 0 )
+         {
+             log.log( Level.SEVERE, "\tThread is waiting on monitor(s):" );
