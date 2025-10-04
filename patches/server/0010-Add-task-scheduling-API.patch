@@ -432,10 +432,10 @@ index 56bd2dea24afbda142602fd0c352feedc6f431dd..d556478dddee218971a3b1015872e86e
                  level.chunkSource.tickingRegions.remove(region.getRegionPos());
              }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-index 0d0fb9030a66b62b42fc090778ec791a386fa987..3b0fac25a8279bad8cc54cd48535409bc5245b44 100644
+index aa1abd5a95e144684ac0574cf51e9b6ee9d6a51d..099fb98eb6601199f6551a83049059512aac715d 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-@@ -25,7 +25,7 @@ import java.util.function.Supplier;
+@@ -26,7 +26,7 @@ import java.util.function.Supplier;
   */
  public class ShreddedPaperRegionLocker {
  
@@ -444,8 +444,8 @@ index 0d0fb9030a66b62b42fc090778ec791a386fa987..3b0fac25a8279bad8cc54cd48535409b
  
      private final ConcurrentHashMap<RegionPos, Thread> lockedRegions = new ConcurrentHashMap<>();
  
-@@ -65,6 +65,13 @@ public class ShreddedPaperRegionLocker {
-         return Collections.unmodifiableSet(lockedRegions.entrySet());
+@@ -75,6 +75,13 @@ public class ShreddedPaperRegionLocker {
+         return lock;
      }
  
 +    /**

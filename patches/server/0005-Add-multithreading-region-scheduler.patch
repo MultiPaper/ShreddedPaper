@@ -150,17 +150,18 @@ index 0000000000000000000000000000000000000000..c8caf9240e1aa5e434a47cbdf4b7bf68
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..0d0fb9030a66b62b42fc090778ec791a386fa987
+index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6ee9d6a51d
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,271 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 +import io.multipaper.shreddedpaper.region.RegionPos;
-+import io.multipaper.shreddedpaper.util.ObjectHolder;
 +
++import javax.annotation.Nullable;
 +import java.util.ArrayList;
++import java.util.Collection;
 +import java.util.Collections;
 +import java.util.List;
 +import java.util.Map;
@@ -221,21 +222,26 @@ index 0000000000000000000000000000000000000000..0d0fb9030a66b62b42fc090778ec791a
 +        return Collections.unmodifiableSet(lockedRegions.entrySet());
 +    }
 +
++    public RegionLock lockRegion(RegionPos regionPos) {
++        int tries = 0;
++        RegionLock lock;
++        while ((lock = this.tryTakeLockNow(regionPos)) == null) {
++            LockSupport.parkNanos(Math.min(100_000, 1_000 * (++tries)));
++        }
++        return lock;
++    }
++
 +    /**
 +     * Lock the region and run the runnable. If the region is already locked, wait until it is unlocked.
 +     * Can be called recursively and will respect existing locks created by the same thread.
 +     */
 +    public <T> T lockRegion(RegionPos regionPos, Supplier<T> runnableWithReturnValue) {
-+        int tries = 0;
-+        ObjectHolder<T> returnValue = new ObjectHolder<>();
-+
-+        while (!tryLockNow(regionPos, () -> {
-+            returnValue.value(runnableWithReturnValue.get());
-+        })) {
-+            LockSupport.parkNanos(Math.min(100_000, 1_000 * (++tries)));
++        RegionLock lock = this.lockRegion(regionPos);
++        try {
++            return runnableWithReturnValue.get();
++        } finally {
++            lock.unlock();
 +        }
-+
-+        return returnValue.value();
 +    }
 +
 +    /**
@@ -243,10 +249,12 @@ index 0000000000000000000000000000000000000000..0d0fb9030a66b62b42fc090778ec791a
 +     * Can be called recursively and will respect existing locks created by the same thread.
 +     */
 +    public void lockRegion(RegionPos regionPos, Runnable runnable) {
-+        lockRegion(regionPos, () -> {
++        RegionLock lock = this.lockRegion(regionPos);
++        try {
 +            runnable.run();
-+            return null;
-+        });
++        } finally {
++            lock.unlock();
++        }
 +    }
 +
 +    /**
@@ -258,18 +266,17 @@ index 0000000000000000000000000000000000000000..0d0fb9030a66b62b42fc090778ec791a
 +     * @return true if the lock was acquired and the runnable was run, false if the runnable was not run
 +     */
 +    public boolean tryLockNow(RegionPos centerPos, Runnable ifSuccess) {
-+        return tryReadOnlyLockNow(centerPos, () -> {
-+            // Upgrade the read only locks to write locks
-+            Set<RegionPos> locksUpgradedToWrite = new ObjectOpenHashSet<>(readOnlyLocks.get());
-+            writeLocks.get().addAll(locksUpgradedToWrite);
-+            readOnlyLocks.get().clear();
++        RegionLock lock = this.tryTakeLockNow(centerPos);
++        if (lock == null) {
++            return false;
++        }
 +
++        try {
 +            ifSuccess.run();
-+
-+            // Downgrade the write locks to read only locks
-+            writeLocks.get().removeAll(locksUpgradedToWrite);
-+            readOnlyLocks.get().addAll(locksUpgradedToWrite);
-+        });
++            return true;
++        } finally {
++            lock.unlock();
++        }
 +    }
 +
 +    /**
@@ -281,44 +288,139 @@ index 0000000000000000000000000000000000000000..0d0fb9030a66b62b42fc090778ec791a
 +     * return true if the lock was acquired and the runnable was run, false if the runnable was not run
 +     */
 +    public boolean tryReadOnlyLockNow(RegionPos centerPos, Runnable ifSuccess) {
-+        List<RegionPos> regionsToUnlock = new ArrayList<>((REGION_LOCK_RADIUS * 2 + 1) * (REGION_LOCK_RADIUS * 2 + 1));
-+        Thread currentThread = Thread.currentThread();
++        final RegionLock lock = this.tryTakeReadOnlyLockNow(centerPos);
++        if (lock == null) {
++            return false;
++        }
 +
 +        try {
-+            for (int x = -REGION_LOCK_RADIUS; x <= REGION_LOCK_RADIUS; x++) {
-+                for (int z = -REGION_LOCK_RADIUS; z <= REGION_LOCK_RADIUS; z++) {
-+                    RegionPos regionPos = x == 0 && z == 0 ? centerPos : new RegionPos(centerPos.x + x, centerPos.z + z);
-+                    Thread owner = lockedRegions.compute(regionPos, (k, prevValue) -> {
-+                        if (prevValue == null) {
-+                            // This region is unlocked, let's lock it
-+                            regionsToUnlock.add(regionPos);
-+                            localLocks.get().add(regionPos);
-+                            readOnlyLocks.get().add(regionPos);
-+                            return currentThread;
-+                        } else {
-+                            // This region is already locked, it could be already locked by us or someone else
-+                            return prevValue;
-+                        }
-+                    });
-+
-+                    if (!currentThread.equals(owner)) {
-+                        // Not locked by us, abort
-+                        return false;
-+                    }
-+                }
-+            }
-+
-+            // Only run the runnable if this thread owns all the locks
 +            ifSuccess.run();
-+
 +            return true;
 +        } finally {
-+            // Release any locks we took
-+            for (RegionPos regionPos : regionsToUnlock) {
-+                lockedRegions.remove(regionPos, currentThread);
-+                localLocks.get().remove(regionPos);
-+                readOnlyLocks.get().remove(regionPos);
++            lock.unlock();
++        }
++    }
++
++    @Nullable
++    public RegionLock tryTakeLockNow(RegionPos centerPos) {
++        return internalTryTakeLockNow(centerPos, REGION_LOCK_RADIUS);
++    }
++
++    @Nullable
++    public WriteRegionLock internalTryTakeLockNow(RegionPos centerPos, int lockRadius) {
++        final ReadOnlyRegionLock lock = internalTryTakeReadOnlyLockNow(centerPos, lockRadius);
++        return lock == null ? null : new WriteRegionLock(lock);
++    }
++
++    @Nullable
++    public RegionLock tryTakeReadOnlyLockNow(RegionPos centerPos) {
++        return internalTryTakeReadOnlyLockNow(centerPos, REGION_LOCK_RADIUS);
++    }
++
++    @Nullable
++    public ReadOnlyRegionLock internalTryTakeReadOnlyLockNow(RegionPos centerPos, int lockRadius) {
++        final ReadOnlyRegionLock lock = new ReadOnlyRegionLock(lockRadius);
++
++        for (int x = -lockRadius; x <= lockRadius; x++) {
++            for (int z = -lockRadius; z <= lockRadius; z++) {
++                RegionPos regionPos = x == 0 && z == 0 ? centerPos : new RegionPos(centerPos.x + x, centerPos.z + z);
++                if (!lock.tryLockRegion(regionPos)) {
++                    // Failed to take lock, abort
++                    lock.unlock();
++                    return null;
++                }
 +            }
++        }
++
++        return lock;
++    }
++
++    public interface RegionLock {
++        Collection<RegionPos> lockedRegions();
++        Thread owner();
++        void unlock();
++    }
++
++    public class ReadOnlyRegionLock implements RegionLock {
++        private final List<RegionPos> readLocks;
++        private final Thread thread;
++
++        private ReadOnlyRegionLock(int lockRadius) {
++            this.thread = Thread.currentThread();
++            this.readLocks = new ArrayList<>((lockRadius * 2 + 1) * (lockRadius * 2 + 1));
++        }
++
++        protected boolean tryLockRegion(RegionPos regionPos) {
++            if (this.thread != Thread.currentThread()) {
++                throw new IllegalStateException("Cannot lock a region from a different thread [expected=%s,got=%s]".formatted(thread, Thread.currentThread()));
++            }
++
++            Thread regionOwner = ShreddedPaperRegionLocker.this.lockedRegions.compute(regionPos, (k, prevValue) -> {
++                if (prevValue == null) {
++                    // This region is unlocked, let's lock it
++                    ShreddedPaperRegionLocker.this.localLocks.get().add(regionPos);
++                    ShreddedPaperRegionLocker.this.readOnlyLocks.get().add(regionPos);
++                    this.readLocks.add(regionPos);
++                    return this.owner();
++                } else {
++                    // This region is already locked, it could be already locked by us or someone else
++                    return prevValue;
++                }
++            });
++
++            return regionOwner == this.owner();
++        }
++
++        public Collection<RegionPos> lockedRegions() {
++            return Collections.unmodifiableCollection(this.readLocks);
++        }
++
++        public Thread owner() {
++            return this.thread;
++        }
++
++        public void unlock() {
++            if (this.thread != Thread.currentThread()) {
++                throw new IllegalStateException("Cannot unlock a lock from a different thread [expected=%s,got=%s]".formatted(thread, Thread.currentThread()));
++            }
++
++            for (RegionPos regionPos : this.readLocks) {
++                ShreddedPaperRegionLocker.this.lockedRegions.remove(regionPos, this.thread);
++                ShreddedPaperRegionLocker.this.localLocks.get().remove(regionPos);
++                ShreddedPaperRegionLocker.this.readOnlyLocks.get().remove(regionPos);
++            }
++        }
++
++    }
++
++    public class WriteRegionLock implements RegionLock {
++        private final List<RegionPos> writeLocks;
++        private final ReadOnlyRegionLock superLock;
++
++        private WriteRegionLock(ReadOnlyRegionLock superLock) {
++            this.superLock = superLock;
++
++            Collection<RegionPos> lockedRegions = superLock.lockedRegions();
++            this.writeLocks = new ArrayList<>(lockedRegions);
++            ShreddedPaperRegionLocker.this.writeLocks.get().addAll(lockedRegions);
++            ShreddedPaperRegionLocker.this.readOnlyLocks.get().removeAll(lockedRegions);
++        }
++
++        @Override
++        public Collection<RegionPos> lockedRegions() {
++            return Collections.unmodifiableCollection(this.writeLocks);
++        }
++
++        @Override
++        public Thread owner() {
++            return this.superLock.owner();
++        }
++
++        @Override
++        public void unlock() {
++            ShreddedPaperRegionLocker.this.writeLocks.get().removeAll(this.writeLocks);
++            ShreddedPaperRegionLocker.this.readOnlyLocks.get().addAll(this.writeLocks);
++            this.superLock.unlock();
 +        }
 +    }
 +
