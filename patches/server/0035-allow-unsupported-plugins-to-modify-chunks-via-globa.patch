@@ -35,7 +35,7 @@ index f32aecd69d929c005ca8226054c218c7dd37e6fc..3ebb70ecb854ba0172148e48a07578dc
      }
  
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-index 099fb98eb6601199f6551a83049059512aac715d..fe41e0dadca5bfcbd968b07d5a1cbcf64df7ec2b 100644
+index 5e5cf3cb72ab51a20fa5c91fb9b7f0f942ae9cc8..b30147827ffa329c09703f48f01733c34f5e63e3 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 @@ -1,5 +1,6 @@
@@ -45,7 +45,7 @@ index 099fb98eb6601199f6551a83049059512aac715d..fe41e0dadca5bfcbd968b07d5a1cbcf6
  import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
  import io.multipaper.shreddedpaper.region.RegionPos;
  
-@@ -39,7 +40,7 @@ public class ShreddedPaperRegionLocker {
+@@ -40,7 +41,7 @@ public class ShreddedPaperRegionLocker {
       * Checks if the current thread holds a read lock for the given region
       */
      public boolean hasLock(RegionPos regionPos) {
@@ -54,7 +54,7 @@ index 099fb98eb6601199f6551a83049059512aac715d..fe41e0dadca5bfcbd968b07d5a1cbcf6
      }
  
      /**
-@@ -48,7 +49,7 @@ public class ShreddedPaperRegionLocker {
+@@ -49,7 +50,7 @@ public class ShreddedPaperRegionLocker {
       * syncing conflicts with other servers.
       */
      public boolean hasWriteLock(RegionPos regionPos) {

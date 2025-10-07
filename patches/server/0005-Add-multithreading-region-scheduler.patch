@@ -150,10 +150,10 @@ index 0000000000000000000000000000000000000000..c8caf9240e1aa5e434a47cbdf4b7bf68
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6ee9d6a51d
+index 0000000000000000000000000000000000000000..f651a277fabf7f863c648c6c2658e2e69f12a01e
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-@@ -0,0 +1,271 @@
+@@ -0,0 +1,320 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -166,6 +166,7 @@ index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6e
 +import java.util.List;
 +import java.util.Map;
 +import java.util.Set;
++import java.util.concurrent.CompletableFuture;
 +import java.util.concurrent.ConcurrentHashMap;
 +import java.util.concurrent.locks.LockSupport;
 +import java.util.function.Supplier;
@@ -184,7 +185,7 @@ index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6e
 +
 +    private static final int REGION_LOCK_RADIUS = 1;
 +
-+    private final ConcurrentHashMap<RegionPos, Thread> lockedRegions = new ConcurrentHashMap<>();
++    private final ConcurrentHashMap<RegionPos, LockedRegion> lockedRegions = new ConcurrentHashMap<>();
 +
 +    private final ThreadLocal<Set<RegionPos>> localLocks = ThreadLocal.withInitial(ObjectOpenHashSet::new);
 +    private final ThreadLocal<Set<RegionPos>> readOnlyLocks = ThreadLocal.withInitial(ObjectOpenHashSet::new);
@@ -218,7 +219,7 @@ index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6e
 +    /**
 +     * Returns an unmodifiable view of all locked regions across all threads.
 +     */
-+    public Set<Map.Entry<RegionPos, Thread>> getAllLockedRegions() {
++    public Set<Map.Entry<RegionPos, LockedRegion>> getAllLockedRegions() {
 +        return Collections.unmodifiableSet(lockedRegions.entrySet());
 +    }
 +
@@ -335,6 +336,21 @@ index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6e
 +        return lock;
 +    }
 +
++    @Nullable
++    public CompletableFuture<Void> onUnlock(RegionPos centerPos, Supplier<CompletableFuture<Void>> nextTask) {
++        for (int x = -REGION_LOCK_RADIUS; x <= REGION_LOCK_RADIUS; x++) {
++            for (int z = -REGION_LOCK_RADIUS; z <= REGION_LOCK_RADIUS; z++) {
++                RegionPos regionPos = x == 0 && z == 0 ? centerPos : new RegionPos(centerPos.x + x, centerPos.z + z);
++                LockedRegion lockedRegion = this.lockedRegions.get(regionPos);
++                if (lockedRegion != null) {
++                    return lockedRegion.onUnlock(nextTask);
++                }
++            }
++        }
++
++        return nextTask.get();
++    }
++
 +    public interface RegionLock {
 +        Collection<RegionPos> lockedRegions();
 +        Thread owner();
@@ -342,7 +358,7 @@ index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6e
 +    }
 +
 +    public class ReadOnlyRegionLock implements RegionLock {
-+        private final List<RegionPos> readLocks;
++        private final List<LockedRegion> readLocks;
 +        private final Thread thread;
 +
 +        private ReadOnlyRegionLock(int lockRadius) {
@@ -355,24 +371,25 @@ index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6e
 +                throw new IllegalStateException("Cannot lock a region from a different thread [expected=%s,got=%s]".formatted(thread, Thread.currentThread()));
 +            }
 +
-+            Thread regionOwner = ShreddedPaperRegionLocker.this.lockedRegions.compute(regionPos, (k, prevValue) -> {
++            LockedRegion lockedRegion = ShreddedPaperRegionLocker.this.lockedRegions.compute(regionPos, (k, prevValue) -> {
 +                if (prevValue == null) {
 +                    // This region is unlocked, let's lock it
 +                    ShreddedPaperRegionLocker.this.localLocks.get().add(regionPos);
 +                    ShreddedPaperRegionLocker.this.readOnlyLocks.get().add(regionPos);
-+                    this.readLocks.add(regionPos);
-+                    return this.owner();
++                    LockedRegion newLockedRegion = new LockedRegion(regionPos, this.thread);
++                    this.readLocks.add(newLockedRegion);
++                    return newLockedRegion;
 +                } else {
 +                    // This region is already locked, it could be already locked by us or someone else
 +                    return prevValue;
 +                }
 +            });
 +
-+            return regionOwner == this.owner();
++            return lockedRegion.owner() == this.owner();
 +        }
 +
 +        public Collection<RegionPos> lockedRegions() {
-+            return Collections.unmodifiableCollection(this.readLocks);
++            return this.readLocks.stream().map(LockedRegion::regionPos).toList();
 +        }
 +
 +        public Thread owner() {
@@ -384,10 +401,14 @@ index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6e
 +                throw new IllegalStateException("Cannot unlock a lock from a different thread [expected=%s,got=%s]".formatted(thread, Thread.currentThread()));
 +            }
 +
-+            for (RegionPos regionPos : this.readLocks) {
-+                ShreddedPaperRegionLocker.this.lockedRegions.remove(regionPos, this.thread);
-+                ShreddedPaperRegionLocker.this.localLocks.get().remove(regionPos);
-+                ShreddedPaperRegionLocker.this.readOnlyLocks.get().remove(regionPos);
++            for (LockedRegion lockedRegion : this.readLocks) {
++                ShreddedPaperRegionLocker.this.lockedRegions.remove(lockedRegion.regionPos(), lockedRegion);
++                ShreddedPaperRegionLocker.this.localLocks.get().remove(lockedRegion.regionPos());
++                ShreddedPaperRegionLocker.this.readOnlyLocks.get().remove(lockedRegion.regionPos());
++            }
++
++            for (LockedRegion lockedRegion : this.readLocks) {
++                lockedRegion.complete();
 +            }
 +        }
 +
@@ -424,26 +445,52 @@ index 0000000000000000000000000000000000000000..aa1abd5a95e144684ac0574cf51e9b6e
 +        }
 +    }
 +
++    public static class LockedRegion {
++        private final RegionPos regionPos;
++        private final Thread owner;
++        private final CompletableFuture<Void> headUnlockFuture = new CompletableFuture<>();
++        private CompletableFuture<Void> tailUnlockFuture = headUnlockFuture;
++
++        private LockedRegion(RegionPos regionPos, Thread owner) {
++            this.regionPos = regionPos;
++            this.owner = owner;
++        }
++
++        public RegionPos regionPos() {
++            return regionPos;
++        }
++
++        public Thread owner() {
++            return owner;
++        }
++
++        public void complete() {
++            headUnlockFuture.complete(null);
++        }
++
++        public CompletableFuture<Void> onUnlock(Supplier<CompletableFuture<Void>> nextTask) {
++            return tailUnlockFuture = tailUnlockFuture.thenCompose(v -> nextTask.get());
++        }
++    }
++
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionScheduler.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionScheduler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..1a0f4e1d5c1de71221d10528c39cd777e471e155
+index 0000000000000000000000000000000000000000..5366386f45b931f1f6d58684757bea593347be65
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionScheduler.java
-@@ -0,0 +1,194 @@
+@@ -0,0 +1,179 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import net.minecraft.server.level.ServerLevel;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +
-+import java.util.Map;
 +import java.util.concurrent.CompletableFuture;
-+import java.util.concurrent.ConcurrentHashMap;
++import java.util.function.Supplier;
 +
 +public class ShreddedPaperRegionScheduler {
 +
 +    private final ShreddedPaperRegionLocker locker = new ShreddedPaperRegionLocker();
-+    private final Map<RegionPos, CompletableFuture<Void>> chunkQueue = new ConcurrentHashMap<>(); // Maintain order when scheduling for one chunk
 +
 +    public static CompletableFuture<Void> schedule(ServerLevel level, RegionPos regionPos, Runnable runnable) {
 +        return level.chunkScheduler.schedule(regionPos, runnable);
@@ -453,15 +500,12 @@ index 0000000000000000000000000000000000000000..1a0f4e1d5c1de71221d10528c39cd777
 +     * Schedule a task to run on the given region's thread.
 +     */
 +    public CompletableFuture<Void> schedule(RegionPos regionPos, Runnable runnable) {
-+        CompletableFuture<Void> future = chunkQueue.compute(regionPos, (key, value) -> {
-+            if (value == null) {
-+                return createTask(regionPos, runnable);
-+            } else {
-+                // Ensure each chunk task is run in scheduled order
-+                return value.thenCompose(v -> createTask(regionPos, runnable));
-+            }
++        CompletableFuture<Void> future = new CompletableFuture<>();
++
++        ShreddedPaperTickThread.getExecutor().execute(() -> {
++            run(regionPos, runnable, future);
 +        });
-+        future.thenRun(() -> chunkQueue.remove(regionPos, future));
++
 +        return future;
 +    }
 +
@@ -540,83 +584,73 @@ index 0000000000000000000000000000000000000000..1a0f4e1d5c1de71221d10528c39cd777
 +        return a.uuid.compareTo(b.uuid);
 +    }
 +
-+    private CompletableFuture<Void> createTask(RegionPos regionPos, Runnable runnable) {
-+        CompletableFuture<Void> future = new CompletableFuture<>();
-+
-+        ShreddedPaperTickThread.getExecutor().execute(() -> {
-+            run(regionPos, runnable, future);
-+        });
-+
-+        return future;
-+    }
-+
 +    private void run(RegionPos regionPos, Runnable runnable, CompletableFuture<Void> future) {
++        ShreddedPaperRegionLocker.RegionLock lock = null;
 +        try {
-+            if (!locker.tryLockNow(regionPos, () -> {
-+                runnable.run();
-+                future.complete(null);
-+            })) {
-+                // Retry later
-+                ShreddedPaperTickThread.getExecutor().schedule(() -> run(regionPos, runnable, future), 1, java.util.concurrent.TimeUnit.MILLISECONDS);
++            lock = locker.tryTakeLockNow(regionPos);
++            if (lock == null) {
++                // Wait for unlock, then retry
++                locker.onUnlock(regionPos, () -> CompletableFuture.runAsync(() -> run(regionPos, runnable, future), ShreddedPaperTickThread.getExecutor()));
++                return;
 +            }
++
++            // Lock acquired, run the task
++            runnable.run();
++            future.complete(null);
 +        } catch (Exception e) {
 +            future.completeExceptionally(e);
++        } finally {
++            if (lock != null) lock.unlock();
 +        }
 +    }
 +
 +    private void runOnMany(RegionPos[] regionPosArray, Runnable runnable, CompletableFuture<Void> future) {
++        ShreddedPaperRegionLocker.RegionLock[] locks = new ShreddedPaperRegionLocker.RegionLock[regionPosArray.length];
 +        try {
-+            // Recursive runnables to lock each region in order
-+            Runnable[] runnables = new Runnable[regionPosArray.length + 1];
 +            for (int i = 0; i < regionPosArray.length; i++) {
-+                int finalI = i;
-+                runnables[i] = () -> {
-+                    try {
-+                        locker.tryLockNow(regionPosArray[finalI], runnables[finalI + 1]);
-+                    } catch (Exception e) {
-+                        future.completeExceptionally(e);
-+                    }
-+                };
-+            }
-+            runnables[runnables.length - 1] = () -> {
-+                try {
-+                    runnable.run();
-+                    future.complete(null);
-+                } catch (Exception e) {
-+                    future.completeExceptionally(e);
++                locks[i] = locker.tryTakeLockNow(regionPosArray[i]);
++                if (locks[i] == null) {
++                    locker.onUnlock(regionPosArray[i], () -> CompletableFuture.runAsync(() -> runOnMany(regionPosArray, runnable, future), ShreddedPaperTickThread.getExecutor()));
++                    return;
 +                }
-+            };
-+
-+            runnables[0].run();
-+
-+            if (!future.isDone()) {
-+                // Retry later
-+                ShreddedPaperTickThread.getExecutor().schedule(() -> runOnMany(regionPosArray, runnable, future), 1, java.util.concurrent.TimeUnit.MILLISECONDS);
 +            }
++
++            // All locks acquired, run the task
++            runnable.run();
++            future.complete(null);
++
 +        } catch (Exception e) {
 +            future.completeExceptionally(e);
++        } finally {
++            for (int i = locks.length - 1; i >= 0; i--) {
++                if (locks[i] != null) locks[i].unlock();
++            }
 +        }
 +    }
 +
 +    private static void runAcrossLevels(ServerLevel level1, RegionPos regionPos1, ServerLevel level2, RegionPos regionPos2, Runnable runnable, CompletableFuture<Void> future) {
++        ShreddedPaperRegionLocker.RegionLock lock1 = null;
++        ShreddedPaperRegionLocker.RegionLock lock2 = null;
 +        try {
-+            level1.chunkScheduler.locker.tryLockNow(regionPos1, () -> {
-+                level2.chunkScheduler.locker.tryLockNow(regionPos2, () -> {
-+                    try {
-+                        runnable.run();
-+                        future.complete(null);
-+                    } catch (Exception e) {
-+                        future.completeExceptionally(e);
-+                    }
-+                });
-+            });
++            lock1 = level1.chunkScheduler.locker.tryTakeLockNow(regionPos1);
++            lock2 = lock1 == null ? null : level2.chunkScheduler.locker.tryTakeLockNow(regionPos2);
 +
-+            if (!future.isDone()) {
-+                // Retry later
-+                ShreddedPaperTickThread.getExecutor().schedule(() -> runAcrossLevels(level1, regionPos1, level2, regionPos2, runnable, future), 1, java.util.concurrent.TimeUnit.MILLISECONDS);
++            if (lock2 == null) {
++                Supplier<CompletableFuture<Void>> unlockCallback = () -> CompletableFuture.runAsync(() -> runAcrossLevels(level1, regionPos1, level2, regionPos2, runnable, future), ShreddedPaperTickThread.getExecutor());
++                if (lock1 == null) level1.chunkScheduler.locker.onUnlock(regionPos1, unlockCallback);
++                else level2.chunkScheduler.locker.onUnlock(regionPos2, unlockCallback);
++                return;
 +            }
++
++            // Both locks acquired, run the task
++            runnable.run();
++            future.complete(null);
++
 +        } catch (Exception e) {
 +            future.completeExceptionally(e);
++        } finally {
++            if (lock2 != null) lock2.unlock();
++            if (lock1 != null) lock1.unlock();
 +        }
 +    }
 +
@@ -627,10 +661,10 @@ index 0000000000000000000000000000000000000000..1a0f4e1d5c1de71221d10528c39cd777
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..6794d2979074b8468e0859e06de4d2dcc087e57b
+index 0000000000000000000000000000000000000000..00394883983dc1e17e5e310884009802e32a7907
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,62 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
@@ -638,7 +672,8 @@ index 0000000000000000000000000000000000000000..6794d2979074b8468e0859e06de4d2dc
 +import org.slf4j.Logger;
 +import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
 +
-+import java.util.concurrent.ScheduledThreadPoolExecutor;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
 +import java.util.concurrent.TimeUnit;
 +import java.util.concurrent.atomic.AtomicInteger;
 +
@@ -650,7 +685,7 @@ index 0000000000000000000000000000000000000000..6794d2979074b8468e0859e06de4d2dc
 +
 +    private static final AtomicInteger ID_GENERATOR = new AtomicInteger();
 +
-+    private static final ScheduledThreadPoolExecutor executor;
++    private static final ExecutorService executor;
 +
 +    static {
 +        int threadCount = ShreddedPaperConfiguration.get().multithreading.threadCount;
@@ -661,7 +696,7 @@ index 0000000000000000000000000000000000000000..6794d2979074b8468e0859e06de4d2dc
 +
 +        THREAD_COUNT = threadCount;
 +
-+        executor = new ScheduledThreadPoolExecutor(THREAD_COUNT, r -> new ShreddedPaperTickThread(r, "ShreddedPaperTickThread-%d"));
++        executor = Executors.newFixedThreadPool(THREAD_COUNT, r -> new ShreddedPaperTickThread(r, "ShreddedPaperTickThread-%d"));
 +
 +        LOGGER.info("Using {} threads", THREAD_COUNT);
 +    }
@@ -675,7 +710,7 @@ index 0000000000000000000000000000000000000000..6794d2979074b8468e0859e06de4d2dc
 +        return Thread.currentThread() instanceof ShreddedPaperTickThread;
 +    }
 +
-+    static ScheduledThreadPoolExecutor getExecutor() {
++    static ExecutorService getExecutor() {
 +        return executor;
 +    }
 +

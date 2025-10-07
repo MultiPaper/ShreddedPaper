@@ -1570,7 +1570,7 @@ index 114f273dd7f8b8a3c02f0651f6944859b33a65d4..bc501ce058f001a4c87bf2d513a855f1
  
      abstract BossBar createBossBar();
 diff --git a/src/main/java/org/spigotmc/WatchdogThread.java b/src/main/java/org/spigotmc/WatchdogThread.java
-index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..f737502ab5aa64109aa55f3a43b1eda0503288b7 100644
+index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..b19b33e02f289837cc8f11fe2e1467fce158e7a9 100644
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
 @@ -3,9 +3,18 @@ package org.spigotmc;
@@ -1621,7 +1621,7 @@ index 6505f4bc7000de7b53f4f8fae2393d2c0a315c72..f737502ab5aa64109aa55f3a43b1eda0
 +        List<String> strings = new ArrayList<>();
 +
 +        for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
-+            List<RegionPos> regions = level.chunkScheduler.getRegionLocker().getAllLockedRegions().stream().filter(entry -> entry.getValue().threadId() == thread.getThreadId()).map(Map.Entry::getKey).toList();
++            List<RegionPos> regions = level.chunkScheduler.getRegionLocker().getAllLockedRegions().stream().filter(entry -> entry.getValue().owner().threadId() == thread.getThreadId()).map(Map.Entry::getKey).toList();
 +            if (!regions.isEmpty()) {
 +                strings.add(level.convertable.getLevelId() + "=" + regions.stream().map(region -> "[" + region.x + "," + region.z + "]").toList());
 +            }

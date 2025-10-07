@@ -107,27 +107,27 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..32d0a50201d66731751a419149595384
              level.tickBlockEntities(region.tickingBlockEntities, region.pendingBlockEntityTickers);
  
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-index fe41e0dadca5bfcbd968b07d5a1cbcf64df7ec2b..648820c68b4effcee0d78ee229745c460325379c 100644
+index b30147827ffa329c09703f48f01733c34f5e63e3..6af35c73c60eb5e9c6b4ef165727a28632219762 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionLocker.java
-@@ -13,6 +13,7 @@ import java.util.Map;
- import java.util.Set;
+@@ -14,6 +14,7 @@ import java.util.Set;
+ import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.ConcurrentHashMap;
  import java.util.concurrent.locks.LockSupport;
 +import java.util.concurrent.locks.StampedLock;
  import java.util.function.Supplier;
  
  /**
-@@ -30,6 +31,7 @@ public class ShreddedPaperRegionLocker {
+@@ -31,6 +32,7 @@ public class ShreddedPaperRegionLocker {
      public static final int REGION_LOCK_RADIUS = 1;
  
-     private final ConcurrentHashMap<RegionPos, Thread> lockedRegions = new ConcurrentHashMap<>();
+     private final ConcurrentHashMap<RegionPos, LockedRegion> lockedRegions = new ConcurrentHashMap<>();
 +    private final StampedLock globalLock = new StampedLock();
  
      private final ThreadLocal<Set<RegionPos>> localLocks = ThreadLocal.withInitial(ObjectOpenHashSet::new);
      private final ThreadLocal<Set<RegionPos>> readOnlyLocks = ThreadLocal.withInitial(ObjectOpenHashSet::new);
-@@ -187,6 +189,13 @@ public class ShreddedPaperRegionLocker {
-         return lock;
+@@ -203,6 +205,13 @@ public class ShreddedPaperRegionLocker {
+         return nextTask.get();
      }
  
 +    /**
@@ -140,15 +140,15 @@ index fe41e0dadca5bfcbd968b07d5a1cbcf64df7ec2b..648820c68b4effcee0d78ee229745c46
      public interface RegionLock {
          Collection<RegionPos> lockedRegions();
          Thread owner();
-@@ -196,6 +205,7 @@ public class ShreddedPaperRegionLocker {
+@@ -212,6 +221,7 @@ public class ShreddedPaperRegionLocker {
      public class ReadOnlyRegionLock implements RegionLock {
-         private final List<RegionPos> readLocks;
+         private final List<LockedRegion> readLocks;
          private final Thread thread;
 +        private long globalLockStamp = 0;
  
          private ReadOnlyRegionLock(int lockRadius) {
              this.thread = Thread.currentThread();
-@@ -207,6 +217,10 @@ public class ShreddedPaperRegionLocker {
+@@ -223,6 +233,10 @@ public class ShreddedPaperRegionLocker {
                  throw new IllegalStateException("Cannot lock a region from a different thread [expected=%s,got=%s]".formatted(thread, Thread.currentThread()));
              }
  
@@ -156,12 +156,12 @@ index fe41e0dadca5bfcbd968b07d5a1cbcf64df7ec2b..648820c68b4effcee0d78ee229745c46
 +                return false;
 +            }
 +
-             Thread regionOwner = ShreddedPaperRegionLocker.this.lockedRegions.compute(regionPos, (k, prevValue) -> {
+             LockedRegion lockedRegion = ShreddedPaperRegionLocker.this.lockedRegions.compute(regionPos, (k, prevValue) -> {
                  if (prevValue == null) {
                      // This region is unlocked, let's lock it
-@@ -241,6 +255,10 @@ public class ShreddedPaperRegionLocker {
-                 ShreddedPaperRegionLocker.this.localLocks.get().remove(regionPos);
-                 ShreddedPaperRegionLocker.this.readOnlyLocks.get().remove(regionPos);
+@@ -262,6 +276,10 @@ public class ShreddedPaperRegionLocker {
+             for (LockedRegion lockedRegion : this.readLocks) {
+                 lockedRegion.complete();
              }
 +
 +            if (this.globalLockStamp != 0) {
