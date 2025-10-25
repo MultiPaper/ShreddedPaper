@@ -349,7 +349,7 @@ index 2c82a48867ab347f21822576baa0368273242f82..143638f994a842472e827cb9b4efc160
                  Plugin plugin = registration.getPlugin();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index dc3c49ea458d334560dd3f99b66eaf969c888353..16bb57ab327230429fd3cbd822e7fcc28b329fbe 100644
+index 91a7816968b3eb7ec2bc471a328d4b75eec09770..0ab40a285b72ab548a575edc3855422805e3b994 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
@@ -367,9 +367,9 @@ index dc3c49ea458d334560dd3f99b66eaf969c888353..16bb57ab327230429fd3cbd822e7fcc2
 +        Plugin plugin = SynchronousPluginExecution.getCurrentPlugin(); // ShreddedPaper - synchronous plugin execution
  
          io.papermc.paper.chunk.system.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
+             if (c != null) this.addTicket(x, z); // Paper // ShreddedPaper - add the ticket before scheduling on correct thread
              ShreddedPaper.ensureSync(this.getHandle(), c.getPos(), () -> { // ShreddedPaper - ensure on correct thread
                  net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
-                 if (chunk != null) this.addTicket(x, z); // Paper
 -                ret.complete(chunk == null ? null : new CraftChunk(chunk));
 +                SynchronousPluginExecution.executeNoException(plugin, () -> ret.complete(chunk == null ? null : new CraftChunk(chunk))); // ShreddedPaper - synchronous plugin execution
              });

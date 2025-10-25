@@ -993,7 +993,7 @@ index 01472ee224ac91ec4fbffdf82a0d92e0d1ab69c1..0e0a098f543e19a41b4bae73156ece97
      private final io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler globalRegionScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler();
  
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 523a6afd7f1dcb0b4ddf5ede0415487c104296bc..38fd594b8184e4b2f11812f80e77a6d1d8df65ad 100644
+index 523a6afd7f1dcb0b4ddf5ede0415487c104296bc..04525318d338f0b552c35301770c586b2964769e 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -5,6 +5,9 @@ import com.google.common.base.Predicates;
@@ -1030,12 +1030,15 @@ index 523a6afd7f1dcb0b4ddf5ede0415487c104296bc..38fd594b8184e4b2f11812f80e77a6d1
          }
          ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
          if (chunk == null) {
-@@ -2579,7 +2585,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+@@ -2579,9 +2585,9 @@ public class CraftWorld extends CraftRegionAccessor implements World {
          java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
  
          io.papermc.paper.chunk.system.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
 -            net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
++            if (c != null) this.addTicket(x, z); // Paper // ShreddedPaper - add the ticket before scheduling on correct thread
 +            ShreddedPaper.ensureSync(this.getHandle(), c.getPos(), () -> { // ShreddedPaper - ensure on correct thread
                  net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
-                 if (chunk != null) this.addTicket(x, z); // Paper
+-                if (chunk != null) this.addTicket(x, z); // Paper
                  ret.complete(chunk == null ? null : new CraftChunk(chunk));
+             });
+         });
