@@ -97,10 +97,10 @@ index af1f3ba71e44b4b49c106d1e45331641e030ec6c..bff6f98036e74a9716649b71a60c9f9d
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index f48e1962a9a24ca755565e3ed2709671923183d1..131bbb519542b219418db09687b0edca61be77d9 100644
+index b8ed3237b88f39f172b2b2ccb43077db35378c77..97c5021b1728f942b5115884b03832cb2ec667aa 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -76,6 +76,8 @@ public class ShreddedPaperChunkTicker {
+@@ -79,6 +79,8 @@ public class ShreddedPaperChunkTicker {
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  

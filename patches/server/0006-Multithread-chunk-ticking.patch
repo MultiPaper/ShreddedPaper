@@ -136,10 +136,10 @@ index 0000000000000000000000000000000000000000..89724b9d82813cc5d42eb1a0a3d4bf50
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..41e3f42b860ec3a9c030d0e627908ea5c84a2694
+index 0000000000000000000000000000000000000000..0a74bace54fbae64d08faeda9ce4f100f92438fd
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,122 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import com.mojang.logging.LogUtils;
@@ -199,7 +199,9 @@ index 0000000000000000000000000000000000000000..41e3f42b860ec3a9c030d0e627908ea5
 +        try {
 +            currentlyTickingRegion.set(region);
 +
-+            region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
++            if (level.tickRateManager().runsNormally()) {
++                region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
++            }
 +
 +            if (region.isEmpty()) {
 +                level.chunkSource.tickingRegions.remove(region.getRegionPos());
@@ -352,7 +354,7 @@ index c617f12b7e44859a4edafc0deff844cd2148268d..1cfde8e63d039144846a743ddb2b4079
          // MinecraftTimings.connectionTimer.startTiming(); // Spigot // Paper // Purpur
          this.getConnection().tick();
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index e80e14c7b512a3e4e46586c8816dbe05a9cdf0da..7a75de1ad600505ce44b299e8eabfece9b48c387 100644
+index e80e14c7b512a3e4e46586c8816dbe05a9cdf0da..038c0bd7bb271e63fb4cca949a5fe82c502992c2 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -1,12 +1,10 @@
@@ -449,7 +451,7 @@ index e80e14c7b512a3e4e46586c8816dbe05a9cdf0da..7a75de1ad600505ce44b299e8eabfece
          long i = this.level.getGameTime();
          long j = i - this.lastInhabitedUpdate;
  
-@@ -591,75 +599,76 @@ public class ServerChunkCache extends ChunkSource {
+@@ -591,83 +599,90 @@ public class ServerChunkCache extends ChunkSource {
                  // Paper - optimise chunk tick iteration
  
                  int chunksTicked = 0; // Paper
@@ -587,8 +589,14 @@ index e80e14c7b512a3e4e46586c8816dbe05a9cdf0da..7a75de1ad600505ce44b299e8eabfece
 +                    future = future.thenRun(() -> this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies)); // ShreddedPaper - run async
                      //} // Paper - timings // Purpur
                  }
++            // ShreddedPaper start - tick freeze
++            } else {
++                // Tick the regions even if we're frozen
++                future = future.thenCompose(v -> this.shreddedPaperChunkTicker.tickChunks(lastSpawnState));
              }
-@@ -668,6 +677,7 @@ public class ServerChunkCache extends ChunkSource {
++            // ShreddedPaper end - tick freeze
+ 
+             //gameprofilerfiller.popPush("broadcast"); // Purpur
              // Paper - optimise chunk tick iteration
                  //this.level.timings.broadcastChunkUpdates.startTiming(); // Paper - timing // Purpur
              // Paper start - optimise chunk tick iteration
@@ -596,7 +604,7 @@ index e80e14c7b512a3e4e46586c8816dbe05a9cdf0da..7a75de1ad600505ce44b299e8eabfece
              if (!this.chunkMap.needsChangeBroadcasting.isEmpty()) {
                  it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<ChunkHolder> copy = this.chunkMap.needsChangeBroadcasting.clone();
                  this.chunkMap.needsChangeBroadcasting.clear();
-@@ -679,14 +689,16 @@ public class ServerChunkCache extends ChunkSource {
+@@ -679,14 +694,16 @@ public class ServerChunkCache extends ChunkSource {
                      }
                  }
              }
@@ -614,7 +622,7 @@ index e80e14c7b512a3e4e46586c8816dbe05a9cdf0da..7a75de1ad600505ce44b299e8eabfece
          if (gg.pufferfish.pufferfish.PufferfishConfig.enableAsyncMobSpawning) {
              for (ServerPlayer player : this.level.players) {
                  // Paper start - per player mob spawning backoff
-@@ -718,7 +730,10 @@ public class ServerChunkCache extends ChunkSource {
+@@ -718,7 +735,10 @@ public class ServerChunkCache extends ChunkSource {
                  });
              }
          }

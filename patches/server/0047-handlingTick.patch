@@ -5,27 +5,26 @@ Subject: [PATCH] handlingTick
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 327eadaab7d0df52e6bb392fe29ef4ee381163ed..7933c7cb4ca7b5292529f93ac23f48af4754cda0 100644
+index 5c798e3f48eb400d0d95e6a733734914d3d0cb8e..6a3932818caeddf930cf1b90f1400bc494914774 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -77,6 +77,8 @@ public class ShreddedPaperChunkTicker {
- 
+@@ -78,12 +78,16 @@ public class ShreddedPaperChunkTicker {
              region.tickTasks();
  
-+            level.handlingTickThreadLocal.set(true);
+             if (level.tickRateManager().runsNormally()) {
++                level.handlingTickThreadLocal.set(true);
 +
-             level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
-             level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
+                 level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
+                 level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
  
-@@ -84,6 +86,8 @@ public class ShreddedPaperChunkTicker {
+                 region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
  
-             level.runBlockEvents(region);
- 
-+            level.handlingTickThreadLocal.set(false);
+                 level.runBlockEvents(region);
 +
++                level.handlingTickThreadLocal.set(false);
+             }
+ 
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
- 
-             region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index b6ffd2ac046777466657eaedbf13f2cbaa8456b3..5f99874eb7d8e33686c2fb662e1220d05883fd0a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java

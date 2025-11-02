@@ -5,10 +5,10 @@ Subject: [PATCH] NearbyPlayers
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index da4643453539da84d836ebe506feb26614674222..0391f2362bc7762855a629170c9f416e3bd6d79a 100644
+index e6bc9c5c4f9ba03367491ff4a57eef131e047177..c6a2e84fd3a6b88fa4136dbffda04ffebd27f4bd 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -118,7 +118,9 @@ public class ShreddedPaperChunkTicker {
+@@ -120,7 +120,9 @@ public class ShreddedPaperChunkTicker {
          boolean spawn = false;
          boolean tick = false;
          for (int itr = 0, len = playersNearby.size(); itr < len; ++itr) {
@@ -18,7 +18,7 @@ index da4643453539da84d836ebe506feb26614674222..0391f2362bc7762855a629170c9f416e
              if (player.isSpectator()) {
                  continue;
              }
-@@ -129,6 +131,7 @@ public class ShreddedPaperChunkTicker {
+@@ -131,6 +133,7 @@ public class ShreddedPaperChunkTicker {
              if (spawn & tick) {
                  break;
              }

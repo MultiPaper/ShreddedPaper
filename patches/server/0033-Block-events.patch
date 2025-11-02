@@ -120,18 +120,18 @@ index 80acf2a25921c7b674d0758c0c29a7352746726b..2b88bc33446fdb6fbbdaf0ac170a9ac2
          if (!level.chunkScheduler.getRegionLocker().hasLock(regionPos)) {
              // We care about the navigating mobs in at least this region, ensure it's locked
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index c00a7c754e94c05404aaf30ee4204a0d81102cdc..327eadaab7d0df52e6bb392fe29ef4ee381163ed 100644
+index f014a81b107ed43e80431ca715e6c12a99c70269..5c798e3f48eb400d0d95e6a733734914d3d0cb8e 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -82,6 +82,8 @@ public class ShreddedPaperChunkTicker {
+                 level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
  
-             region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
- 
-+            level.runBlockEvents(region);
+                 region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
 +
-             region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
++                level.runBlockEvents(region);
+             }
  
-             region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
+             region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index fbe33ee388493a279f85b8ec666a57107bbce84f..e07d635bffd12a71e078e824e0a7bc41784e1146 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java

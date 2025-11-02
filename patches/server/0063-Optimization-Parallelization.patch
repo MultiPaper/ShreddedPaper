@@ -5,7 +5,7 @@ Subject: [PATCH] Optimization: Parallelization
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 7933c7cb4ca7b5292529f93ac23f48af4754cda0..568b5211a36aec258828e4951b2e7e30ff908cdf 100644
+index 6a3932818caeddf930cf1b90f1400bc494914774..31d6b9bb6c24a949d079ccb03afefa37ce116fa0 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -1,6 +1,8 @@
@@ -83,7 +83,7 @@ index 7933c7cb4ca7b5292529f93ac23f48af4754cda0..568b5211a36aec258828e4951b2e7e30
          return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
      }
  
-@@ -90,7 +137,7 @@ public class ShreddedPaperChunkTicker {
+@@ -92,7 +139,7 @@ public class ShreddedPaperChunkTicker {
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  

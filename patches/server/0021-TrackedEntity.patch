@@ -102,10 +102,10 @@ index bff6f98036e74a9716649b71a60c9f9d7d5278d3..52c7ce154c4cef680143f635d99d162b
       * Schedule a task to run on the given region's thread at the beginning of the next tick
       */
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 3b239bf2a10a318feb1af03d6001fea10cba1a86..da4643453539da84d836ebe506feb26614674222 100644
+index 7a4dcc8fc51713bfd6583567372654558d570533..e6bc9c5c4f9ba03367491ff4a57eef131e047177 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -82,6 +82,8 @@ public class ShreddedPaperChunkTicker {
+@@ -84,6 +84,8 @@ public class ShreddedPaperChunkTicker {
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  

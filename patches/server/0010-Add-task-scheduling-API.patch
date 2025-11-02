@@ -393,7 +393,7 @@ index 0000000000000000000000000000000000000000..692dee8b14e70b2a1e9af885a7f75860
 +}
 +
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 05e64b401e5ed59c79ad92e17fe47de3793f7ae2..f48e1962a9a24ca755565e3ed2709671923183d1 100644
+index 62e235a40568da520db8be60ff29ee50cc0b39d0..b8ed3237b88f39f172b2b2ccb43077db35378c77 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -14,6 +14,7 @@ import net.minecraft.world.level.Level;
@@ -404,7 +404,7 @@ index 05e64b401e5ed59c79ad92e17fe47de3793f7ae2..f48e1962a9a24ca755565e3ed2709671
  
  import java.util.ArrayList;
  import java.util.List;
-@@ -57,10 +58,26 @@ public class ShreddedPaperChunkTicker {
+@@ -57,12 +58,29 @@ public class ShreddedPaperChunkTicker {
          try {
              currentlyTickingRegion.set(region);
  
@@ -422,7 +422,10 @@ index 05e64b401e5ed59c79ad92e17fe47de3793f7ae2..f48e1962a9a24ca755565e3ed2709671
 +            });
 +
 +            region.tickTasks();
-             region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
++
+             if (level.tickRateManager().runsNormally()) {
+                 region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
+             }
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
@@ -796,7 +799,7 @@ index 1cfde8e63d039144846a743ddb2b40794a7c8f84..e112595be1320264bc6c6d7b38091224
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          //this.profiler.push("commandFunctions"); // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index b1c8c652babdc3549e52cba8d949edc0a9d87d88..27d0e0f44831fdd45a581e48e61469c174e6afb8 100644
+index 73e02f1a3d379c4aeda5be60b4f730f3fd8469aa..22cc02cfc08404050f7917fce0780a2c5c752fe1 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -13,10 +13,14 @@ import java.util.function.BooleanSupplier;
@@ -869,7 +872,7 @@ index b1c8c652babdc3549e52cba8d949edc0a9d87d88..27d0e0f44831fdd45a581e48e61469c1
                  return completablefuture1;
              });
          }
-@@ -792,7 +801,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -797,7 +806,7 @@ public class ServerChunkCache extends ChunkSource {
  
      @Override
      public void onLightUpdate(LightLayer type, SectionPos pos) {
@@ -878,7 +881,7 @@ index b1c8c652babdc3549e52cba8d949edc0a9d87d88..27d0e0f44831fdd45a581e48e61469c1
              ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos.chunk().toLong());
  
              if (playerchunk != null) {
-@@ -916,7 +925,22 @@ public class ServerChunkCache extends ChunkSource {
+@@ -921,7 +930,22 @@ public class ServerChunkCache extends ChunkSource {
              if (ServerChunkCache.this.runDistanceManagerUpdates()) {
                  return true;
              }

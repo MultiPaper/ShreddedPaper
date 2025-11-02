@@ -125,20 +125,19 @@ index 0000000000000000000000000000000000000000..051e74363aea1aff0a9d3da4300fca90
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 131bbb519542b219418db09687b0edca61be77d9..cc07879784d06a96d6f125af92549273abe72345 100644
+index 97c5021b1728f942b5115884b03832cb2ec667aa..4366fd0455388eb7ed4787991bce01350fce53bb 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -72,6 +72,10 @@ public class ShreddedPaperChunkTicker {
-             });
- 
+@@ -74,6 +74,9 @@ public class ShreddedPaperChunkTicker {
              region.tickTasks();
-+
-+            level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
-+            level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
-+
-             region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
  
-             region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
+             if (level.tickRateManager().runsNormally()) {
++                level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
++                level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
++
+                 region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
+             }
+ 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
 index 9d10c5e5c806a92852ce5b4d708929d14f44a9d6..a613cf638c36d46e3ff3230b4cdcf417acbc7d6e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java

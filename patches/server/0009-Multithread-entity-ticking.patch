@@ -121,12 +121,12 @@ index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..a7c9025433f0b0e260a1ff69022b7938
  }
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 41e3f42b860ec3a9c030d0e627908ea5c84a2694..05e64b401e5ed59c79ad92e17fe47de3793f7ae2 100644
+index 0a74bace54fbae64d08faeda9ce4f100f92438fd..62e235a40568da520db8be60ff29ee50cc0b39d0 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -59,6 +59,8 @@ public class ShreddedPaperChunkTicker {
- 
-             region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
+@@ -61,6 +61,8 @@ public class ShreddedPaperChunkTicker {
+                 region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
+             }
  
 +            region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
 +
@@ -178,10 +178,10 @@ index 0000000000000000000000000000000000000000..051084e44759febef79a5b5606967e67
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 7a75de1ad600505ce44b299e8eabfece9b48c387..b1c8c652babdc3549e52cba8d949edc0a9d87d88 100644
+index 038c0bd7bb271e63fb4cca949a5fe82c502992c2..73e02f1a3d379c4aeda5be60b4f730f3fd8469aa 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -720,12 +720,14 @@ public class ServerChunkCache extends ChunkSource {
+@@ -725,12 +725,14 @@ public class ServerChunkCache extends ChunkSource {
              if (_pufferfish_spawnCountsReady.getAndSet(false)) {
                  net.minecraft.server.MinecraftServer.getServer().mobSpawnExecutor.submit(() -> {
                      int mapped = distanceManager.getNaturalSpawnChunkCount();
