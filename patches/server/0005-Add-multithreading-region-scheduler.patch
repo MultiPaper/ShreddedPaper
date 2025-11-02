@@ -476,10 +476,10 @@ index 0000000000000000000000000000000000000000..f651a277fabf7f863c648c6c2658e2e6
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionScheduler.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionScheduler.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..5366386f45b931f1f6d58684757bea593347be65
+index 0000000000000000000000000000000000000000..ab4774d7eaf13efeb41eae3fb0b646ac11b9dbce
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperRegionScheduler.java
-@@ -0,0 +1,179 @@
+@@ -0,0 +1,185 @@
 +package io.multipaper.shreddedpaper.threading;
 +
 +import net.minecraft.server.level.ServerLevel;
@@ -594,37 +594,41 @@ index 0000000000000000000000000000000000000000..5366386f45b931f1f6d58684757bea59
 +                return;
 +            }
 +
-+            // Lock acquired, run the task
-+            runnable.run();
++            try {
++                runnable.run();
++            } finally {
++                lock.unlock();
++            }
++
 +            future.complete(null);
 +        } catch (Exception e) {
 +            future.completeExceptionally(e);
-+        } finally {
-+            if (lock != null) lock.unlock();
 +        }
 +    }
 +
 +    private void runOnMany(RegionPos[] regionPosArray, Runnable runnable, CompletableFuture<Void> future) {
 +        ShreddedPaperRegionLocker.RegionLock[] locks = new ShreddedPaperRegionLocker.RegionLock[regionPosArray.length];
 +        try {
-+            for (int i = 0; i < regionPosArray.length; i++) {
-+                locks[i] = locker.tryTakeLockNow(regionPosArray[i]);
-+                if (locks[i] == null) {
-+                    locker.onUnlock(regionPosArray[i], () -> CompletableFuture.runAsync(() -> runOnMany(regionPosArray, runnable, future), ShreddedPaperTickThread.getExecutor()));
-+                    return;
++            try {
++                for (int i = 0; i < regionPosArray.length; i++) {
++                    locks[i] = locker.tryTakeLockNow(regionPosArray[i]);
++                    if (locks[i] == null) {
++                        locker.onUnlock(regionPosArray[i], () -> CompletableFuture.runAsync(() -> runOnMany(regionPosArray, runnable, future), ShreddedPaperTickThread.getExecutor()));
++                        return;
++                    }
++                }
++
++                // All locks acquired, run the task
++                runnable.run();
++            } finally {
++                for (int i = locks.length - 1; i >= 0; i--) {
++                    if (locks[i] != null) locks[i].unlock();
 +                }
 +            }
 +
-+            // All locks acquired, run the task
-+            runnable.run();
 +            future.complete(null);
-+
 +        } catch (Exception e) {
 +            future.completeExceptionally(e);
-+        } finally {
-+            for (int i = locks.length - 1; i >= 0; i--) {
-+                if (locks[i] != null) locks[i].unlock();
-+            }
 +        }
 +    }
 +
@@ -632,25 +636,27 @@ index 0000000000000000000000000000000000000000..5366386f45b931f1f6d58684757bea59
 +        ShreddedPaperRegionLocker.RegionLock lock1 = null;
 +        ShreddedPaperRegionLocker.RegionLock lock2 = null;
 +        try {
-+            lock1 = level1.chunkScheduler.locker.tryTakeLockNow(regionPos1);
-+            lock2 = lock1 == null ? null : level2.chunkScheduler.locker.tryTakeLockNow(regionPos2);
++            try {
++                lock1 = level1.chunkScheduler.locker.tryTakeLockNow(regionPos1);
++                lock2 = lock1 == null ? null : level2.chunkScheduler.locker.tryTakeLockNow(regionPos2);
 +
-+            if (lock2 == null) {
-+                Supplier<CompletableFuture<Void>> unlockCallback = () -> CompletableFuture.runAsync(() -> runAcrossLevels(level1, regionPos1, level2, regionPos2, runnable, future), ShreddedPaperTickThread.getExecutor());
-+                if (lock1 == null) level1.chunkScheduler.locker.onUnlock(regionPos1, unlockCallback);
-+                else level2.chunkScheduler.locker.onUnlock(regionPos2, unlockCallback);
-+                return;
++                if (lock2 == null) {
++                    Supplier<CompletableFuture<Void>> unlockCallback = () -> CompletableFuture.runAsync(() -> runAcrossLevels(level1, regionPos1, level2, regionPos2, runnable, future), ShreddedPaperTickThread.getExecutor());
++                    if (lock1 == null) level1.chunkScheduler.locker.onUnlock(regionPos1, unlockCallback);
++                    else level2.chunkScheduler.locker.onUnlock(regionPos2, unlockCallback);
++                    return;
++                }
++
++                // Both locks acquired, run the task
++                runnable.run();
++            } finally {
++                if (lock2 != null) lock2.unlock();
++                if (lock1 != null) lock1.unlock();
 +            }
 +
-+            // Both locks acquired, run the task
-+            runnable.run();
 +            future.complete(null);
-+
 +        } catch (Exception e) {
 +            future.completeExceptionally(e);
-+        } finally {
-+            if (lock2 != null) lock2.unlock();
-+            if (lock1 != null) lock1.unlock();
 +        }
 +    }
 +
@@ -661,7 +667,7 @@ index 0000000000000000000000000000000000000000..5366386f45b931f1f6d58684757bea59
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..00394883983dc1e17e5e310884009802e32a7907
+index 0000000000000000000000000000000000000000..4083ed79587332391cedf8108f8adeeeffe4a8ad
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperTickThread.java
 @@ -0,0 +1,62 @@
@@ -710,7 +716,7 @@ index 0000000000000000000000000000000000000000..00394883983dc1e17e5e310884009802
 +        return Thread.currentThread() instanceof ShreddedPaperTickThread;
 +    }
 +
-+    static ExecutorService getExecutor() {
++    public static ExecutorService getExecutor() {
 +        return executor;
 +    }
 +

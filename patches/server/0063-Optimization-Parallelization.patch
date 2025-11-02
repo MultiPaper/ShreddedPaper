@@ -5,10 +5,10 @@ Subject: [PATCH] Optimization: Parallelization
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..32d0a50201d66731751a419149595384776a28b9 100644
+index 7933c7cb4ca7b5292529f93ac23f48af4754cda0..568b5211a36aec258828e4951b2e7e30ff908cdf 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -1,12 +1,15 @@
+@@ -1,6 +1,8 @@
  package io.multipaper.shreddedpaper.threading;
  
 +import com.google.common.collect.Lists;
@@ -17,56 +17,42 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..32d0a50201d66731751a419149595384
  import io.multipaper.shreddedpaper.region.RegionPos;
  import io.papermc.paper.util.player.NearbyPlayers;
  import net.minecraft.server.MinecraftServer;
- import net.minecraft.server.level.ChunkMap;
+@@ -8,6 +10,7 @@ import net.minecraft.server.level.ChunkMap;
+ import net.minecraft.server.level.ServerChunkCache;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
 +import net.minecraft.world.entity.Entity;
  import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.GameRules;
  import net.minecraft.world.level.Level;
-@@ -23,6 +26,8 @@ public class ShreddedPaperChunkTicker {
+@@ -26,6 +29,8 @@ public class ShreddedPaperChunkTicker {
  
-     public static boolean tickingChunks = false;
+     private final ServerChunkCache serverChunkCache;
  
-+    private static final List<Entity> trackedEntitiesWorkerList = new ArrayList<>(); // Re-usable list for processing tracked entities in parallel
++    private final List<Entity> trackedEntitiesWorkerList = new ArrayList<>(); // Re-usable list for processing tracked entities in parallel
 +
-     public static void tickChunks(ServerLevel level, NaturalSpawner.SpawnState spawnercreature_d) {
-         List<CompletableFuture<Void>> futures = new ArrayList<>();
- 
-@@ -34,15 +39,61 @@ public class ShreddedPaperChunkTicker {
-                 region -> futures.add(tickRegion(level, region, spawnercreature_d))
+     public ShreddedPaperChunkTicker(ServerChunkCache serverChunkCache) {
+         this.serverChunkCache = serverChunkCache;
+     }
+@@ -38,6 +43,48 @@ public class ShreddedPaperChunkTicker {
+                 region -> futures.add(this.tickRegion(level, region, spawnercreature_d))
          );
  
-+        waitForFutures(level, futures);
++        CompletableFuture<Void> future = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
 +
-+        if (ShreddedPaperConfiguration.get().optimizations.processTrackQueueInParallel) processTrackQueueInParallel(level);
++        if (ShreddedPaperConfiguration.get().optimizations.processTrackQueueInParallel) future = future.thenCompose(v -> this.processTrackQueueInParallel(level));
 +
++        if (ShreddedPaperConfiguration.get().optimizations.flushQueueInParallel) future = future.thenCompose(v -> this.flushQueueInParallel(level));
 +
-+        if (ShreddedPaperConfiguration.get().optimizations.flushQueueInParallel) flushQueueInParallel(level);
-+
-+        tickingChunks = false;
-+
-+        MinecraftServer.getServer().executeMidTickTasks();
++        return future;
 +    }
 +
-+    private static void waitForFutures(ServerLevel level, Iterable<CompletableFuture<Void>> futures) {
-         for (CompletableFuture<Void> future : futures) {
-             if (!future.isDone()) {
-                 level.getChunkSource().mainThreadProcessor.managedBlock(future::isDone);
-             }
-+            if (future.isCompletedExceptionally()) {
-+                throw new RuntimeException("Exception while ticking world %s".formatted(level.getWorld().getName()), future.exceptionNow());
-+            }
-         }
-+    }
- 
--        tickingChunks = false;
-+    private static void processTrackQueueInParallel(ServerLevel level) {
++    private CompletableFuture<Void> processTrackQueueInParallel(ServerLevel level) {
 +        level.getChunkSource().mainThreadProcessor.managedBlock(() -> level.chunkScheduler.getRegionLocker().globalLock().tryWriteLock() != 0);
++        CompletableFuture<Void> allFuture = CompletableFuture.completedFuture(null);
 +        try {
 +            List<CompletableFuture<Void>> futures = new ArrayList<>();
- 
--        MinecraftServer.getServer().executeMidTickTasks();
++
 +            trackedEntitiesWorkerList.clear();
 +            level.chunkSource.tickingRegions.forEach(
 +                    region -> region.forEachTrackedEntity(trackedEntitiesWorkerList::add)
@@ -78,13 +64,14 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..32d0a50201d66731751a419149595384
 +                futures.add(CompletableFuture.runAsync(() -> trackedEntities.forEach(ShreddedPaperEntityTicker::processTrackQueue), ShreddedPaperTickThread.getExecutor()));
 +            }
 +
-+            waitForFutures(level, futures);
++            allFuture = allFuture.thenCompose(v -> CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)));
++            return allFuture;
 +        } finally {
-+            level.chunkScheduler.getRegionLocker().globalLock().tryUnlockWrite();
++            allFuture.whenComplete((v, e) -> level.chunkScheduler.getRegionLocker().globalLock().tryUnlockWrite());
 +        }
 +    }
 +
-+    private static void flushQueueInParallel(ServerLevel level) {
++    private CompletableFuture<Void> flushQueueInParallel(ServerLevel level) {
 +        List<CompletableFuture<Void>> futures = new ArrayList<>();
 +
 +        List<List<ServerPlayer>> playersTasks = Lists.partition(new ArrayList<>(level.players()), Math.max(1, level.players().size() / ShreddedPaperTickThread.THREAD_COUNT / 3));
@@ -93,11 +80,10 @@ index 783ec3ddae8829237bfdb3a3b79f8bd83b16db34..32d0a50201d66731751a419149595384
 +            futures.add(CompletableFuture.runAsync(() -> players.forEach(player -> player.connection.connection.flushQueue()), ShreddedPaperTickThread.getExecutor()));
 +        }
 +
-+        waitForFutures(level, futures);
+         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
      }
  
-     public static CompletableFuture<Void> tickRegion(ServerLevel level, LevelChunkRegion region, NaturalSpawner.SpawnState spawnercreature_d) {
-@@ -96,7 +147,7 @@ public class ShreddedPaperChunkTicker {
+@@ -90,7 +137,7 @@ public class ShreddedPaperChunkTicker {
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  

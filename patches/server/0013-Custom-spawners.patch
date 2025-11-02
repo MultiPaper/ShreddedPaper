@@ -5,10 +5,10 @@ Subject: [PATCH] Custom spawners
 
 
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 2291091a8cdb3b3bb6a9af3bab6470e1906eac24..98201d9d984fdee9cc5fff3990229b18f19f708a 100644
+index a613cf638c36d46e3ff3230b4cdcf417acbc7d6e..735e60d40476df1e483fa06fed344038ab16a5e5 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1007,7 +1007,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1009,7 +1009,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          while (iterator.hasNext()) {
              CustomSpawner mobspawner = (CustomSpawner) iterator.next();
  

@@ -125,7 +125,7 @@ index 0000000000000000000000000000000000000000..051e74363aea1aff0a9d3da4300fca90
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 50044760d4511ff2b75d8866faec22bf33bd2f94..824b4535b6afffbef92df8be166e51411415fcf0 100644
+index 131bbb519542b219418db09687b0edca61be77d9..cc07879784d06a96d6f125af92549273abe72345 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -72,6 +72,10 @@ public class ShreddedPaperChunkTicker {
@@ -136,14 +136,14 @@ index 50044760d4511ff2b75d8866faec22bf33bd2f94..824b4535b6afffbef92df8be166e5141
 +            level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
 +            level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
 +
-             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+             region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 553d88739ae174963ee840f8a3aafa80654d45ab..2291091a8cdb3b3bb6a9af3bab6470e1906eac24 100644
+index 9d10c5e5c806a92852ce5b4d708929d14f44a9d6..a613cf638c36d46e3ff3230b4cdcf417acbc7d6e 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -175,6 +175,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
+@@ -176,6 +176,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
  import org.bukkit.event.server.MapInitializeEvent;
  import org.bukkit.event.weather.LightningStrikeEvent;
  import org.bukkit.event.world.TimeSkipEvent;
@@ -151,7 +151,7 @@ index 553d88739ae174963ee840f8a3aafa80654d45ab..2291091a8cdb3b3bb6a9af3bab6470e1
  import io.multipaper.shreddedpaper.region.RegionPos;
  import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
  // CraftBukkit end
-@@ -201,8 +202,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -202,8 +203,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
      private final SleepStatus sleepStatus;
      private int emptyTime;
      private final PortalForcer portalForcer;
@@ -162,7 +162,7 @@ index 553d88739ae174963ee840f8a3aafa80654d45ab..2291091a8cdb3b3bb6a9af3bab6470e1
      private final PathTypeCache pathTypesByPosCache;
      final Set<Mob> navigatingMobs;
      volatile boolean isUpdatingNavigations;
-@@ -705,8 +706,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -706,8 +707,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
          // CraftBukkit end
          this.players = new CopyOnWriteArrayList<>(); // ShreddedPaper - thread-safe (players should not be changing worlds often, thus copy-on-write is sufficient)
          // this.entityTickList = new EntityTickList(); // ShreddedPaper - moved into each region
@@ -173,7 +173,7 @@ index 553d88739ae174963ee840f8a3aafa80654d45ab..2291091a8cdb3b3bb6a9af3bab6470e1
          this.pathTypesByPosCache = new PathTypeCache();
          this.navigatingMobs = new ObjectOpenHashSet();
          this.blockEvents = new ObjectLinkedOpenHashSet();
-@@ -1411,23 +1412,25 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1413,23 +1414,25 @@ public class ServerLevel extends Level implements WorldGenLevel {
          this.emptyTime = 0;
      }
  

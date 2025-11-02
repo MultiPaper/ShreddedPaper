@@ -5,7 +5,7 @@ Subject: [PATCH] Block entities
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 88fd9775db97671fb40a311e729aee038eaaf6d4..7330767f84228619bc5a4c03ce2783a3e74818d8 100644
+index 801ee1adfbd5fe857c4a21e0a00b710f237b96b4..caff03c2a37d01019975649a87377c7366a5f281 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -5,9 +5,11 @@ import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
@@ -39,7 +39,7 @@ index 88fd9775db97671fb40a311e729aee038eaaf6d4..7330767f84228619bc5a4c03ce2783a3
      }
  }
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index a33e68c626464fdb9efe67a2fb911f5d1683c06f..28e33ccfdf064a67185135da53e40ea575f6574a 100644
+index 0bb183f5238114278c9d9401f7c7b8b5054c16eb..3b239bf2a10a318feb1af03d6001fea10cba1a86 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -82,6 +82,8 @@ public class ShreddedPaperChunkTicker {
@@ -52,10 +52,10 @@ index a33e68c626464fdb9efe67a2fb911f5d1683c06f..28e33ccfdf064a67185135da53e40ea5
  
              while (region.getInternalTaskQueue().executeTask()) ;
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 98201d9d984fdee9cc5fff3990229b18f19f708a..55508dd52c9dedd9ef44ce08dc62a129d8f178a1 100644
+index 735e60d40476df1e483fa06fed344038ab16a5e5..89a61e2897c22d3fea17283223371d127b1f72ea 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -948,7 +948,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -949,7 +949,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              //this.timings.entityTick.stopTiming(); // Spigot // Purpur
              //this.timings.tickEntities.stopTiming(); // Spigot // Purpur
              //gameprofilerfiller.pop(); // Purpur
@@ -64,7 +64,7 @@ index 98201d9d984fdee9cc5fff3990229b18f19f708a..55508dd52c9dedd9ef44ce08dc62a129
          }
  
          //gameprofilerfiller.push("entityManagement"); // Purpur
-@@ -2377,7 +2377,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2379,7 +2379,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              }
  
              bufferedwriter.write(String.format(Locale.ROOT, "entities: %s\n", this.entityLookup.getDebugInfo())); // Paper - rewrite chunk system
@@ -73,7 +73,7 @@ index 98201d9d984fdee9cc5fff3990229b18f19f708a..55508dd52c9dedd9ef44ce08dc62a129
              bufferedwriter.write(String.format(Locale.ROOT, "block_ticks: %d\n", this.getBlockTicks().count()));
              bufferedwriter.write(String.format(Locale.ROOT, "fluid_ticks: %d\n", this.getFluidTicks().count()));
              bufferedwriter.write("distance_manager: " + playerchunkmap.getDistanceManager().getDebugStatus() + "\n");
-@@ -2523,14 +2523,16 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2525,14 +2525,16 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      private void dumpBlockEntityTickers(Writer writer) throws IOException {
          CsvOutput csvwriter = CsvOutput.builder().addColumn("x").addColumn("y").addColumn("z").addColumn("type").build(writer);
@@ -98,7 +98,7 @@ index 98201d9d984fdee9cc5fff3990229b18f19f708a..55508dd52c9dedd9ef44ce08dc62a129
  
      }
  
-@@ -2590,7 +2592,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2592,7 +2594,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      public String getWatchdogStats() {
          return String.format(Locale.ROOT, "players: %s, entities: %s [%s], block_entities: %d [%s], block_ticks: %d, fluid_ticks: %d, chunk_source: %s", this.players.size(), this.entityLookup.getDebugInfo(), ServerLevel.getTypeCount(this.entityLookup.getAll(), (entity) -> { // Paper - rewrite chunk system
              return BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
@@ -234,7 +234,7 @@ index 5bc079d4edb08f0d3597af6e8f0ce403213434db..71521c19c60ed16579be100263e0c72c
          this.gameEventListenerRegistrySections = new Int2ObjectOpenHashMap();
          Heightmap.Types[] aheightmap_type = Heightmap.Types.values();
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 38fd594b8184e4b2f11812f80e77a6d1d8df65ad..ad53a7b2e4e58837ca13b05828442125c9280469 100644
+index 04525318d338f0b552c35301770c586b2964769e..0ec053d6aa8a32a3a1b934ed489485c9a91af83b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -197,7 +197,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {

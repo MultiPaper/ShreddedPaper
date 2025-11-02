@@ -5,11 +5,11 @@ Subject: [PATCH] Optimization: Cache chunk packets
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 32d0a50201d66731751a419149595384776a28b9..e32b466b151e9caeb8a8e2fe194031f77ba6cf34 100644
+index 568b5211a36aec258828e4951b2e7e30ff908cdf..ab8ff2cbb5be53fc58496c73f99c876d09a86f51 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -168,6 +168,12 @@ public class ShreddedPaperChunkTicker {
-     private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
+@@ -158,6 +158,12 @@ public class ShreddedPaperChunkTicker {
+     private void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
          if (chunk1.getChunkHolder().vanillaChunkHolder.needsBroadcastChanges()) ShreddedPaperChangesBroadcaster.add(chunk1.getChunkHolder().vanillaChunkHolder); // ShreddedPaper
  
 +        // ShreddedPaper start - clear chunk packet cache

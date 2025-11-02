@@ -64,7 +64,7 @@ index 0000000000000000000000000000000000000000..ad7960c9a11cffc4b89a08dac45dd005
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 858bf20d73d787b6b91e75be7a45f15a6df82f7b..d5f0acade30d8f64a2db2c3aba195b89fd52643b 100644
+index 0391f2362bc7762855a629170c9f416e3bd6d79a..c00a7c754e94c05404aaf30ee4204a0d81102cdc 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -62,6 +62,8 @@ public class ShreddedPaperChunkTicker {
@@ -88,7 +88,7 @@ index 858bf20d73d787b6b91e75be7a45f15a6df82f7b..d5f0acade30d8f64a2db2c3aba195b89
 @@ -99,6 +103,8 @@ public class ShreddedPaperChunkTicker {
      }
  
-     private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
+     private void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
 +        if (chunk1.getChunkHolder().vanillaChunkHolder.needsBroadcastChanges()) ShreddedPaperChangesBroadcaster.add(chunk1.getChunkHolder().vanillaChunkHolder); // ShreddedPaper
 +
          // Start - Import the same variables as the original chunk ticking method to make copying new changes easier
@@ -134,7 +134,7 @@ index 0e0c3a010d5cfaa0c15bcb38c4e3b1a8d7ad39a1..8da6278f841e0ac032ae74ed75b7689d
      // Paper end - optimise chunk tick iteration
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index fc32dbe44f4bbd8da0795c1e573b9666dc99534c..da00194885d7f9a3de90e326a890dc98b3254709 100644
+index c2c33961c74eb84ff968ee0bdf8d57b0a1ab8efa..69a2d692cb10769a7a3c1cd775be6f9a99494028 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -15,6 +15,7 @@ import java.util.function.Supplier;
@@ -145,10 +145,11 @@ index fc32dbe44f4bbd8da0795c1e573b9666dc99534c..da00194885d7f9a3de90e326a890dc98
  import io.papermc.paper.util.TickThread;
  import net.minecraft.Util;
  import net.minecraft.core.BlockPos;
-@@ -680,17 +681,19 @@ public class ServerChunkCache extends ChunkSource {
+@@ -687,19 +688,21 @@ public class ServerChunkCache extends ChunkSource {
              // Paper - optimise chunk tick iteration
                  //this.level.timings.broadcastChunkUpdates.startTiming(); // Paper - timing // Purpur
              // Paper start - optimise chunk tick iteration
+-            future = future.thenRun(() -> { // ShreddedPaper - run async
 -            if (!this.chunkMap.needsChangeBroadcasting.isEmpty()) {
 -                it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<ChunkHolder> copy = this.chunkMap.needsChangeBroadcasting.clone();
 -                this.chunkMap.needsChangeBroadcasting.clear();
@@ -160,7 +161,9 @@ index fc32dbe44f4bbd8da0795c1e573b9666dc99534c..da00194885d7f9a3de90e326a890dc98
 -                    }
 -                }
 -            }
+-            }); // ShreddedPaper - run async
 +            // ShreddedPaper start -  // ShreddedPaper - handled in the region
++//            future = future.thenRun(() -> { // ShreddedPaper - run async
 +//            if (!this.chunkMap.needsChangeBroadcasting.isEmpty()) {
 +//                it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<ChunkHolder> copy = this.chunkMap.needsChangeBroadcasting.clone();
 +//                this.chunkMap.needsChangeBroadcasting.clear();
@@ -172,6 +175,7 @@ index fc32dbe44f4bbd8da0795c1e573b9666dc99534c..da00194885d7f9a3de90e326a890dc98
 +//                    }
 +//                }
 +//            }
++//            }); // ShreddedPaper - run async
 +            // ShreddedPaper end - handled in the region
              // Paper end - optimise chunk tick iteration
                  //this.level.timings.broadcastChunkUpdates.stopTiming(); // Paper - timing // Purpur

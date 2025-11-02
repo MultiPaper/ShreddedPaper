@@ -5,7 +5,7 @@ Subject: [PATCH] NearbyPlayers
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 1b7bd6f07b86c42eb845bcfb8fab3a1f64bf3a5a..858bf20d73d787b6b91e75be7a45f15a6df82f7b 100644
+index da4643453539da84d836ebe506feb26614674222..0391f2362bc7762855a629170c9f416e3bd6d79a 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -118,7 +118,9 @@ public class ShreddedPaperChunkTicker {
@@ -213,10 +213,10 @@ index 746c3e614a9596a93574af870365e535acda5152..9178bb86c11140b1f8813e2c05efdb38
      }
      // Paper end - per player mob count backoff
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index dbdb0db0836315a7f7d4234a20608df1b0b3071c..1af483176ce7f69591b456f177a6268b32b80ee1 100644
+index 5902b6f5c7d4fd98b2fff8d2cfd16a64f07d4242..25d2a8fd729b6a20fbe55cd1dba68683f4e43e4d 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -611,7 +611,9 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -612,7 +612,9 @@ public class ServerLevel extends Level implements WorldGenLevel {
              double nearestDist = maxDistance * maxDistance;
              Object[] rawData = nearby.getRawData();
              for (int i = 0, len = nearby.size(); i < len; ++i) {
@@ -226,7 +226,7 @@ index dbdb0db0836315a7f7d4234a20608df1b0b3071c..1af483176ce7f69591b456f177a6268b
                  double dist = player.distanceToSqr(x, y, z);
                  if (dist >= nearestDist) {
                      continue;
-@@ -621,6 +623,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -622,6 +624,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
                      nearest = player;
                      nearestDist = dist;
                  }
@@ -234,7 +234,7 @@ index dbdb0db0836315a7f7d4234a20608df1b0b3071c..1af483176ce7f69591b456f177a6268b
              }
  
              return nearest;
-@@ -670,7 +673,9 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -671,7 +674,9 @@ public class ServerLevel extends Level implements WorldGenLevel {
              double nearestDist = Double.MAX_VALUE;
              Object[] rawData = nearby.getRawData();
              for (int i = 0, len = nearby.size(); i < len; ++i) {
@@ -244,7 +244,7 @@ index dbdb0db0836315a7f7d4234a20608df1b0b3071c..1af483176ce7f69591b456f177a6268b
                  double dist = player.distanceToSqr(x, y, z);
                  if (dist >= nearestDist) {
                      continue;
-@@ -680,6 +685,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -681,6 +686,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
                      nearest = player;
                      nearestDist = dist;
                  }

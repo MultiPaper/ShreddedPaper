@@ -5,10 +5,10 @@ Subject: [PATCH] Send ping packet later
 
 
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index edc9a4c2aa5621f520525c9846df09d177f0765f..7f725ba3071c4be51f075569f8a0d66756b0d1d8 100644
+index 7103b2bd575202c8d943f89eec82e7d8fffdc333..2b81e2673ac438df938979bb7076c687296f09d9 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1887,6 +1887,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1901,6 +1901,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
              ServerPlayer entityplayer = (ServerPlayer) iterator.next();
  
              entityplayer.connection.chunkSender.sendNextChunks(entityplayer);

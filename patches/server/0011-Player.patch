@@ -97,7 +97,7 @@ index af1f3ba71e44b4b49c106d1e45331641e030ec6c..bff6f98036e74a9716649b71a60c9f9d
 +    }
 +}
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index d556478dddee218971a3b1015872e86ebaaf6048..50044760d4511ff2b75d8866faec22bf33bd2f94 100644
+index f48e1962a9a24ca755565e3ed2709671923183d1..131bbb519542b219418db09687b0edca61be77d9 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -76,6 +76,8 @@ public class ShreddedPaperChunkTicker {
@@ -362,7 +362,7 @@ index 8c134a642ccaf3530022f2e675a858d726e1dda4..f5154194df9e44f8bcf431029f4bbed6
              engine.executeIfPossible(() -> {
                  packetProcessing.push(listener); // Paper - detailed watchdog information
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 975121cd07dd284bcbab65d6a679c2236897e0be..ade6396885d63991640dbee0f7d1a56b02d22397 100644
+index e112595be1320264bc6c6d7b38091224971a8ac6..8d57bfea0e20127cfff33bae8307ad4b985f6798 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,8 @@ import com.mojang.authlib.GameProfileRepository;
@@ -394,8 +394,8 @@ index 975121cd07dd284bcbab65d6a679c2236897e0be..ade6396885d63991640dbee0f7d1a56b
 +        // ShreddedPaper end
  
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
-         Iterator iterator = this.getAllLevels().iterator(); // Paper - Throw exception on world create while being ticked; move down
-@@ -1841,7 +1857,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+         List<CompletableFuture<Void>> futures = new ArrayList<>(); // ShreddedPaper - tick worlds async
+@@ -1852,7 +1868,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
          //this.profiler.popPush("connection"); // Purpur
          // MinecraftTimings.connectionTimer.startTiming(); // Spigot // Paper // Purpur
@@ -405,18 +405,18 @@ index 975121cd07dd284bcbab65d6a679c2236897e0be..ade6396885d63991640dbee0f7d1a56b
          //this.profiler.popPush("players"); // Purpur
          //MinecraftTimings.playerListTimer.startTiming(); // Spigot // Paper // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 3198cc0eaad8e7d3e5daca8531d345951030e948..553d88739ae174963ee840f8a3aafa80654d45ab 100644
+index 39dd25f6c87634004c5a0cec49016d1c43b68476..9d10c5e5c806a92852ce5b4d708929d14f44a9d6 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -30,6 +30,7 @@ import java.util.Objects;
- import java.util.Optional;
+@@ -31,6 +31,7 @@ import java.util.Optional;
  import java.util.Set;
  import java.util.UUID;
+ import java.util.concurrent.CompletableFuture;
 +import java.util.concurrent.CopyOnWriteArrayList;
  import java.util.concurrent.Executor;
  import java.util.function.BooleanSupplier;
  import java.util.function.Function;
-@@ -702,7 +703,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -703,7 +704,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          this.convertable = convertable_conversionsession;
          this.uuid = WorldUUID.getUUID(convertable_conversionsession.levelDirectory.path().toFile());
          // CraftBukkit end
@@ -425,7 +425,7 @@ index 3198cc0eaad8e7d3e5daca8531d345951030e948..553d88739ae174963ee840f8a3aafa80
          // this.entityTickList = new EntityTickList(); // ShreddedPaper - moved into each region
          this.blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
          this.fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
-@@ -2782,6 +2783,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2784,6 +2785,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              // ServerLevel.this.getChunkSource().addEntity(entity); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
              if (entity instanceof ServerPlayer entityplayer) {
                  ServerLevel.this.players.add(entityplayer);
@@ -433,7 +433,7 @@ index 3198cc0eaad8e7d3e5daca8531d345951030e948..553d88739ae174963ee840f8a3aafa80
                  ServerLevel.this.updateSleepingPlayerList();
              }
  
-@@ -2863,6 +2865,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2865,6 +2867,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer entityplayer) {
                  ServerLevel.this.players.remove(entityplayer);
@@ -441,7 +441,7 @@ index 3198cc0eaad8e7d3e5daca8531d345951030e948..553d88739ae174963ee840f8a3aafa80
                  ServerLevel.this.updateSleepingPlayerList();
              }
  
-@@ -2902,6 +2905,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2904,6 +2907,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
              ServerLevel.this.chunkSource.tickingRegions.moveTickingEntity(entity); // ShreddedPaper - move ticking entity into the new region

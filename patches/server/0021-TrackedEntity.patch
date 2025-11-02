@@ -5,7 +5,7 @@ Subject: [PATCH] TrackedEntity
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 7330767f84228619bc5a4c03ce2783a3e74818d8..875648bd826c60cba129c72f39aa35bed3434f5a 100644
+index caff03c2a37d01019975649a87377c7366a5f281..1ae8b6b9b0a63c1c93e9add5c5dfe4739476444d 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -14,6 +14,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
@@ -102,7 +102,7 @@ index bff6f98036e74a9716649b71a60c9f9d7d5278d3..52c7ce154c4cef680143f635d99d162b
       * Schedule a task to run on the given region's thread at the beginning of the next tick
       */
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 28e33ccfdf064a67185135da53e40ea575f6574a..1b7bd6f07b86c42eb845bcfb8fab3a1f64bf3a5a 100644
+index 3b239bf2a10a318feb1af03d6001fea10cba1a86..da4643453539da84d836ebe506feb26614674222 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -82,6 +82,8 @@ public class ShreddedPaperChunkTicker {
@@ -196,10 +196,10 @@ index 29613c4d48f90c5e355a8b4f9b76c459c7b02c6c..f6a01cbe8871bc6d0f5992730c70d34c
              this.lastTrackerCandidates = newTrackerCandidates;
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 55508dd52c9dedd9ef44ce08dc62a129d8f178a1..5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a 100644
+index 89a61e2897c22d3fea17283223371d127b1f72ea..c7ebd82dd29dc9474e89fede80802aca2f537408 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -2910,6 +2910,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2912,6 +2912,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
              ServerLevel.this.chunkSource.tickingRegions.moveTickingEntity(entity); // ShreddedPaper - move ticking entity into the new region
@@ -249,7 +249,7 @@ index dff0e7b08b973a1b29f916e63d3e4778d6c56cdc..eb27ea55c02b586ca2a7d97e6caf39fb
                  net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket velocityPacket = new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(this);
                  net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket positionPacket = new net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket(this);
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index bd60758e8291821c66bd82a5d23682959b915136..dc3c49ea458d334560dd3f99b66eaf969c888353 100644
+index 5b459af3bbdc967c84c22f6d5789084c8fb504ad..91a7816968b3eb7ec2bc471a328d4b75eec09770 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -2004,7 +2004,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {

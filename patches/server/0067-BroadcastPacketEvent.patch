@@ -78,7 +78,7 @@ index 0000000000000000000000000000000000000000..33b427802ec5bdcbf6c8fed236fe718d
 +    }
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index ff47a1256944e292f69a39fe8ddc5523a3167e89..39356ecfc7251ab8d58699749f63a37f619f98de 100644
+index 456b8450c0c55f1213701ed53c5aa9f8fbc56518..3026b340d162e5ad75488e35e25eb10f9d6d8d79 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -1505,6 +1505,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
@@ -91,10 +91,10 @@ index ff47a1256944e292f69a39fe8ddc5523a3167e89..39356ecfc7251ab8d58699749f63a37f
  
          public void broadcastAndSend(Packet<?> packet) {
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index e8128156fb04be56291f09c8b71aeb944a18f2dd..34de55e34a5d0af32cebb96424af1a02c1d6dd42 100644
+index 5f99874eb7d8e33686c2fb662e1220d05883fd0a..0ecc3fa3d70a1180709a5f3b5b6f9a5b1b1c5322 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1843,7 +1843,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1845,7 +1845,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      @Override
      public void destroyBlockProgress(int entityId, BlockPos pos, int progress) {
@@ -103,7 +103,7 @@ index e8128156fb04be56291f09c8b71aeb944a18f2dd..34de55e34a5d0af32cebb96424af1a02
  
          // CraftBukkit start
          Player entityhuman = null;
-@@ -1862,6 +1862,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1864,6 +1864,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
          }
          // Paper end - Add BlockBreakProgressUpdateEvent
  
@@ -112,7 +112,7 @@ index e8128156fb04be56291f09c8b71aeb944a18f2dd..34de55e34a5d0af32cebb96424af1a02
          while (iterator.hasNext()) {
              ServerPlayer entityplayer = (ServerPlayer) iterator.next();
  
-@@ -1877,7 +1879,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1879,7 +1881,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
                  // CraftBukkit end
  
                  if (d0 * d0 + d1 * d1 + d2 * d2 < 1024.0D) {

@@ -121,12 +121,12 @@ index 89724b9d82813cc5d42eb1a0a3d4bf50e406a3ca..a7c9025433f0b0e260a1ff69022b7938
  }
 \ No newline at end of file
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index dfbdfca7147e4463507be08a36de63aa96238ba4..56bd2dea24afbda142602fd0c352feedc6f431dd 100644
+index 41e3f42b860ec3a9c030d0e627908ea5c84a2694..05e64b401e5ed59c79ad92e17fe47de3793f7ae2 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -59,6 +59,8 @@ public class ShreddedPaperChunkTicker {
  
-             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+             region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
  
 +            region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
 +
@@ -178,10 +178,10 @@ index 0000000000000000000000000000000000000000..051084e44759febef79a5b5606967e67
 +
 +}
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index 26770dadf47703828225efc4c72ffceeb9f375b7..e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3 100644
+index 7a75de1ad600505ce44b299e8eabfece9b48c387..b1c8c652babdc3549e52cba8d949edc0a9d87d88 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -710,12 +710,14 @@ public class ServerChunkCache extends ChunkSource {
+@@ -720,12 +720,14 @@ public class ServerChunkCache extends ChunkSource {
              if (_pufferfish_spawnCountsReady.getAndSet(false)) {
                  net.minecraft.server.MinecraftServer.getServer().mobSpawnExecutor.submit(() -> {
                      int mapped = distanceManager.getNaturalSpawnChunkCount();
@@ -203,10 +203,10 @@ index 26770dadf47703828225efc4c72ffceeb9f375b7..e1e023b6a6c088e2496af5265e5a2ec7
                  });
              }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index a8fba925717149730f7f472c2a1a01d621fa30c5..ae0f45317643724b6aa2eae04611f1edaeca0071 100644
+index c9fb25304a19a12d24da44b752d8be3b078a59d5..123d6a30e73614be92be819fc146cb87c3a49007 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -192,7 +192,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -193,7 +193,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      private final MinecraftServer server;
      public final PrimaryLevelData serverLevelData; // CraftBukkit - type
      private int lastSpawnChunkRadius;
@@ -215,7 +215,7 @@ index a8fba925717149730f7f472c2a1a01d621fa30c5..ae0f45317643724b6aa2eae04611f1ed
      //public final PersistentEntitySectionManager<Entity> entityManager; // Paper - rewrite chunk system
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
-@@ -702,7 +702,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -703,7 +703,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          this.uuid = WorldUUID.getUUID(convertable_conversionsession.levelDirectory.path().toFile());
          // CraftBukkit end
          this.players = Lists.newArrayList();
@@ -224,7 +224,7 @@ index a8fba925717149730f7f472c2a1a01d621fa30c5..ae0f45317643724b6aa2eae04611f1ed
          this.blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
          this.fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());
          this.pathTypesByPosCache = new PathTypeCache();
-@@ -916,33 +916,32 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -917,33 +917,32 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
              org.spigotmc.ActivationRange.activateEntities(this); // Spigot
              //this.timings.entityTick.startTiming(); // Spigot // Purpur
@@ -284,7 +284,7 @@ index a8fba925717149730f7f472c2a1a01d621fa30c5..ae0f45317643724b6aa2eae04611f1ed
              //this.timings.entityTick.stopTiming(); // Spigot // Purpur
              //this.timings.tickEntities.stopTiming(); // Spigot // Purpur
              //gameprofilerfiller.pop(); // Purpur
-@@ -1010,7 +1009,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1012,7 +1011,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      }
  
@@ -293,7 +293,7 @@ index a8fba925717149730f7f472c2a1a01d621fa30c5..ae0f45317643724b6aa2eae04611f1ed
          return !this.server.isSpawningAnimals() && (entity instanceof Animal || entity instanceof WaterAnimal) ? true : !this.server.areNpcsEnabled() && entity instanceof Npc;
      }
  
-@@ -1500,7 +1499,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1502,7 +1501,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      private void tickPassenger(Entity vehicle, Entity passenger) {
          if (!passenger.isRemoved() && passenger.getVehicle() == vehicle) {
@@ -302,7 +302,7 @@ index a8fba925717149730f7f472c2a1a01d621fa30c5..ae0f45317643724b6aa2eae04611f1ed
                  // Paper - EAR 2
                  final boolean isActive = org.spigotmc.ActivationRange.checkIfActive(passenger);
                  //co.aikar.timings.Timing timer = isActive ? passenger.getType().passengerTickTimer.startTiming() : passenger.getType().passengerInactiveTickTimer.startTiming(); // Paper // Purpur
-@@ -2643,7 +2642,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2645,7 +2644,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
@@ -311,7 +311,7 @@ index a8fba925717149730f7f472c2a1a01d621fa30c5..ae0f45317643724b6aa2eae04611f1ed
          return this.entityLookup; // Paper - rewrite chunk system
      }
  
-@@ -2764,11 +2763,11 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2766,11 +2765,11 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
          public void onTickingStart(Entity entity) {
              if (entity instanceof net.minecraft.world.entity.Marker && !paperConfig().entities.markers.tick) return; // Paper - Configurable marker ticking
@@ -325,7 +325,7 @@ index a8fba925717149730f7f472c2a1a01d621fa30c5..ae0f45317643724b6aa2eae04611f1ed
              // Paper start - Reset pearls when they stop being ticked
              if (paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && entity instanceof net.minecraft.world.entity.projectile.ThrownEnderpearl pearl) {
                  pearl.cachedOwner = null;
-@@ -2901,6 +2900,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2903,6 +2902,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);

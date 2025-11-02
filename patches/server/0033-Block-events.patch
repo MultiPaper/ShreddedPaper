@@ -5,7 +5,7 @@ Subject: [PATCH] Block events
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
-index 43bd6b7780226afadd196687dfb3d398b0f610cc..e40ee452a89a5fc60bb75c74631de2e9b0e6a730 100644
+index 8086978b2a48acf23bf3de1a4082efb4ad6b8f28..4c0a20b081958087e5153b0ae186ee47f7828f0a 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/region/LevelChunkRegion.java
 @@ -4,20 +4,25 @@ import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQu
@@ -120,12 +120,12 @@ index 80acf2a25921c7b674d0758c0c29a7352746726b..2b88bc33446fdb6fbbdaf0ac170a9ac2
          if (!level.chunkScheduler.getRegionLocker().hasLock(regionPos)) {
              // We care about the navigating mobs in at least this region, ensure it's locked
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index d5f0acade30d8f64a2db2c3aba195b89fd52643b..f32aecd69d929c005ca8226054c218c7dd37e6fc 100644
+index c00a7c754e94c05404aaf30ee4204a0d81102cdc..327eadaab7d0df52e6bb392fe29ef4ee381163ed 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 @@ -82,6 +82,8 @@ public class ShreddedPaperChunkTicker {
  
-             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+             region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
  
 +            level.runBlockEvents(region);
 +
@@ -133,7 +133,7 @@ index d5f0acade30d8f64a2db2c3aba195b89fd52643b..f32aecd69d929c005ca8226054c218c7
  
              region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index e2fe80d4253c783828f64eb38d293e0e2d30d5f7..ef8c4455c06cd0eca58d21ac153acdc6f6999959 100644
+index fbe33ee388493a279f85b8ec666a57107bbce84f..e07d635bffd12a71e078e824e0a7bc41784e1146 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
@@ -152,7 +152,7 @@ index e2fe80d4253c783828f64eb38d293e0e2d30d5f7..ef8c4455c06cd0eca58d21ac153acdc6
  import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
  import java.io.BufferedWriter;
  import java.io.IOException;
-@@ -125,7 +125,6 @@ import net.minecraft.world.level.biome.BiomeSource;
+@@ -126,7 +126,6 @@ import net.minecraft.world.level.biome.BiomeSource;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.SnowLayerBlock;
@@ -160,7 +160,7 @@ index e2fe80d4253c783828f64eb38d293e0e2d30d5f7..ef8c4455c06cd0eca58d21ac153acdc6
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.chunk.ChunkAccess;
  import net.minecraft.world.level.chunk.ChunkGenerator;
-@@ -136,7 +135,6 @@ import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
+@@ -137,7 +136,6 @@ import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
  import net.minecraft.world.level.dimension.BuiltinDimensionTypes;
  import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.dimension.end.EndDragonFight;
@@ -168,7 +168,7 @@ index e2fe80d4253c783828f64eb38d293e0e2d30d5f7..ef8c4455c06cd0eca58d21ac153acdc6
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelCallback;
  import net.minecraft.world.level.entity.LevelEntityGetter;
-@@ -209,8 +207,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -210,8 +208,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
      final Set<Mob> navigatingMobs;
      final ThreadLocal<Boolean> isUpdatingNavigations = ThreadLocal.withInitial(() -> false); // ShreddedPaper - make thread local
      protected final Raids raids;
@@ -179,7 +179,7 @@ index e2fe80d4253c783828f64eb38d293e0e2d30d5f7..ef8c4455c06cd0eca58d21ac153acdc6
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      @Nullable
-@@ -717,8 +715,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -718,8 +716,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
          this.fluidTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier()); // ShreddedPaper
          this.pathTypesByPosCache = new PathTypeCache();
          this.navigatingMobs = new ObjectOpenHashSet();
@@ -190,7 +190,7 @@ index e2fe80d4253c783828f64eb38d293e0e2d30d5f7..ef8c4455c06cd0eca58d21ac153acdc6
          this.dragonParts = new Int2ObjectOpenHashMap();
          this.tickTime = flag1;
          this.server = minecraftserver;
-@@ -903,7 +901,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -904,7 +902,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          //gameprofilerfiller.popPush("blockEvents"); // Purpur
          if (flag) {
              // this.timings.doSounds.startTiming(); // Spigot // Purpur
@@ -199,7 +199,7 @@ index e2fe80d4253c783828f64eb38d293e0e2d30d5f7..ef8c4455c06cd0eca58d21ac153acdc6
              // this.timings.doSounds.stopTiming(); // Spigot // Purpur
          }
  
-@@ -2044,25 +2042,26 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2046,25 +2044,26 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      @Override
      public void blockEvent(BlockPos pos, Block block, int type, int data) {
@@ -233,7 +233,7 @@ index e2fe80d4253c783828f64eb38d293e0e2d30d5f7..ef8c4455c06cd0eca58d21ac153acdc6
      }
  
      private boolean doBlockEvent(BlockEventData event) {
-@@ -2546,9 +2545,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2548,9 +2547,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      @VisibleForTesting
      public void clearBlockEvents(BoundingBox box) {

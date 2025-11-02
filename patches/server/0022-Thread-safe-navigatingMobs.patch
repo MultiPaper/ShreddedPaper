@@ -135,10 +135,10 @@ index 52c7ce154c4cef680143f635d99d162bdac569c4..80acf2a25921c7b674d0758c0c29a735
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index bcba012eff482031f7160cd113753128ede85760..fc32dbe44f4bbd8da0795c1e573b9666dc99534c 100644
+index 27d0e0f44831fdd45a581e48e61469c174e6afb8..c2c33961c74eb84ff968ee0bdf8d57b0a1ab8efa 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-@@ -416,6 +416,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -417,6 +417,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public boolean pollTask() {
@@ -147,7 +147,7 @@ index bcba012eff482031f7160cd113753128ede85760..fc32dbe44f4bbd8da0795c1e573b9666
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78eeda416f21 100644
+index c7ebd82dd29dc9474e89fede80802aca2f537408..bae170b01ea310c79f33c41cf32a5f5c0f2e91b6 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
 @@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
@@ -158,7 +158,7 @@ index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78ee
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.longs.LongSet;
-@@ -206,7 +207,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -207,7 +208,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      public final LevelTicksRegionProxy<Fluid> fluidTicks; // ShreddedPaper
      private final PathTypeCache pathTypesByPosCache;
      final Set<Mob> navigatingMobs;
@@ -167,7 +167,7 @@ index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78ee
      protected final Raids raids;
      private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents;
      private final List<BlockEventData> blockEventsToReschedule;
-@@ -1920,7 +1921,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1922,7 +1923,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      @Override
      public void sendBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, int flags) {
@@ -176,7 +176,7 @@ index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78ee
              String s = "recursive call to sendBlockUpdated";
  
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
-@@ -1934,7 +1935,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1936,7 +1937,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
          if (Shapes.joinIsNotEmpty(voxelshape, voxelshape1, BooleanOp.NOT_SAME)) {
              List<PathNavigation> list = new ObjectArrayList();
@@ -185,7 +185,7 @@ index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78ee
  
              while (iterator.hasNext()) {
                  // CraftBukkit start - fix SPIGOT-6362
-@@ -1957,7 +1958,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1959,7 +1960,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              }
  
              try {
@@ -194,7 +194,7 @@ index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78ee
                  iterator = list.iterator();
  
                  while (iterator.hasNext()) {
-@@ -1966,7 +1967,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1968,7 +1969,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
                      navigationabstract1.recomputePath();
                  }
              } finally {
@@ -203,7 +203,7 @@ index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78ee
              }
  
          }
-@@ -2784,7 +2785,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2786,7 +2787,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          }
  
          public void onTrackingStart(Entity entity) {
@@ -212,7 +212,7 @@ index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78ee
              // ServerLevel.this.getChunkSource().addEntity(entity); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
              if (entity instanceof ServerPlayer entityplayer) {
                  ServerLevel.this.players.add(entityplayer);
-@@ -2793,13 +2794,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2795,13 +2796,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
              }
  
              if (entity instanceof Mob entityinsentient) {
@@ -228,7 +228,7 @@ index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78ee
              }
  
              if (entity instanceof EnderDragon entityenderdragon) {
-@@ -2830,7 +2831,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2832,7 +2833,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          }
  
          public void onTrackingEnd(Entity entity) {
@@ -237,7 +237,7 @@ index 5ba89a75bfcfd9f3d28e5bf25cbfeb7eded4cc3a..099251e47f8a8bd303fec64a157f78ee
              // Spigot start
              if ( entity instanceof Player )
              {
-@@ -2875,13 +2876,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2877,13 +2878,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
              }
  
              if (entity instanceof Mob entityinsentient) {

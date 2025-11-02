@@ -393,10 +393,10 @@ index 0000000000000000000000000000000000000000..692dee8b14e70b2a1e9af885a7f75860
 +}
 +
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 56bd2dea24afbda142602fd0c352feedc6f431dd..d556478dddee218971a3b1015872e86ebaaf6048 100644
+index 05e64b401e5ed59c79ad92e17fe47de3793f7ae2..f48e1962a9a24ca755565e3ed2709671923183d1 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -13,6 +13,7 @@ import net.minecraft.world.level.Level;
+@@ -14,6 +14,7 @@ import net.minecraft.world.level.Level;
  import net.minecraft.world.level.NaturalSpawner;
  import net.minecraft.world.level.chunk.LevelChunk;
  import io.multipaper.shreddedpaper.region.LevelChunkRegion;
@@ -422,7 +422,7 @@ index 56bd2dea24afbda142602fd0c352feedc6f431dd..d556478dddee218971a3b1015872e86e
 +            });
 +
 +            region.tickTasks();
-             region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
+             region.forEach(chunk -> this._tickChunk(level, chunk, spawnercreature_d));
  
              region.forEachTickingEntity(ShreddedPaperEntityTicker::tickEntity);
  
@@ -731,7 +731,7 @@ index 604de7aed6db44c9c84d541765e57da48883cf00..47e9d18a4c4981e0b561eeaf52bf6e5b
                          this.changeEntityChunkStatus(FullChunkStatus.ENTITY_TICKING);
                          chunk.onChunkEntityTicking(this);
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index c617f12b7e44859a4edafc0deff844cd2148268d..975121cd07dd284bcbab65d6a679c2236897e0be 100644
+index 1cfde8e63d039144846a743ddb2b40794a7c8f84..e112595be1320264bc6c6d7b38091224971a8ac6 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
 @@ -14,6 +14,7 @@ import com.mojang.authlib.GameProfileRepository;
@@ -769,7 +769,7 @@ index c617f12b7e44859a4edafc0deff844cd2148268d..975121cd07dd284bcbab65d6a679c223
 @@ -1738,17 +1742,17 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          //MinecraftTimings.bukkitSchedulerTimer.stopTiming(); // Spigot // Paper // Purpur
          // Paper start - Folia scheduler API
-         ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
+         // ShreddedPaper - moved global scheduler down
 -        getAllLevels().forEach(level -> {
 -            for (final Entity entity : level.getEntityLookup().getAllCopy()) { // Paper - rewrite chunk system
 -                if (entity.isRemoved()) {
@@ -796,7 +796,7 @@ index c617f12b7e44859a4edafc0deff844cd2148268d..975121cd07dd284bcbab65d6a679c223
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          //this.profiler.push("commandFunctions"); // Purpur
 diff --git a/src/main/java/net/minecraft/server/level/ServerChunkCache.java b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
-index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..bcba012eff482031f7160cd113753128ede85760 100644
+index b1c8c652babdc3549e52cba8d949edc0a9d87d88..27d0e0f44831fdd45a581e48e61469c174e6afb8 100644
 --- a/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 +++ b/src/main/java/net/minecraft/server/level/ServerChunkCache.java
 @@ -13,10 +13,14 @@ import java.util.function.BooleanSupplier;
@@ -822,7 +822,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..bcba012eff482031f7160cd113753128
  
  public class ServerChunkCache extends ChunkSource {
  
-@@ -151,10 +156,12 @@ public class ServerChunkCache extends ChunkSource {
+@@ -152,10 +157,12 @@ public class ServerChunkCache extends ChunkSource {
  
          long chunkKey = ChunkPos.asLong(x, z);
  
@@ -835,7 +835,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..bcba012eff482031f7160cd113753128
      }
  
      public final LevelChunk getChunkAtIfLoadedMainThreadNoCache(int x, int z) {
-@@ -252,10 +259,12 @@ public class ServerChunkCache extends ChunkSource {
+@@ -253,10 +260,12 @@ public class ServerChunkCache extends ChunkSource {
      @Override
      public ChunkAccess getChunk(int x, int z, ChunkStatus leastStatus, boolean create) {
          final int x1 = x; final int z1 = z; // Paper - conflict on variable change
@@ -851,7 +851,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..bcba012eff482031f7160cd113753128
          } else {
              // Paper start - Perf: Optimise getChunkAt calls for loaded chunks
              LevelChunk ifLoaded = this.getChunkAtIfLoadedMainThread(x, z);
-@@ -312,7 +321,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -313,7 +322,7 @@ public class ServerChunkCache extends ChunkSource {
      }
  
      public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create) {
@@ -860,7 +860,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..bcba012eff482031f7160cd113753128
          CompletableFuture completablefuture;
  
          if (flag1) {
-@@ -324,7 +333,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -325,7 +334,7 @@ public class ServerChunkCache extends ChunkSource {
          } else {
              completablefuture = CompletableFuture.supplyAsync(() -> {
                  return this.getChunkFutureMainThread(chunkX, chunkZ, leastStatus, create);
@@ -869,7 +869,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..bcba012eff482031f7160cd113753128
                  return completablefuture1;
              });
          }
-@@ -779,7 +788,7 @@ public class ServerChunkCache extends ChunkSource {
+@@ -792,7 +801,7 @@ public class ServerChunkCache extends ChunkSource {
  
      @Override
      public void onLightUpdate(LightLayer type, SectionPos pos) {
@@ -878,7 +878,7 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..bcba012eff482031f7160cd113753128
              ChunkHolder playerchunk = this.getVisibleChunkIfPresent(pos.chunk().toLong());
  
              if (playerchunk != null) {
-@@ -903,7 +912,22 @@ public class ServerChunkCache extends ChunkSource {
+@@ -916,7 +925,22 @@ public class ServerChunkCache extends ChunkSource {
              if (ServerChunkCache.this.runDistanceManagerUpdates()) {
                  return true;
              }
@@ -903,10 +903,10 @@ index e1e023b6a6c088e2496af5265e5a2ec7f6eff0a3..bcba012eff482031f7160cd113753128
      }
  
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index ae0f45317643724b6aa2eae04611f1edaeca0071..3198cc0eaad8e7d3e5daca8531d345951030e948 100644
+index 123d6a30e73614be92be819fc146cb87c3a49007..39dd25f6c87634004c5a0cec49016d1c43b68476 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -174,6 +174,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
+@@ -175,6 +175,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
  import org.bukkit.event.server.MapInitializeEvent;
  import org.bukkit.event.weather.LightningStrikeEvent;
  import org.bukkit.event.world.TimeSkipEvent;
@@ -914,7 +914,7 @@ index ae0f45317643724b6aa2eae04611f1edaeca0071..3198cc0eaad8e7d3e5daca8531d34595
  import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
  // CraftBukkit end
  
-@@ -2297,13 +2298,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2299,13 +2300,13 @@ public class ServerLevel extends Level implements WorldGenLevel {
              BlockPos blockposition1 = pos.immutable();
  
              optional.ifPresent((holder) -> {

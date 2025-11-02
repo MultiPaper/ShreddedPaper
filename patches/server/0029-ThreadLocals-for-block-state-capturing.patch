@@ -36,10 +36,10 @@ index f076380621dc6a40663e4f703de458a1d9b87fd9..06d85ca406b57f54827dd59191018590
                      if (treeType != null) {
                          structureEvent = new StructureGrowEvent(location, treeType, false, null, blocks);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 1af483176ce7f69591b456f177a6268b32b80ee1..e2fe80d4253c783828f64eb38d293e0e2d30d5f7 100644
+index 25d2a8fd729b6a20fbe55cd1dba68683f4e43e4d..fbe33ee388493a279f85b8ec666a57107bbce84f 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1771,8 +1771,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1773,8 +1773,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity itemEntity && itemEntity.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -50,7 +50,7 @@ index 1af483176ce7f69591b456f177a6268b32b80ee1..e2fe80d4253c783828f64eb38d293e0e
                  return true;
              }
              // Paper end - capture all item additions to the world
-@@ -1982,7 +1982,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1984,7 +1984,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
      @Override
      public void updateNeighborsAt(BlockPos pos, Block sourceBlock) {
@@ -394,7 +394,7 @@ index 5cb06959aeaceeb98cfee34b1df804e6642f305f..7fa724b10f89856f99956047290a08b6
              BlockState iblockdata = blockEntity.getBlockState();
              boolean flag = iblockdata.is(Blocks.WITHER_SKELETON_SKULL) || iblockdata.is(Blocks.WITHER_SKELETON_WALL_SKULL);
 diff --git a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
-index f8f35d6bfc4c7ecd3611f8d2c0f509b589a4c82f..9f86114ddaeee7911e648ca122b4bde7e930dbe8 100644
+index e01aba693382654f0b078ae06538248736fe896b..f90f1a6166a91ab41200e475d0fd0cd8df3e0291 100644
 --- a/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/src/main/java/net/minecraft/world/level/chunk/LevelChunk.java
 @@ -466,7 +466,7 @@ public class LevelChunk extends ChunkAccess {
@@ -425,7 +425,7 @@ index f8f35d6bfc4c7ecd3611f8d2c0f509b589a4c82f..9f86114ddaeee7911e648ca122b4bde7
              tileentity = (BlockEntity) this.blockEntities.get(pos);
          }
 diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-index 16bb57ab327230429fd3cbd822e7fcc28b329fbe..3723dd028800c81f3f392657f1b209884864c5ba 100644
+index 0ab40a285b72ab548a575edc3855422805e3b994..273efa1ff1b3e38ac0a8e8de328db297e0d4467b 100644
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 @@ -875,13 +875,15 @@ public class CraftWorld extends CraftRegionAccessor implements World {

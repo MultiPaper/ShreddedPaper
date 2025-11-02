@@ -5,10 +5,10 @@ Subject: [PATCH] handlingTick
 
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-index 3ebb70ecb854ba0172148e48a07578dc9c90d853..783ec3ddae8829237bfdb3a3b79f8bd83b16db34 100644
+index 327eadaab7d0df52e6bb392fe29ef4ee381163ed..7933c7cb4ca7b5292529f93ac23f48af4754cda0 100644
 --- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
 +++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
-@@ -83,6 +83,8 @@ public class ShreddedPaperChunkTicker {
+@@ -77,6 +77,8 @@ public class ShreddedPaperChunkTicker {
  
              region.tickTasks();
  
@@ -17,7 +17,7 @@ index 3ebb70ecb854ba0172148e48a07578dc9c90d853..783ec3ddae8829237bfdb3a3b79f8bd8
              level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
              level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
  
-@@ -90,6 +92,8 @@ public class ShreddedPaperChunkTicker {
+@@ -84,6 +86,8 @@ public class ShreddedPaperChunkTicker {
  
              level.runBlockEvents(region);
  
@@ -27,10 +27,10 @@ index 3ebb70ecb854ba0172148e48a07578dc9c90d853..783ec3ddae8829237bfdb3a3b79f8bd8
  
              region.forEachTrackedEntity(ShreddedPaperEntityTicker::processTrackQueue);
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index a7f3e1334e6df8fa9f2fce374be0df6d60bdc6e5..e8128156fb04be56291f09c8b71aeb944a18f2dd 100644
+index b6ffd2ac046777466657eaedbf13f2cbaa8456b3..5f99874eb7d8e33686c2fb662e1220d05883fd0a 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -209,7 +209,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -210,7 +210,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      protected final Raids raids;
      // private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents; // ShreddedPaper - moved into each region
      private final ThreadLocal<List<BlockEventData>> blockEventsToRescheduleThreadLocal; // ShreddedPaper
@@ -39,8 +39,8 @@ index a7f3e1334e6df8fa9f2fce374be0df6d60bdc6e5..e8128156fb04be56291f09c8b71aeb94
      private final List<CustomSpawner> customSpawners;
      @Nullable
      private EndDragonFight dragonFight;
-@@ -836,7 +836,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
-     public void tick(BooleanSupplier shouldKeepTicking) {
+@@ -837,7 +837,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+     public CompletableFuture<Void> tick(BooleanSupplier shouldKeepTicking) { // ShreddedPaper - run async
          //ProfilerFiller gameprofilerfiller = this.getProfiler(); // Purpur
  
 -        this.handlingTick = true;
@@ -48,7 +48,7 @@ index a7f3e1334e6df8fa9f2fce374be0df6d60bdc6e5..e8128156fb04be56291f09c8b71aeb94
          TickRateManager tickratemanager = this.tickRateManager();
          boolean flag = tickratemanager.runsNormally();
  
-@@ -905,7 +905,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -906,7 +906,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
              // this.timings.doSounds.stopTiming(); // Spigot // Purpur
          }
  
@@ -57,7 +57,7 @@ index a7f3e1334e6df8fa9f2fce374be0df6d60bdc6e5..e8128156fb04be56291f09c8b71aeb94
          //gameprofilerfiller.pop(); // Purpur
          boolean flag1 = !paperConfig().unsupportedSettings.disableWorldTickingWhenEmpty || !this.players.isEmpty() || !this.getForcedChunks().isEmpty(); // CraftBukkit - this prevents entity cleanup, other issues on servers with no players // Paper - restore this
  
-@@ -1223,7 +1223,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1225,7 +1225,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      }
  
      public boolean isHandlingTick() {

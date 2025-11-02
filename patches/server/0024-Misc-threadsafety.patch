@@ -445,10 +445,10 @@ index 073743301c2e70fcd148c33e97be2a3069d6109e..b7f5bae372b75805c759b3ce9a91557b
                      }
                  }
 diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
-index 099251e47f8a8bd303fec64a157f78eeda416f21..dbdb0db0836315a7f7d4234a20608df1b0b3071c 100644
+index bae170b01ea310c79f33c41cf32a5f5c0f2e91b6..5902b6f5c7d4fd98b2fff8d2cfd16a64f07d4242 100644
 --- a/src/main/java/net/minecraft/server/level/ServerLevel.java
 +++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
-@@ -1020,7 +1020,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -1022,7 +1022,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      private void wakeUpAllPlayers() {
          this.sleepStatus.removeAllSleepers();
          (this.players.stream().filter(LivingEntity::isSleeping).collect(Collectors.toList())).forEach((entityplayer) -> { // CraftBukkit - decompile error
@@ -457,7 +457,7 @@ index 099251e47f8a8bd303fec64a157f78eeda416f21..dbdb0db0836315a7f7d4234a20608df1
          });
      }
      // Paper start - optimise random block ticking
-@@ -2206,13 +2206,14 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2208,13 +2208,14 @@ public class ServerLevel extends Level implements WorldGenLevel {
  
          final net.minecraft.world.level.saveddata.SavedData existing = storage.cache.get(id.key());
          if (existing == null && !storage.cache.containsKey(id.key())) {
@@ -475,7 +475,7 @@ index 099251e47f8a8bd303fec64a157f78eeda416f21..dbdb0db0836315a7f7d4234a20608df1
          } else if (existing instanceof MapItemSavedData mapItemSavedData) {
              mapItemSavedData.id = id;
          }
-@@ -2226,7 +2227,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2228,7 +2229,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
          // CraftBukkit start
          state.id = id;
          MapInitializeEvent event = new MapInitializeEvent(state.mapView);
@@ -484,7 +484,7 @@ index 099251e47f8a8bd303fec64a157f78eeda416f21..dbdb0db0836315a7f7d4234a20608df1
          // CraftBukkit end
          this.getServer().overworld().getDataStorage().set(id.key(), state);
      }
-@@ -2548,7 +2549,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2550,7 +2551,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
      public void blockUpdated(BlockPos pos, Block block) {
          if (!this.isDebug()) {
              // CraftBukkit start
@@ -493,7 +493,7 @@ index 099251e47f8a8bd303fec64a157f78eeda416f21..dbdb0db0836315a7f7d4234a20608df1
                  return;
              }
              // CraftBukkit end
-@@ -2841,6 +2842,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2843,6 +2844,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
                      {
                          if ( o instanceof MapItemSavedData )
                          {
@@ -501,7 +501,7 @@ index 099251e47f8a8bd303fec64a157f78eeda416f21..dbdb0db0836315a7f7d4234a20608df1
                              MapItemSavedData map = (MapItemSavedData) o;
                              map.carriedByPlayers.remove( (Player) entity );
                              for ( Iterator<MapItemSavedData.HoldingPlayer> iter = (Iterator<MapItemSavedData.HoldingPlayer>) map.carriedBy.iterator(); iter.hasNext(); )
-@@ -2851,6 +2853,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+@@ -2853,6 +2855,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
                                      iter.remove();
                                  }
                              }
