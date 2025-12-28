@@ -1325,7 +1325,7 @@ index 763b315b1d761bc3bd82d9b847ed3f64fd5ce991..841aa55043f354d5058992d43645bf9e
          this.usedAuxIds.put("map", i);
          this.setDirty();
 diff --git a/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java b/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
-index e26f6215ca42885cb0635a3183a8df93a924ba7f..5d01e9c124047ab89be5727ec4ecd044f76c202e 100644
+index e26f6215ca42885cb0635a3183a8df93a924ba7f..6e22cf6b41bebc93db6ce43e1f0d634017b0f591 100644
 --- a/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
 +++ b/src/main/java/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
 @@ -12,6 +12,7 @@ import java.util.List;
@@ -1344,6 +1344,42 @@ index e26f6215ca42885cb0635a3183a8df93a924ba7f..5d01e9c124047ab89be5727ec4ecd044
      public final List<MapItemSavedData.HoldingPlayer> carriedBy = Lists.newArrayList();
      public final Map<Player, MapItemSavedData.HoldingPlayer> carriedByPlayers = Maps.newHashMap();
      private final Map<String, MapBanner> bannerMarkers = Maps.newHashMap();
+@@ -262,7 +264,7 @@ public class MapItemSavedData extends SavedData {
+         return nbt;
+     }
+ 
+-    public MapItemSavedData locked() {
++    public synchronized MapItemSavedData locked() { // ShreddedPaper - thread-safe
+         MapItemSavedData worldmap = new MapItemSavedData(this.centerX, this.centerZ, this.scale, this.trackingPosition, this.unlimitedTracking, true, this.dimension);
+ 
+         worldmap.bannerMarkers.putAll(this.bannerMarkers);
+@@ -285,7 +287,7 @@ public class MapItemSavedData extends SavedData {
+         };
+     }
+ 
+-    public void tickCarriedBy(Player player, ItemStack stack) {
++    public synchronized void tickCarriedBy(Player player, ItemStack stack) { // ShreddedPaper - thread-safe
+         if (!this.carriedByPlayers.containsKey(player)) {
+             MapItemSavedData.HoldingPlayer worldmap_worldmaphumantracker = new MapItemSavedData.HoldingPlayer(player);
+ 
+@@ -438,7 +440,7 @@ public class MapItemSavedData extends SavedData {
+     }
+ 
+     @Nullable
+-    public Packet<?> getUpdatePacket(MapId mapId, Player player) {
++    public synchronized Packet<?> getUpdatePacket(MapId mapId, Player player) { // ShreddedPaper - thread-safe
+         MapItemSavedData.HoldingPlayer worldmap_worldmaphumantracker = (MapItemSavedData.HoldingPlayer) this.carriedByPlayers.get(player);
+ 
+         return worldmap_worldmaphumantracker == null ? null : worldmap_worldmaphumantracker.nextUpdatePacket(mapId);
+@@ -562,7 +564,7 @@ public class MapItemSavedData extends SavedData {
+         return true;
+     }
+ 
+-    public void addClientSideDecorations(List<MapDecoration> decorations) {
++    public synchronized void addClientSideDecorations(List<MapDecoration> decorations) { // ShreddedPaper - thread-safe
+         this.decorations.clear();
+         this.trackedDecorationCount = 0;
+ 
 diff --git a/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java b/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
 index 6e23e69abd56eeda3b52a22019e1b74ae10682e7..f3d1dfb2cca74ecfc123f1c06a20462a1295d60f 100644
 --- a/src/main/java/net/minecraft/world/level/storage/DimensionDataStorage.java
