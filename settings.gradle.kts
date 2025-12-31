@@ -1,18 +1,16 @@
-import java.util.Locale
-
 pluginManagement {
     repositories {
         gradlePluginPortal()
-        maven("https://papermc.io/repo/repository/maven-public/")
-        // io.github.goooler.shadow
-        maven("https://plugins.gradle.org/m2/")
+        mavenLocal()
+        maven("https://repo.papermc.io/repository/maven-public/")
     }
+}
+
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
 }
 
 rootProject.name = "shreddedpaper"
 
-for (name in listOf("shreddedpaper-api", "shreddedpaper-server")) {
-    val projName = name.toLowerCase(Locale.ENGLISH)
-    include(projName)
-    findProject(":$projName")!!.projectDir = file(name)
-}
+include("shreddedpaper-api")
+include("shreddedpaper-server")

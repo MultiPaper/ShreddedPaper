@@ -1,7 +1,14 @@
-name: Generate Jars
-on: [ push, pull_request ]
+name: Patch and Build
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
 jobs:
-  paperclip:
+  build:
+    # Only run on PRs if the source branch is on someone else's repo
+    if: ${{ github.event_name != 'pull_request' || github.repository != github.event.pull_request.head.repo.full_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Git Repository
@@ -9,17 +16,13 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          cache: 'gradle'
           distribution: 'temurin'
+          java-version: '21'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: Configure Git User Details
         run: git config --global user.email "actions@github.com" && git config --global user.name "Github Actions"
       - name: Apply Patches
-        run: ./gradlew applyPatches --stacktrace
-      - name: Build Paperclip jar
-        run: ./gradlew createMojmapPaperclipJar --stacktrace
-      - name: Upload Paperclip jar
-        uses: actions/upload-artifact@v4
-        with:
-          name: shreddedpaper.jar
-          path: build/libs/shreddedpaper-paperclip-*-mojmap.jar
+        run: ./gradlew applyAllPatches --stacktrace
+      - name: Build
+        run: ./gradlew build

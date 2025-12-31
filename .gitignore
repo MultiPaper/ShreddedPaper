@@ -46,9 +46,14 @@ out/
 # other stuff
 run/
 
-shreddedpaper-server
-shreddedpaper-api
-paper-api-generator
+/shreddedpaper-server/build.gradle.kts
+/shreddedpaper-server/src/minecraft
+/paper-server
+/purpur-server
+/shreddedpaper-api/build.gradle.kts
+/paper-api
+/paper-api-generator
+/purpur-api
 
 *.sh
 shreddedpaper.jar
