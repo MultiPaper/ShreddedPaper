@@ -1,0 +1,71 @@
+--- a/purpur-server/build.gradle.kts
++++ b/purpur-server/build.gradle.kts
+@@ -35,6 +_,24 @@
+     activeFork = purpur
+     // Purpur end - Rebrand
+ 
++    // ShreddedPaper start - Rebrand
++    val shreddedpaper = forks.register("shreddedpaper") {
++        forks = purpur
++        upstream.patchRepo("paperServer") {
++            upstreamRepo = purpur.patchedRepo("paperServer")
++            patchesDir = rootDirectory.dir("shreddedpaper-server/paper-patches")
++            outputDir = rootDirectory.dir("paper-server")
++        }
++        upstream.patchDir("purpurServer") {
++            upstreamPath = "purpur-server"
++            excludes = setOf("src/minecraft", "paper-patches", "minecraft-patches", "build.gradle.kts", "build.gradle.kts.patch")
++            patchesDir = rootDirectory.dir("shreddedpaper-server/purpur-patches")
++            outputDir = rootDirectory.dir("purpur-server")
++        }
++    }
++    activeFork = shreddedpaper
++    // ShreddedPaper e d - Rebrand
++
+     spigot {
+         enabled = true
+         buildDataRef = "17f77cee7117ab9d6175f088ae8962bfd04e61a9"
+@@ -122,10 +_,14 @@
+     main {
+         java { srcDir("../paper-server/src/main/java") }
+         resources { srcDir("../paper-server/src/main/resources") }
++        java { srcDir("../purpur-server/src/main/java") } // ShreddedPaper - Rebrand
++        resources { srcDir("../purpur-server/src/main/resources") } // ShreddedPaper - Rebrand
+     }
+     test {
+         java { srcDir("../paper-server/src/test/java") }
+         resources { srcDir("../paper-server/src/test/resources") }
++        java { srcDir("../purpur-server/src/test/java") } // ShreddedPaper - Rebrand
++        resources { srcDir("../purpur-server/src/test/resources") } // ShreddedPaper - Rebrand
+     }
+ }
+ val log4jPlugins = sourceSets.create("log4jPlugins") {
+@@ -154,7 +_,7 @@
+ }
+ 
+ dependencies {
+-    implementation(project(":purpur-api")) // Purpur
++    implementation(project(":shreddedpaper-api")) // Purpur // ShreddedPaper
+     implementation("ca.spottedleaf:concurrentutil:0.0.8")
+     implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
+     implementation("org.jline:jline-terminal-jni:3.27.1") // fall back to jni on java 21
+@@ -229,14 +_,14 @@
+         val gitBranch = git.exec(providers, "rev-parse", "--abbrev-ref", "HEAD").get().trim()
+         attributes(
+             "Main-Class" to "org.bukkit.craftbukkit.Main",
+-            "Implementation-Title" to "Purpur", // Purpur
++            "Implementation-Title" to "ShreddedPaper", // Purpur // ShreddedPaper
+             "Implementation-Version" to implementationVersion,
+             "Implementation-Vendor" to date,
+-            "Specification-Title" to "Purpur", // Purpur
++            "Specification-Title" to "ShreddedPaper", // Purpur // ShreddedPaper
+             "Specification-Version" to project.version,
+-            "Specification-Vendor" to "Purpur Team", // Purpur
+-            "Brand-Id" to "purpurmc:purpur", // Purpur
+-            "Brand-Name" to "Purpur", // Purpur
++            "Specification-Vendor" to "ShreddedPaper Team", // Purpur // ShreddedPaper
++            "Brand-Id" to "shreddedpaper:shreddedpaper", // Purpur // ShreddedPaper
++            "Brand-Name" to "ShreddedPaper", // Purpur // ShreddedPaper
+             "Build-Number" to (build ?: ""),
+             "Build-Time" to buildTime.toString(),
+             "Git-Branch" to gitBranch,
