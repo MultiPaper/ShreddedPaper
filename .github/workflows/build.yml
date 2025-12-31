@@ -25,4 +25,9 @@ jobs:
       - name: Apply Patches
         run: ./gradlew applyAllPatches --stacktrace
       - name: Build
-        run: ./gradlew build
+        run: ./gradlew createMojmapPaperclipJar --stacktrace
+      - name: Upload Paperclip jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: shreddedpaper.jar
+          path: build/libs/shreddedpaper-paperclip-*-mojmap.jar
