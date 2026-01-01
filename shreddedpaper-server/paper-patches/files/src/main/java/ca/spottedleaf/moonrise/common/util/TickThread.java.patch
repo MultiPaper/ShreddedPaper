@@ -1,0 +1,174 @@
+--- a/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
++++ b/src/main/java/ca/spottedleaf/moonrise/common/util/TickThread.java
+@@ -1,14 +_,25 @@
+ package ca.spottedleaf.moonrise.common.util;
+ 
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
+ import net.minecraft.core.BlockPos;
++import net.minecraft.core.SectionPos;
++import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.Bukkit;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Set;
+ import java.util.concurrent.atomic.AtomicInteger;
+ 
+ public class TickThread extends Thread {
+@@ -16,9 +_,43 @@
+     private static final Logger LOGGER = LoggerFactory.getLogger(TickThread.class);
+ 
+     private static String getThreadContext() {
++        printShreddedPaperThreadContext(); // ShreddedPaper
+         return "thread=" + Thread.currentThread().getName();
+     }
+ 
++    // ShreddedPaper start
++    public static void printShreddedPaperThreadContext() {
++        if (!isTickThread()) {
++            MinecraftServer.LOGGER.error(Thread.currentThread().getName() + " tried to run a task async:");
++        } else {
++            MinecraftServer.LOGGER.error(Thread.currentThread().getName() + " tried to run a task from the wrong thread:");
++        }
++        MinecraftServer.LOGGER.error("Server Version: " + Bukkit.getVersion());
++        MinecraftServer.LOGGER.error("Region locks currently held (regionSize=" + RegionPos.REGION_SIZE + " chunks): " + getCurrentLocksHeld());
++    }
++
++    private static List<String> getCurrentLocksHeld() {
++        List<String> strings = new ArrayList<>();
++
++        for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
++            Set<RegionPos> regions = level.chunkScheduler.getRegionLocker().getLockedRegions();
++            if (!regions.isEmpty()) {
++                strings.add(WorldUtil.getWorldName(level) + "=" + regions.stream().map(region -> "[" + region.x + "," + region.z + "]").toList());
++            }
++        }
++
++        return strings;
++    }
++
++    public static boolean canBypassTickThreadCheck() {
++        return
++                ShreddedPaperConfiguration.get().multithreading.allowUnsupportedPluginsToModifyChunksViaGlobalScheduler &&
++                        SynchronousPluginExecution.getCurrentPlugin() != null &&
++                        Thread.currentThread() == MinecraftServer.getServer().getRunningThread() &&
++                        MinecraftServer.isBukkitSchedulerHearbeat;
++    }
++    // ShreddedPaper end
++
+     /**
+      * @deprecated
+      */
+@@ -119,54 +_,88 @@
+     }
+ 
+     public static boolean isTickThread() {
+-        return Thread.currentThread() instanceof TickThread;
++        return MinecraftServer.getServer().forceTicks || isShutdownThread() || Thread.currentThread() instanceof TickThread || ShreddedPaperTickThread.isShreddedPaperTickThread(); // ShreddedPaper
+     }
+ 
+     public static boolean isShutdownThread() {
+-        return false;
++        return Thread.currentThread() == MinecraftServer.getServer().shutdownThread; // ShreddedPaper
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final BlockPos pos) {
+-        return isTickThread();
++        return isTickThreadFor(world, new ChunkPos(pos)); // ShreddedPaper
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final BlockPos pos, final int blockRadius) {
+-        return isTickThread();
++        return isTickThreadFor(world, SectionPos.blockToSectionCoord(pos.getX() - blockRadius), SectionPos.blockToSectionCoord(pos.getZ() - blockRadius), SectionPos.blockToSectionCoord(pos.getX() + blockRadius), SectionPos.blockToSectionCoord(pos.getZ() + blockRadius)); // ShreddedPaper
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final ChunkPos pos) {
+-        return isTickThread();
++        return world.getServer().forceTicks || isShutdownThread() || ((ServerLevel) world).chunkScheduler.getRegionLocker().hasLock(RegionPos.forChunk(pos)); // ShreddedPaper
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final Vec3 pos) {
+-        return isTickThread();
++        return isTickThreadFor(world, pos.x, pos.z); // ShreddedPaper
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final int chunkX, final int chunkZ) {
+-        return isTickThread();
++        return isTickThreadFor(world, new ChunkPos(chunkX, chunkZ)); // ShreddedPaper
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final AABB aabb) {
+-        return isTickThread();
++        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(aabb.minX), CoordinateUtils.getChunkCoordinate(aabb.minZ), CoordinateUtils.getChunkCoordinate(aabb.maxX), CoordinateUtils.getChunkCoordinate(aabb.maxZ)); // ShreddedPaper
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final double blockX, final double blockZ) {
+-        return isTickThread();
++        return isTickThreadFor(world, CoordinateUtils.getChunkCoordinate(blockX), CoordinateUtils.getChunkCoordinate(blockZ)); // ShreddedPaper
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final Vec3 position, final Vec3 deltaMovement, final int buffer) {
+-        return isTickThread();
++        // ShreddedPaper start
++        int fromChunkX = CoordinateUtils.getChunkCoordinate(position.x);
++        int fromChunkZ = CoordinateUtils.getChunkCoordinate(position.z);
++        int toChunkX = CoordinateUtils.getChunkCoordinate(position.x + deltaMovement.x);
++        int toChunkZ = CoordinateUtils.getChunkCoordinate(position.z + deltaMovement.z);
++
++        int minChunkX = Math.min(fromChunkX, toChunkX) - buffer;
++        int minChunkZ = Math.min(fromChunkZ, toChunkZ) - buffer;
++        int maxChunkX = Math.max(fromChunkX, toChunkX) + buffer;
++        int maxChunkZ = Math.max(fromChunkZ, toChunkZ) + buffer;
++
++        return isTickThreadFor(world, minChunkX, minChunkZ, maxChunkX, maxChunkZ);
++        // ShreddedPaper end
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final int fromChunkX, final int fromChunkZ, final int toChunkX, final int toChunkZ) {
+-        return isTickThread();
++        // ShreddedPaper start
++        if (world.getServer().forceTicks || isShutdownThread()) return true;
++
++        int fromRegionX = fromChunkX >> RegionPos.REGION_SHIFT;
++        int fromRegionZ = fromChunkZ >> RegionPos.REGION_SHIFT;
++        int toRegionX = toChunkX >> RegionPos.REGION_SHIFT;
++        int toRegionZ = toChunkZ >> RegionPos.REGION_SHIFT;
++
++        int minRegionX = Math.min(fromRegionX, toRegionX);
++        int maxRegionX = Math.max(fromRegionX, toRegionX);
++        int minRegionZ = Math.min(fromRegionZ, toRegionZ);
++        int maxRegionZ = Math.max(fromRegionZ, toRegionZ);
++
++        for (int x = minRegionX; x <= maxRegionX; x++) {
++            for (int z = minRegionZ; z <= maxRegionZ; z++) {
++                if (!((ServerLevel) world).chunkScheduler.getRegionLocker().hasLock(new RegionPos(x, z))) {
++                    return false;
++                }
++            }
++        }
++
++        return true;
++        // ShreddedPaper end
+     }
+ 
+     public static boolean isTickThreadFor(final Level world, final int chunkX, final int chunkZ, final int radius) {
+-        return isTickThread();
++        return isTickThreadFor(world, chunkX - radius, chunkZ - radius, chunkX + radius, chunkZ + radius); // ShreddedPaper
+     }
+ 
+     public static boolean isTickThreadFor(final Entity entity) {
+-        return isTickThread();
++        return isTickThreadFor(entity.level(), entity.chunkPosition()); // ShreddedPaper
+     }
+ }

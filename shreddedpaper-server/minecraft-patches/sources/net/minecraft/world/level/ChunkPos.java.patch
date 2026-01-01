@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/level/ChunkPos.java
++++ b/net/minecraft/world/level/ChunkPos.java
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.level;
+ 
+ import com.mojang.serialization.Codec;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import io.netty.buffer.ByteBuf;
+ import java.util.Spliterators.AbstractSpliterator;
+ import java.util.function.Consumer;
+@@ -48,6 +_,7 @@
+     public final int x;
+     public final int z;
+     public final long longKey; // Paper
++    @Nullable private RegionPos regionPos; // ShreddedPaper
+     private static final int HASH_A = 1664525;
+     private static final int HASH_C = 1013904223;
+     private static final int HASH_Z_XOR = -559038737;
+@@ -69,6 +_,16 @@
+         this.z = (int)(packedPos >> 32);
+         this.longKey = asLong(this.x, this.z); // Paper
+     }
++
++    // ShreddedPaper start
++    public RegionPos getRegionPos() {
++        if (this.regionPos == null) {
++            // Cache the RegionPos to minimize object creation
++            this.regionPos = RegionPos.forChunk(this.x, this.z);
++        }
++        return this.regionPos;
++    }
++    // ShreddedPaper end
+ 
+     public static ChunkPos minFromRegion(int chunkX, int chunkZ) {
+         return new ChunkPos(chunkX << 5, chunkZ << 5);
