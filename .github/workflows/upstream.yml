@@ -1,0 +1,45 @@
+name: Update Upstream
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Once a day at 5pm GMT+9
+  workflow_dispatch: # on button click
+
+jobs:
+  upstream:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Git Repository
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Configure Git User Details
+        run: git config --global user.email "actions@github.com" && git config --global user.name "Github Actions"
+      - name: Update Upstream Commit Hash
+        run: ./purpurRefLatest.sh
+      - name: Apply Patches
+        run: ./gradlew applyAllPatches --stacktrace
+      - name: Build
+        run: ./gradlew createMojmapPaperclipJar --stacktrace
+      - name: Rebuild Patches
+        run: ./gradlew rebuildAllServerPatches --stacktrace
+      - name: Upload Paperclip jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: shreddedpaper.jar
+          path: shreddedpaper-server/build/libs/shreddedpaper-paperclip-*-mojmap.jar
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: Update Upstream
+          branch: update-upstream
+          delete-branch: true
+          title: 'Update Upstream'
+          body: ''

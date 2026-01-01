@@ -90,9 +90,9 @@ Requirements:
 - You need `jdk` 21+ installed to compile (and `jre` 21+ to run)
 
 Build instructions:
-1. Patch paper with: `./gradlew applyPatches`
-2. Build the shreddedpaper jar with: `./gradlew shadowjar createMojmapPaperclipJar`
-3. Get the shreddedpaper jar from `build/libs/shreddedpaper-paperclip-*-mojmap.jar`
+1. Patch paper with: `./gradlew applyAllPatches`
+2. Build the shreddedpaper jar with: `./gradlew createMojmapPaperclipJar`
+3. Get the shreddedpaper jar from `shreddedpaper-server/build/libs/shreddedpaper-paperclip-*-mojmap.jar`
 
 ## Publishing to maven local
 Publish to your local maven repository with: `./gradlew publishToMavenLocal`
