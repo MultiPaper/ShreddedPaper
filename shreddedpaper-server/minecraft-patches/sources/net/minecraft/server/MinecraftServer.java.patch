@@ -1,0 +1,18 @@
+--- a/net/minecraft/server/MinecraftServer.java
++++ b/net/minecraft/server/MinecraftServer.java
+@@ -10,6 +_,7 @@
+ import com.mojang.jtracy.DiscontinuousFrame;
+ import com.mojang.jtracy.TracyClient;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import it.unimi.dsi.fastutil.objects.ObjectArraySet;
+ import java.io.File;
+@@ -1020,6 +_,7 @@
+ 
+         LOGGER.info("Stopping server");
+         Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
++        ShreddedPaperTickThread.stopServer(); // ShreddedPaper
+         // Purpur start - UPnP Port Forwarding
+         if (upnp) {
+             if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {

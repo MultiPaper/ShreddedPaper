@@ -1,0 +1,18 @@
+--- a/net/minecraft/server/level/ServerLevel.java
++++ b/net/minecraft/server/level/ServerLevel.java
+@@ -5,6 +_,7 @@
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+@@ -221,6 +_,7 @@
+     private double preciseTime; // Purpur - Configurable daylight cycle
+     private boolean forceTime; // Purpur - Configurable daylight cycle
+     private final RandomSequences randomSequences;
++    public final ShreddedPaperRegionScheduler chunkScheduler = new ShreddedPaperRegionScheduler(); // ShreddedPaper
+     final LevelDebugSynchronizers debugSynchronizers = new LevelDebugSynchronizers(this);
+ 
+     // CraftBukkit start
