@@ -1,0 +1,29 @@
+--- a/net/minecraft/server/gui/MinecraftServerGui.java
++++ b/net/minecraft/server/gui/MinecraftServerGui.java
+@@ -51,7 +_,7 @@
+         } catch (Exception var3) {
+         }
+ 
+-        final JFrame jFrame = new JFrame("Purpur Minecraft server"); // Purpur - Improve GUI
++        final JFrame jFrame = new JFrame("ShreddedPaper Minecraft server"); // Purpur - Improve GUI // ShreddedPaper
+         final MinecraftServerGui minecraftServerGui = new MinecraftServerGui(server);
+         jFrame.setDefaultCloseOperation(2);
+         jFrame.add(minecraftServerGui);
+@@ -59,7 +_,7 @@
+         jFrame.setLocationRelativeTo(null);
+         jFrame.setVisible(true);
+         // Paper start - Improve ServerGUI
+-        jFrame.setName("Purpur Minecraft server"); // Purpur - Improve GUI
++        jFrame.setName("ShreddedPaper Minecraft server"); // Purpur - Improve GUI // ShreddedPaper
+         try {
+             jFrame.setIconImage(javax.imageio.ImageIO.read(java.util.Objects.requireNonNull(MinecraftServerGui.class.getClassLoader().getResourceAsStream("logo.png"))));
+         } catch (java.io.IOException ignore) {
+@@ -69,7 +_,7 @@
+             @Override
+             public void windowClosing(WindowEvent event) {
+                 if (!minecraftServerGui.isClosing.getAndSet(true)) {
+-                    jFrame.setTitle("Purpur Minecraft server - shutting down!"); // Purpur - Improve GUI
++                    jFrame.setTitle("ShreddedPaper Minecraft server - shutting down!"); // Purpur - Improve GUI // ShreddedPaper
+                     server.halt(true);
+                     minecraftServerGui.runFinalizers();
+                 }
