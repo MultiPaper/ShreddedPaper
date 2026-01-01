@@ -1,0 +1,20 @@
+--- a/net/minecraft/server/Main.java
++++ b/net/minecraft/server/Main.java
+@@ -15,6 +_,8 @@
+ import java.nio.file.Paths;
+ import java.util.Optional;
+ import java.util.function.BooleanSupplier;
++
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfigurationLoader;
+ import joptsimple.OptionParser;
+ import joptsimple.OptionSet;
+ import joptsimple.OptionSpec;
+@@ -104,6 +_,8 @@
+             if (optionSet.has("jfrProfile")) { // CraftBukkit
+                 JvmProfiler.INSTANCE.start(Environment.SERVER);
+             }
++
++            ShreddedPaperConfigurationLoader.init((File) optionSet.valueOf("shreddedpaper-settings")); // ShreddedPaper
+ 
+             // Purpur start - Add toggle for enchant level clamping - load config files early
+             org.bukkit.configuration.file.YamlConfiguration purpurConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) optionSet.valueOf("purpur-settings"));

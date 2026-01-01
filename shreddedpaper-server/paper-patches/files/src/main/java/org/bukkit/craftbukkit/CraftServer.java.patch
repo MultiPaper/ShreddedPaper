@@ -1,0 +1,26 @@
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -12,6 +_,7 @@
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.serialization.Dynamic;
+ import com.mojang.serialization.Lifecycle;
++import io.multipaper.shreddedpaper.permissions.ShreddedPaperPermissions;
+ import io.papermc.paper.configuration.GlobalConfiguration;
+ import io.papermc.paper.configuration.PaperServerConfiguration;
+ import io.papermc.paper.configuration.ServerConfiguration;
+@@ -617,6 +_,7 @@
+             // Spigot end
+             DefaultPermissions.registerCorePermissions();
+             CraftDefaultPermissions.registerCorePermissions();
++            ShreddedPaperPermissions.registerCorePermissions(); // ShreddedPaper
+             if (!io.papermc.paper.configuration.GlobalConfiguration.get().misc.loadPermissionsYmlBeforePlugins) this.loadCustomPermissions(); // Paper
+             this.syncCommands();
+         }
+@@ -2941,6 +_,7 @@
+         if (!io.papermc.paper.configuration.GlobalConfiguration.get().misc.loadPermissionsYmlBeforePlugins) loadCustomPermissions();
+         DefaultPermissions.registerCorePermissions();
+         CraftDefaultPermissions.registerCorePermissions();
++        ShreddedPaperPermissions.registerCorePermissions(); // ShreddedPaper
+     }
+ 
+     @Override
