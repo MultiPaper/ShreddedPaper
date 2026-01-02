@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/level/levelgen/LegacyRandomSource.java
++++ b/net/minecraft/world/level/levelgen/LegacyRandomSource.java
+@@ -30,6 +_,10 @@
+ 
+     @Override
+     public void setSeed(long seed) {
++        // ShreddedPaper start - thread safe - we don't really care about inconsistent randomness to vanilla as long as it's random
++        this.seed.set((seed ^ 25214903917L) & 281474976710655L);
++        if (true) return;
++        // ShreddedPaper end
+         if (!this.seed.compareAndSet(this.seed.get(), (seed ^ 25214903917L) & 281474976710655L)) {
+             throw ThreadingDetector.makeThreadingException("LegacyRandomSource", null);
+         } else {
+@@ -39,6 +_,14 @@
+ 
+     @Override
+     public int next(int size) {
++        // ShreddedPaper start - thread safe - we don't really care about inconsistent randomness to vanilla as long as it's random
++        long oldseed, nextseed;
++        do {
++            oldseed = this.seed.get();
++            nextseed = oldseed * 25214903917L + 11L & 281474976710655L;
++        } while (!this.seed.compareAndSet(oldseed, nextseed));
++        if (true) return (int)(nextseed >> 48 - size);
++        // ShreddedPaper end
+         long l = this.seed.get();
+         long l1 = l * 25214903917L + 11L & 281474976710655L;
+         if (!this.seed.compareAndSet(l, l1)) {
