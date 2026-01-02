@@ -133,7 +133,7 @@ public class ShreddedPaperChunkTicker {
                 level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
                 level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
 
-                region.forEach(chunk -> this._tickChunk(level, chunk, timeInhabited, filteredSpawningCategories, spawnState));
+                region.forEach(chunk -> this._tickChunk(region, level, chunk, timeInhabited, filteredSpawningCategories, spawnState));
 
                 level.runBlockEvents(region);
 

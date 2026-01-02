@@ -2,6 +2,8 @@ package io.multipaper.shreddedpaper.threading;
 
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.profiling.Profiler;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.entity.Entity;
 
 import java.util.Objects;
@@ -9,30 +11,27 @@ import java.util.Objects;
 public class ShreddedPaperEntityTicker {
 
     public static void tickEntity(Entity entity) {
+        ProfilerFiller profilerFiller = Profiler.get();
         ServerLevel level = (ServerLevel) entity.level();
 
-        entity.activatedPriorityReset = false; // Pufferfish - DAB
         if (!entity.isRemoved()) {
-            if (false && level.shouldDiscardEntity(entity)) { // CraftBukkit - We prevent spawning in general, so this butchering is not needed
-                entity.discard();
-            } else if (!level.tickRateManager().isEntityFrozen(entity)) {
-                //gameprofilerfiller.push("checkDespawn"); // Purpur
+            if (!level.tickRateManager().isEntityFrozen(entity)) {
+                profilerFiller.push("checkDespawn");
                 entity.checkDespawn();
-                //gameprofilerfiller.pop(); // Purpur
-                if (true || level.chunkSource.chunkMap.getDistanceManager().inEntityTickingRange(entity.chunkPosition().toLong())) { // Paper - now always true if in the ticking list
-                    Entity entity1 = entity.getVehicle();
-
-                    if (entity1 != null) {
-                        if (!entity1.isRemoved() && entity1.hasPassenger(entity)) {
+                profilerFiller.pop();
+                if (true) { // Paper - rewrite chunk system
+                    Entity vehicle = entity.getVehicle();
+                    if (vehicle != null) {
+                        if (!vehicle.isRemoved() && vehicle.hasPassenger(entity)) {
                             return;
                         }
 
                         entity.stopRiding();
                     }
 
-                    //gameprofilerfiller.push("tick"); // Purpur
+                    profilerFiller.push("tick");
                     level.guardEntityTick(level::tickNonPassenger, entity);
-                    //gameprofilerfiller.pop(); // Purpur
+                    profilerFiller.pop();
                 }
             }
         }

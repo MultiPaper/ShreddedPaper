@@ -1,0 +1,10 @@
+--- a/net/minecraft/world/entity/Entity.java
++++ b/net/minecraft/world/entity/Entity.java
+@@ -283,6 +_,7 @@
+     public double xOld;
+     public double yOld;
+     public double zOld;
++    public @Nullable ChunkPos previousTickingChunkPosRegion; // ShreddedPaper
+     public float maxUpStep; // Purpur - Add option to set armorstand step height
+     public boolean noPhysics;
+     public final RandomSource random; // Paper - Share random for entities to make them more random // Add toggle for RNG manipulation

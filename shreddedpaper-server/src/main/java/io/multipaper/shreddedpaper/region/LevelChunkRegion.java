@@ -212,6 +212,7 @@ public class LevelChunkRegion {
 
     public boolean isEmpty() {
         return levelChunks.isEmpty()
+                && playerTickingChunkRequests.isEmpty()
                 && tickingEntities.size() == 0
                 && scheduledTasks.isEmpty()
                 && internalTasks.getTotalTasksExecuted() >= internalTasks.getTotalTasksScheduled()

@@ -35,3 +35,12 @@
          this.registryAccess = registryAccess;
          this.palettedContainerFactory = PalettedContainerFactory.create(registryAccess);
          this.damageSources = new DamageSources(registryAccess);
+@@ -1481,7 +_,7 @@
+             entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
+             // Paper end - Prevent block entity and entity crashes
+         }
+-        this.moonrise$midTickTasks(); // Paper - rewrite chunk system
++        // this.moonrise$midTickTasks(); // Paper - rewrite chunk system // ShreddedPaper - disable
+     }
+ 
+     // Paper start - Option to prevent armor stands from doing entity lookups
