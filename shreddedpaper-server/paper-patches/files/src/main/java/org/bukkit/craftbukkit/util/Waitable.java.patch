@@ -1,0 +1,15 @@
+--- a/src/main/java/org/bukkit/craftbukkit/util/Waitable.java
++++ b/src/main/java/org/bukkit/craftbukkit/util/Waitable.java
+@@ -33,6 +_,12 @@
+ 
+     protected abstract T evaluate();
+ 
++    // ShreddedPaper start
++    public boolean isDone() {
++        return this.status == Status.FINISHED;
++    }
++    // ShreddedPaper end
++
+     public synchronized T get() throws InterruptedException, ExecutionException {
+         while (this.status != Status.FINISHED) {
+             this.wait();

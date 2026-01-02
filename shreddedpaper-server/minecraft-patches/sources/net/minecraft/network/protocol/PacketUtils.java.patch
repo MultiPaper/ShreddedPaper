@@ -1,0 +1,49 @@
+--- a/net/minecraft/network/protocol/PacketUtils.java
++++ b/net/minecraft/network/protocol/PacketUtils.java
+@@ -1,6 +_,8 @@
+ package net.minecraft.network.protocol;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+@@ -8,6 +_,8 @@
+ import net.minecraft.network.PacketProcessor;
+ import net.minecraft.server.RunningOnDifferentThreadException;
+ import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.network.ServerCommonPacketListenerImpl;
++import net.minecraft.server.network.ServerGamePacketListenerImpl;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+@@ -19,6 +_,28 @@
+     }
+ 
+     public static <T extends PacketListener> void ensureRunningOnSameThread(Packet<T> packet, T packetListener, PacketProcessor processor) throws RunningOnDifferentThreadException {
++        // ShreddedPaper start - run on player's thread
++        if (packetListener instanceof ServerGamePacketListenerImpl gamePacketListener) {
++            if (TickThread.isTickThreadFor(gamePacketListener.player)) return;
++            ShreddedPaper.runSync(gamePacketListener.player, () -> {
++                if (packetListener instanceof net.minecraft.server.network.ServerCommonPacketListenerImpl serverCommonPacketListener && serverCommonPacketListener.processedDisconnect) return; // Paper - Don't handle sync packets for kicked players
++                if (packetListener.shouldHandleMessage(packet)) {
++                    try {
++                        packet.handle(packetListener);
++                    } catch (Exception var3) {
++                        if (var3 instanceof ReportedException reportedException && reportedException.getCause() instanceof OutOfMemoryError) {
++                            throw PacketUtils.makeReportedException(var3, packet, packetListener);
++                        }
++
++                        packetListener.onPacketError(packet, var3);
++                    }
++                } else {
++                    LOGGER.debug("Ignoring packet due to disconnection: {}", packet);
++                }
++            });
++            throw RunningOnDifferentThreadException.RUNNING_ON_DIFFERENT_THREAD;
++        }
++        // ShreddedPaper end - run on player's thread
+         if (!processor.isSameThread()) {
+             processor.scheduleIfPossible(packetListener, packet);
+             throw RunningOnDifferentThreadException.RUNNING_ON_DIFFERENT_THREAD;
