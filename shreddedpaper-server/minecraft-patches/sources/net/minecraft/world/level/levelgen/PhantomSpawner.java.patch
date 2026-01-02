@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/levelgen/PhantomSpawner.java
++++ b/net/minecraft/world/level/levelgen/PhantomSpawner.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.levelgen;
+ 
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+@@ -41,6 +_,7 @@
+                     if (level.getSkyDarken() >= level.purpurConfig.phantomSpawnMinSkyDarkness || !level.dimensionType().hasSkyLight()) { // Purpur - Add phantom spawning options
+                         for (ServerPlayer serverPlayer : level.players()) {
+                             if (!serverPlayer.isSpectator() && (!level.paperConfig().entities.behavior.phantomsDoNotSpawnOnCreativePlayers || !serverPlayer.isCreative())) { // Paper - Add phantom creative and insomniac controls
++                                ShreddedPaper.runSync(serverPlayer, () -> { // ShreddedPaper - run on player's thread
+                                 BlockPos blockPos = serverPlayer.blockPosition();
+                                 if (!level.dimensionType().hasSkyLight() || (!level.purpurConfig.phantomSpawnOnlyAboveSeaLevel || blockPos.getY() >= level.getSeaLevel()) && (!level.purpurConfig.phantomSpawnOnlyWithVisibleSky || level.canSeeSky(blockPos))) { // Purpur - Add phantom spawning options
+                                     DifficultyInstance currentDifficultyAt = level.getCurrentDifficultyAt(blockPos);
+@@ -82,6 +_,7 @@
+                                         }
+                                     }
+                                 }
++                                }); // ShreddedPaper - run on player's thread
+                             }
+                         }
+                     }

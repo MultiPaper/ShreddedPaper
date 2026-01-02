@@ -1,0 +1,27 @@
+--- a/net/minecraft/world/entity/npc/CatSpawner.java
++++ b/net/minecraft/world/entity/npc/CatSpawner.java
+@@ -1,6 +_,8 @@
+ package net.minecraft.world.entity.npc;
+ 
+ import java.util.List;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.tags.StructureTags;
+@@ -26,6 +_,7 @@
+             this.nextTick = level.purpurConfig.catSpawnDelay; // Purpur - Cat spawning options
+             Player randomPlayer = level.getRandomPlayer();
+             if (randomPlayer != null) {
++                ShreddedPaper.runSync(randomPlayer, () -> { // ShreddedPaper - run on player's thread
+                 RandomSource randomSource = level.random;
+                 int i = (8 + randomSource.nextInt(24)) * (randomSource.nextBoolean() ? -1 : 1);
+                 int i1 = (8 + randomSource.nextInt(24)) * (randomSource.nextBoolean() ? -1 : 1);
+@@ -40,6 +_,7 @@
+                         }
+                     }
+                 }
++                }); // ShreddedPaper - run on player's thread
+             }
+         }
+     }

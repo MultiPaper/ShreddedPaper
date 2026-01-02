@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/levelgen/PatrolSpawner.java
++++ b/net/minecraft/world/level/levelgen/PatrolSpawner.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.levelgen;
+ 
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -43,6 +_,7 @@
+                     patrolSpawnDelay = this.nextTick;
+                 }
+                 if (patrolSpawnDelay <= 0) {
++                    ShreddedPaper.runSync(player, () -> { // ShreddedPaper - run on player's thread
+                     long dayCount;
+                     if (level.paperConfig().entities.behavior.pillagerPatrols.start.perPlayer) {
+                         dayCount = player.getStats().getValue(net.minecraft.stats.Stats.CUSTOM.get(net.minecraft.stats.Stats.PLAY_TIME)) / 24000L; // PLAY_TIME is counting in ticks
+@@ -93,6 +_,7 @@
+                             }
+                         }
+                     }
++                    }); // ShreddedPaper - run on player's thread
+                 }
+             }
+         }

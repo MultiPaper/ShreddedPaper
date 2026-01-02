@@ -1,0 +1,44 @@
+--- a/net/minecraft/world/entity/npc/wanderingtrader/WanderingTraderSpawner.java
++++ b/net/minecraft/world/entity/npc/wanderingtrader/WanderingTraderSpawner.java
+@@ -1,6 +_,8 @@
+ package net.minecraft.world.entity.npc.wanderingtrader;
+ 
+ import java.util.Optional;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.tags.BiomeTags;
+@@ -87,6 +_,7 @@
+         } else if (this.random.nextInt(10) != 0) {
+             return false;
+         } else {
++            ShreddedPaper.runSync(randomPlayer, () -> { // ShreddedPaper - run on player's thread
+             BlockPos blockPos = randomPlayer.blockPosition();
+             int i = 48;
+             PoiManager poiManager = level.getPoiManager();
+@@ -95,7 +_,7 @@
+             BlockPos blockPos2 = this.findSpawnPositionNear(level, blockPos1, 48);
+             if (blockPos2 != null && this.hasEnoughSpace(level, blockPos2)) {
+                 if (level.getBiome(blockPos2).is(BiomeTags.WITHOUT_WANDERING_TRADER_SPAWNS)) {
+-                    return false;
++                    return /*false*/; // ShreddedPaper - no return value
+                 }
+ 
+                 WanderingTrader wanderingTrader = EntityType.WANDERING_TRADER.spawn(level, trader -> trader.setDespawnDelay(48000), blockPos2, EntitySpawnReason.EVENT, false, false, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL); // CraftBukkit // Paper - set despawnTimer before spawn events called
+@@ -108,11 +_,13 @@
+                     // wanderingTrader.setDespawnDelay(48000); // Paper - moved above, modifiable by plugins on CreatureSpawnEvent
+                     wanderingTrader.setWanderTarget(blockPos1);
+                     wanderingTrader.setHomeTo(blockPos1, 16);
+-                    return true;
++                    return /*true*/; // ShreddedPaper - no return value
+                 }
+             }
+ 
+-            return false;
++            return /*false*/; // ShreddedPaper - no return value
++            }); // ShreddedPaper - run on player's thread
++            return true; // ShreddedPaper - assume true
+         }
+     }
+ 
