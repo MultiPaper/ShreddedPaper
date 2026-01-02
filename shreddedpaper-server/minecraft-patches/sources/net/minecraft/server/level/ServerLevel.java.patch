@@ -9,15 +9,21 @@
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.longs.LongSet;
-@@ -26,6 +_,7 @@
+@@ -26,6 +_,8 @@
  import java.util.Optional;
  import java.util.Set;
  import java.util.UUID;
 +import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.CopyOnWriteArrayList;
  import java.util.concurrent.Executor;
  import java.util.function.BooleanSupplier;
  import java.util.function.Function;
-@@ -194,7 +_,7 @@
+@@ -190,11 +_,11 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final int EMPTY_TIME_NO_TICK = 300;
+     private static final int MAX_SCHEDULED_TICKS_PER_TICK = 65536;
+-    final List<ServerPlayer> players = Lists.newArrayList();
++    final List<ServerPlayer> players = new CopyOnWriteArrayList<>(); // ShreddedPaper - thread-safe (players should not be changing worlds often, thus copy-on-write is sufficient)
      public final ServerChunkCache chunkSource;
      private final MinecraftServer server;
      public final net.minecraft.world.level.storage.PrimaryLevelData serverLevelData; // CraftBukkit - type
@@ -353,11 +359,28 @@
              // Paper start - Reset pearls when they stop being ticked
              if (ServerLevel.this.paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && ServerLevel.this.paperConfig().misc.legacyEnderPearlBehavior && entity instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl pearl) {
                  pearl.setOwner(null);
-@@ -2991,6 +_,7 @@
+@@ -2876,6 +_,7 @@
+             // ServerLevel.this.getChunkSource().addEntity(entity); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
+             if (entity instanceof ServerPlayer serverPlayer) {
+                 ServerLevel.this.players.add(serverPlayer);
++                ServerLevel.this.getChunkSource().tickingRegions.addPlayer(serverPlayer); // ShreddedPaper - add player to region
+                 if (serverPlayer.isReceivingWaypoints()) {
+                     ServerLevel.this.getWaypointManager().addPlayer(serverPlayer);
+                 }
+@@ -2953,6 +_,7 @@
+             // Spigot end
+             ServerLevel.this.getChunkSource().removeEntity(entity);
+             if (entity instanceof ServerPlayer serverPlayer) {
++                ServerLevel.this.getChunkSource().tickingRegions.removePlayer(serverPlayer); // ShreddedPaper - remove player from region
+                 ServerLevel.this.players.remove(serverPlayer);
+                 ServerLevel.this.getWaypointManager().removePlayer(serverPlayer);
+                 ServerLevel.this.updateSleepingPlayerList();
+@@ -2991,6 +_,8 @@
          @Override
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
 +            ServerLevel.this.chunkSource.tickingRegions.moveTickingEntity(entity); // ShreddedPaper - move ticking entity into the new region
++            if (entity instanceof ServerPlayer serverPlayer) ServerLevel.this.chunkSource.tickingRegions.movePlayer(serverPlayer); // ShreddedPaper - move player into the new region
          }
      }
  

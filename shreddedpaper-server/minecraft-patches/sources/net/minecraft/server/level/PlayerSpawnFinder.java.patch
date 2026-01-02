@@ -1,0 +1,20 @@
+--- a/net/minecraft/server/level/PlayerSpawnFinder.java
++++ b/net/minecraft/server/level/PlayerSpawnFinder.java
+@@ -3,6 +_,8 @@
+ import java.util.Optional;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.function.Supplier;
++
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+@@ -146,7 +_,7 @@
+                         crashReportCategory.setDetail("Progress", () -> index + " out of " + this.candidateCount);
+                         this.finishedFuture.completeExceptionally(new ReportedException(crashReport));
+                     }
+-                }, this.level.chunkSource.mainThreadProcessor); // Paper - rewrite chunk system
++                }, this.level.getChunkSource().tickingRegions.executorFor(RegionPos.forChunk(sectionPosX, sectionPosZ))); // Paper - rewrite chunk system // ShreddedPaper - run on region
+         }
+     }
+ 

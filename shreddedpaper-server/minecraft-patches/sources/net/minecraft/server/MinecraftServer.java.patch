@@ -1,9 +1,18 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -10,6 +_,7 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.server;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.base.Splitter;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Lists;
+@@ -10,6 +_,9 @@
  import com.mojang.jtracy.DiscontinuousFrame;
  import com.mojang.jtracy.TracyClient;
  import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperPlayerTicker;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectArraySet;
@@ -92,9 +101,25 @@
          // Paper end - optimise Folia entity scheduler
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.ADVENTURE_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.DIALOG_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
-@@ -1837,6 +_,7 @@
+@@ -1836,7 +_,23 @@
+             }
          }
  
++        profilerFiller.popPush("connection"); // ShreddedPaper - moved up
++        this.tickConnection(); // ShreddedPaper - moved up
++        // ShreddedPaper start - some players aren't registered in their level if they're dead, let's manually add a task for them to process them
++        for (ServerPlayer player : this.playerList.getPlayers()) {
++            if (player.isRemoved()) {
++                ShreddedPaper.runSync((ServerLevel) player.level(), player.chunkPosition(), () -> {
++                    if (TickThread.isTickThreadFor(player)) {
++                        player.getBukkitEntity().taskScheduler.executeTick();
++                        ShreddedPaperPlayerTicker.tickPlayer(player);
++                    }
++                });
++            }
++        }
++        // ShreddedPaper end
++
          this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
 +        List<CompletableFuture<Void>> futures = new ArrayList<>(); // ShreddedPaper - tick worlds async
          for (ServerLevel serverLevel : this.getAllLevels()) {
@@ -111,7 +136,7 @@
              } catch (Throwable var7) {
                  CrashReport crashReport = CrashReport.forThrowable(var7, "Exception ticking world");
                  serverLevel.fillReportDetails(crashReport);
-@@ -1864,9 +_,17 @@
+@@ -1864,12 +_,20 @@
  
              profilerFiller.pop();
              profilerFiller.pop();
@@ -119,7 +144,9 @@
 +            // serverLevel.explosionDensityCache.clear(); // Paper - Optimize explosions // ShreddedPaper - moved up
          }
          this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
-+
+ 
+-        profilerFiller.popPush("connection");
+-        this.tickConnection();
 +        // ShreddedPaper start - tick worlds async
 +        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) org.bukkit.Bukkit.getGlobalRegionScheduler()).tick(); // Run global region scheduler async to world ticking
 +        for (CompletableFuture<Void> future : futures) {
@@ -127,6 +154,9 @@
 +            future.join();
 +        }
 +        // ShreddedPaper end - tick worlds async
- 
-         profilerFiller.popPush("connection");
-         this.tickConnection();
++
++        // profilerFiller.popPush("connection"); // ShreddedPaper - move up
++        // this.tickConnection(); // ShreddedPaper - move up
+         profilerFiller.popPush("players");
+         this.playerList.tick();
+         profilerFiller.popPush("debugSubscribers");

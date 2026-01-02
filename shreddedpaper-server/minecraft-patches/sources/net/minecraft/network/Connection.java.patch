@@ -1,0 +1,25 @@
+--- a/net/minecraft/network/Connection.java
++++ b/net/minecraft/network/Connection.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.network;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.collect.Queues;
+ import com.mojang.logging.LogUtils;
+ import io.netty.bootstrap.Bootstrap;
+@@ -47,6 +_,7 @@
+ import net.minecraft.network.protocol.status.StatusProtocols;
+ import net.minecraft.server.RunningOnDifferentThreadException;
+ import net.minecraft.server.network.EventLoopGroupHolder;
++import net.minecraft.server.network.ServerGamePacketListenerImpl;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.debugchart.LocalSampleLogger;
+@@ -556,6 +_,7 @@
+     private static int currTick; // Paper - Buffer joins to world
+     private static int tickSecond; // Purpur - Max joins per second
+     public void tick() {
++        if (this.packetListener instanceof ServerGamePacketListenerImpl serverGamePacketListener && !TickThread.isTickThreadFor(serverGamePacketListener.player)) return; // ShreddedPaper
+         this.flushQueue();
+         // Paper start - Buffer joins to world
+         if (Connection.currTick != net.minecraft.server.MinecraftServer.currentTick) {

@@ -1,0 +1,44 @@
+--- a/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
++++ b/net/minecraft/server/network/ServerCommonPacketListenerImpl.java
+@@ -1,7 +_,10 @@
+ package net.minecraft.server.network;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import io.netty.channel.ChannelFutureListener;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+@@ -391,7 +_,7 @@
+         if (this.processedDisconnect) {
+             return;
+         }
+-        if (!this.cserver.isPrimaryThread()) {
++        if (this instanceof ServerGamePacketListenerImpl serverGamePacketListener ? !TickThread.isTickThreadFor(serverGamePacketListener.player) : !this.cserver.isPrimaryThread()) { // ShreddedPaper
+             org.bukkit.craftbukkit.util.Waitable waitable = new org.bukkit.craftbukkit.util.Waitable() {
+                 @Override
+                 protected Object evaluate() {
+@@ -400,9 +_,20 @@
+                 }
+             };
+ 
+-            this.server.processQueue.add(waitable);
++            // ShreddedPaper - run on player's thread
++            if (this instanceof ServerGamePacketListenerImpl serverGamePacketListener) {
++                if (TickThread.isTickThread()) {
++                    serverGamePacketListener.player.level().chunkSource.tickingRegions.execute(RegionPos.forChunk(serverGamePacketListener.player.chunkPosition()), waitable);
++                } else {
++                    ShreddedPaper.runSync(serverGamePacketListener.player, waitable); // this.server.processQueue.add(waitable);
++                }
++            } else {
++                this.server.processQueue.add(waitable);
++            }
++            // ShreddedPaper end - run on player's thread
+ 
+             try {
++                if (TickThread.isTickThread()) this.server.managedBlock(waitable::isDone); // ShreddedPaper - don't block when waiting
+                 waitable.get();
+             } catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
