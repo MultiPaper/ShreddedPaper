@@ -1,9 +1,15 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -5,6 +_,8 @@
+@@ -1,10 +_,14 @@
+ package net.minecraft.server.level;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.annotations.VisibleForTesting;
+ import com.google.common.collect.Lists;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.region.LevelTicksRegionProxy;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -32,6 +38,17 @@
      private final ServerWaypointManager waypointManager;
      private final EnvironmentAttributeSystem environmentAttributes;
      // Paper - rewrite chunk system
+@@ -203,8 +_,8 @@
+     private final SleepStatus sleepStatus;
+     private int emptyTime;
+     private final PortalForcer portalForcer;
+-    private final LevelTicks<Block> blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
+-    private final LevelTicks<Fluid> fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
++    public final LevelTicksRegionProxy<Block> blockTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded); // ShreddedPaper
++    public final LevelTicksRegionProxy<Fluid> fluidTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded); // ShreddedPaper
+     private final PathTypeCache pathTypesByPosCache = new PathTypeCache();
+     final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>();
+     volatile boolean isUpdatingNavigations;
 @@ -221,6 +_,7 @@
      private double preciseTime; // Purpur - Configurable daylight cycle
      private boolean forceTime; // Purpur - Configurable daylight cycle
@@ -312,6 +329,40 @@
      }
  
      @Override
+@@ -1392,27 +_,29 @@
+         this.emptyTime = 0;
+     }
+ 
+-    private void tickFluid(BlockPos pos, Fluid fluid) {
++    public void tickFluid(BlockPos pos, Fluid fluid) { // ShreddedPaper - make public
++        TickThread.ensureTickThread(this, pos, "Cannot tick fluid outside of tick thread"); // ShreddedPaper
+         BlockState blockState = this.getBlockState(pos);
+         FluidState fluidState = blockState.getFluidState();
+         if (fluidState.is(fluid)) {
+             fluidState.tick(this, pos, blockState);
+         }
+         // Paper start - rewrite chunk system
+-        if ((++this.tickedBlocksOrFluids & 7L) != 0L) {
++        if (false && (++this.tickedBlocksOrFluids & 7L) != 0L) { // ShreddedPaper - no mid tick tasks
+             ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.server).moonrise$executeMidTickTasks();
+         }
+         // Paper end - rewrite chunk system
+ 
+     }
+ 
+-    private void tickBlock(BlockPos pos, Block block) {
++    public void tickBlock(BlockPos pos, Block block) { // ShreddedPaper - make public
++        TickThread.ensureTickThread(this, pos, "Cannot tick block outside of tick thread"); // ShreddedPaper
+         BlockState blockState = this.getBlockState(pos);
+         if (blockState.is(block)) {
+             blockState.tick(this, pos, this.random);
+         }
+         // Paper start - rewrite chunk system
+-        if ((++this.tickedBlocksOrFluids & 7L) != 0L) {
++        if (false && (++this.tickedBlocksOrFluids & 7L) != 0L) { // ShreddedPaper - no mid tick tasks
+             ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.server).moonrise$executeMidTickTasks();
+         }
+         // Paper end - rewrite chunk system
 @@ -1467,7 +_,7 @@
      private void tickPassenger(Entity ridingEntity, Entity passengerEntity, final boolean isActive) { // Paper - EAR 2
          if (passengerEntity.isRemoved() || passengerEntity.getVehicle() != ridingEntity) {

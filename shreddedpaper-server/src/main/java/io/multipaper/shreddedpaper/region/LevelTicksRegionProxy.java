@@ -24,18 +24,16 @@ public class LevelTicksRegionProxy<T> extends LevelTicks<T> {
     private static final Logger LOGGER = LogUtils.getClassLogger();
 
     private final LongPredicate tickingFutureReadyPredicate;
-    private final Supplier<ProfilerFiller> profilerGetter;
     private final Long2ObjectMap<LevelTicks<T>> regions = new Long2ObjectOpenHashMap<>();
     private final SimpleStampedLock regionsLock = new SimpleStampedLock();
 
-    public LevelTicksRegionProxy(LongPredicate tickingFutureReadyPredicate, Supplier<ProfilerFiller> profilerGetter) {
-        super(tickingFutureReadyPredicate, profilerGetter);
+    public LevelTicksRegionProxy(LongPredicate tickingFutureReadyPredicate) {
+        super(tickingFutureReadyPredicate);
         this.tickingFutureReadyPredicate = tickingFutureReadyPredicate;
-        this.profilerGetter = profilerGetter;
     }
 
     private LevelTicks<T> createRegionLevelTicks() {
-        return new LevelTicks<>(tickingFutureReadyPredicate, profilerGetter);
+        return new LevelTicks<>(tickingFutureReadyPredicate);
     }
 
     public Optional<LevelTicks<T>> get(BlockPos pos) {
