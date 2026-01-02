@@ -1,0 +1,31 @@
+--- a/net/minecraft/world/entity/ai/village/VillageSiege.java
++++ b/net/minecraft/world/entity/ai/village/VillageSiege.java
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.entity.ai.village;
+ 
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.tags.BiomeTags;
+@@ -89,10 +_,11 @@
+     private void trySpawn(ServerLevel level) {
+         Vec3 vec3 = this.findRandomSpawnPos(level, new BlockPos(this.spawnX, this.spawnY, this.spawnZ));
+         if (vec3 != null) {
++            ShreddedPaper.runSync(level, new BlockPos((int) vec3.x, (int) vec3.y, (int) vec3.z), () -> { // ShreddedPaper - run on block's thread
+             Zombie zombie;
+             try {
+                 zombie = new Zombie(level);
+-                zombie.finalizeSpawn(level, level.getCurrentDifficultyAt(zombie.blockPosition()), EntitySpawnReason.EVENT, null);
++                zombie.finalizeSpawn(level, level.getCurrentDifficultyAt(new BlockPos((int) vec3.x, (int) vec3.y, (int) vec3.z)), EntitySpawnReason.EVENT, null); // ShreddedPaper - use zombie's planned position, not 0,0
+             } catch (Exception var5) {
+                 LOGGER.warn("Failed to create zombie for village siege at {}", vec3, var5);
+                 com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(var5); // Paper - ServerExceptionEvent
+@@ -101,6 +_,7 @@
+ 
+             zombie.snapTo(vec3.x, vec3.y, vec3.z, level.random.nextFloat() * 360.0F, 0.0F);
+             level.addFreshEntityWithPassengers(zombie, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.VILLAGE_INVASION); // CraftBukkit
++            }); // ShreddedPaper - run on block's thread
+         }
+     }
+ 
