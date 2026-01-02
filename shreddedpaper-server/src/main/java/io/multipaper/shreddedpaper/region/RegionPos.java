@@ -64,6 +64,10 @@ public class RegionPos {
         this.longKey = regionKey;
     }
 
+    public long toLong() {
+        return this.longKey;
+    }
+
     public static RegionPos forChunk(ChunkPos chunkPos) {
         return chunkPos.getRegionPos(); // Cache the RegionPos on the ChunkPos to minimize object creation
     }

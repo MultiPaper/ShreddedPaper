@@ -1,0 +1,39 @@
+--- a/ca/spottedleaf/moonrise/paper/util/BaseChunkSystemHooks.java
++++ b/ca/spottedleaf/moonrise/paper/util/BaseChunkSystemHooks.java
+@@ -109,28 +_,30 @@
+ 
+     @Override
+     public void onChunkTicking(final LevelChunk chunk, final ChunkHolder holder) {
+-        ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getTickingChunks().add(chunk);
++        // ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getTickingChunks().add(chunk); // ShreddedPaper - unused, replaced by tickingRegions
+         if (!((ChunkSystemLevelChunk)chunk).moonrise$isPostProcessingDone()) {
+             chunk.postProcessGeneration((ServerLevel)chunk.getLevel());
+         }
+         ((ServerLevel)chunk.getLevel()).startTickingChunk(chunk);
++        chunk.level.getChunkSource().tickingRegions.addTickingChunk(chunk); // ShreddedPaper
+     }
+ 
+     @Override
+     public void onChunkNotTicking(final LevelChunk chunk, final ChunkHolder holder) {
+-        ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getTickingChunks().remove(chunk);
++        // ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getTickingChunks().remove(chunk); // ShreddedPaper - unused, replaced by tickingRegions
++        chunk.level.getChunkSource().tickingRegions.removeTickingChunk(chunk); // ShreddedPaper
+     }
+ 
+     @Override
+     public void onChunkEntityTicking(final LevelChunk chunk, final ChunkHolder holder) {
+-        ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getEntityTickingChunks().add(chunk);
+-        ((ChunkTickServerLevel)(ServerLevel)chunk.getLevel()).moonrise$markChunkForPlayerTicking(chunk); // Moonrise - chunk tick iteration
++        // ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getEntityTickingChunks().add(chunk); // ShreddedPaper - unused, replaced by tickingRegions
++        // ((ChunkTickServerLevel)(ServerLevel)chunk.getLevel()).moonrise$markChunkForPlayerTicking(chunk); // Moonrise - chunk tick iteration // ShreddedPaper - handled by the regions
+     }
+ 
+     @Override
+     public void onChunkNotEntityTicking(final LevelChunk chunk, final ChunkHolder holder) {
+-        ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getEntityTickingChunks().remove(chunk);
+-        ((ChunkTickServerLevel)(ServerLevel)chunk.getLevel()).moonrise$removeChunkForPlayerTicking(chunk); // Moonrise - chunk tick iteration
++        // ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getEntityTickingChunks().remove(chunk); // ShreddedPaper - unused, replaced by tickingRegions
++        // ((ChunkTickServerLevel)(ServerLevel)chunk.getLevel()).moonrise$removeChunkForPlayerTicking(chunk); // Moonrise - chunk tick iteration // ShreddedPaper - handled by the regions
+     }
+ 
+     @Override

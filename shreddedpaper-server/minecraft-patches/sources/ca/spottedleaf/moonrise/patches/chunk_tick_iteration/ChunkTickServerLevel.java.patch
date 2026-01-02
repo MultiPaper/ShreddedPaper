@@ -1,0 +1,28 @@
+--- a/ca/spottedleaf/moonrise/patches/chunk_tick_iteration/ChunkTickServerLevel.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_tick_iteration/ChunkTickServerLevel.java
+@@ -6,14 +_,16 @@
+ 
+ public interface ChunkTickServerLevel {
+ 
+-    public ReferenceList<LevelChunk> moonrise$getPlayerTickingChunks();
+-
+-    public void moonrise$markChunkForPlayerTicking(final LevelChunk chunk);
+-
+-    public void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk);
+-
+-    public void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ);
+-
+-    public void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ);
++    // ShreddedPaper start - handled by the regions
++//    public ReferenceList<LevelChunk> moonrise$getPlayerTickingChunks();
++//
++//    public void moonrise$markChunkForPlayerTicking(final LevelChunk chunk);
++//
++//    public void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk);
++//
++//    public void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ);
++//
++//    public void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ);
++    // ShreddedPaper end - handled by the regions
+ 
+ }
