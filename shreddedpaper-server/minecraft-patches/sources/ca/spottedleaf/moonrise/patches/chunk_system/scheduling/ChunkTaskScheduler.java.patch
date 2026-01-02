@@ -1,0 +1,73 @@
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkTaskScheduler.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkTaskScheduler.java
+@@ -27,6 +_,10 @@
+ import com.google.gson.JsonArray;
+ import com.google.gson.JsonObject;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.region.LevelChunkRegion;
++import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+@@ -334,6 +_,41 @@
+     }
+ 
+     public boolean executeMainThreadTask() {
++        // ShreddedPaper start
++        boolean ret = false;
++        for (RegionPos regionPos : world.chunkScheduler.getRegionLocker().getLockedRegions()) {
++            LevelChunkRegion region = world.chunkSource.tickingRegions.get(regionPos);
++            if (region != null) {
++                ret |= region.getInternalTaskQueue().executeTask();
++            }
++        }
++        if (!ret) {
++            // Try bordering regions to our locked regions
++            for (RegionPos regionPos : world.chunkScheduler.getRegionLocker().getLockedRegions()) {
++                for (int x = -1; x <= 1; x++) {
++                    for (int z = -1; z <= 1; z++) {
++                        RegionPos borderRegionPos = new RegionPos(regionPos.x + x, regionPos.z + z);
++                        if (world.chunkScheduler.getRegionLocker().hasLock(borderRegionPos)) continue; // Don't bother trying regions we already have locked
++                        LevelChunkRegion region = world.chunkSource.tickingRegions.get(borderRegionPos);
++                        if (region != null && !region.getInternalTaskQueue().hasNoScheduledTasks()) {
++                            ShreddedPaperRegionLocker.RegionLock lock = world.chunkScheduler.getRegionLocker().internalTryTakeReadOnlyLockNow(borderRegionPos, 0);
++                            if (lock != null) {
++                                try {
++                                    ret |= region.getInternalTaskQueue().executeTask();
++                                } finally {
++                                    lock.unlock();
++                                }
++                            }
++                        }
++                    }
++                }
++            }
++        }
++        if (ret || ShreddedPaperTickThread.isShreddedPaperTickThread()) {
++            // Don't run the mainThreadExecutor tasks below if we're a ShreddedPaperTickThread
++            return ret;
++        }
++        // ShreddedPaper end
+         TickThread.ensureTickThread("Cannot execute main thread task off-main");
+         return this.mainThreadExecutor.executeTask();
+     }
+@@ -840,7 +_,7 @@
+ 
+     public PrioritisedExecutor.PrioritisedTask createChunkTask(final int chunkX, final int chunkZ, final Runnable run,
+                                                                final Priority priority) {
+-        return this.mainThreadExecutor.createTask(run, priority);
++        return world.chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(chunkX, chunkZ))).getInternalTaskQueue().createTask(run, priority); // ShreddedPaper
+     }
+ 
+     public PrioritisedExecutor.PrioritisedTask scheduleChunkTask(final int chunkX, final int chunkZ, final Runnable run) {
+@@ -849,7 +_,7 @@
+ 
+     public PrioritisedExecutor.PrioritisedTask scheduleChunkTask(final int chunkX, final int chunkZ, final Runnable run,
+                                                                  final Priority priority) {
+-        return this.mainThreadExecutor.queueTask(run, priority);
++        return world.chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(chunkX, chunkZ))).getInternalTaskQueue().queueTask(run, priority); // ShreddedPaper
+     }
+ 
+     public boolean halt(final boolean sync, final long maxWaitNS) {

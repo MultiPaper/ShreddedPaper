@@ -1,6 +1,6 @@
 package io.multipaper.shreddedpaper.threading;
 
-import io.papermc.paper.util.TickThread;
+import ca.spottedleaf.moonrise.common.util.TickThread;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import io.multipaper.shreddedpaper.region.RegionPos;
 

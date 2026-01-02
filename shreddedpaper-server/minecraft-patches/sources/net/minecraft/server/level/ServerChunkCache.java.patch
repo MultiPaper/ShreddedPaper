@@ -1,11 +1,16 @@
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -3,6 +_,8 @@
+@@ -1,8 +_,13 @@
+ package net.minecraft.server.level;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
  import com.google.common.annotations.VisibleForTesting;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.region.LevelChunkRegionMap;
++import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
  import it.unimi.dsi.fastutil.longs.LongSet;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
@@ -26,6 +31,23 @@
          this.mainThreadProcessor = new ServerChunkCache.MainThreadExecutor(level);
          this.mainThread = Thread.currentThread();
          Path path = levelStorageAccess.getDimensionPath(level.dimension()).resolve("data");
+@@ -350,14 +_,14 @@
+     }
+ 
+     public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(int x, int z, ChunkStatus chunkStatus, boolean requireChunk) {
+-        boolean flag = Thread.currentThread() == this.mainThread;
++        boolean flag = TickThread.isTickThreadFor(this.level, x, z); // ShreddedPaper - regions
+         CompletableFuture<ChunkResult<ChunkAccess>> chunkFutureMainThread;
+         if (flag) {
+             chunkFutureMainThread = this.getChunkFutureMainThread(x, z, chunkStatus, requireChunk);
+             this.mainThreadProcessor.managedBlock(chunkFutureMainThread::isDone);
+         } else {
+             chunkFutureMainThread = CompletableFuture.<CompletableFuture<ChunkResult<ChunkAccess>>>supplyAsync(
+-                    () -> this.getChunkFutureMainThread(x, z, chunkStatus, requireChunk), this.mainThreadProcessor
++                    () -> this.getChunkFutureMainThread(x, z, chunkStatus, requireChunk), this.tickingRegions.executorFor(RegionPos.forChunk(x, z)) // ShreddedPaper - regions
+                 )
+                 .thenCompose(future -> (CompletionStage<ChunkResult<ChunkAccess>>)future);
+         }
 @@ -474,7 +_,8 @@
      // CraftBukkit end
  
@@ -157,3 +179,41 @@
          ChunkPos pos = chunk.getPos();
          chunk.incrementInhabitedTime(timeInhabited);
          if (true) { // Paper - rewrite chunk system
+@@ -662,7 +_,7 @@
+ 
+     @Override
+     public void onLightUpdate(LightLayer lightLayer, SectionPos pos) {
+-        this.mainThreadProcessor.execute(() -> {
++        this.level.moonrise$getChunkTaskScheduler().scheduleChunkTask(pos.x(), pos.z(), () -> { // ShreddedPaper - run on chunk thread
+             ChunkHolder visibleChunkIfPresent = this.getVisibleChunkIfPresent(pos.chunk().toLong());
+             if (visibleChunkIfPresent != null && visibleChunkIfPresent.sectionLightChanged(lightLayer, pos.y())) {
+                 this.chunkHoldersToBroadcast.add(visibleChunkIfPresent);
+@@ -823,12 +_,27 @@
+ 
+         @Override
+         public boolean pollTask() {
++            // ShreddedPaper start - run all region tasks cause the worker threads might be deadlocked and not get to them
++            if ((!MinecraftServer.getServer().executingMidTickTasks.get() && TickThread.isTickThread()) || TickThread.isShutdownThread()) {
++                level.getChunkSource().tickingRegions.forEach(region -> {
++                    if (TickThread.isShutdownThread()) {
++                        // We're trying to shut down the server, just execute all the tasks
++                        region.getInternalTaskQueue().executeTask();
++                    } else if (!region.getInternalTaskQueue().hasNoScheduledTasks()) {
++                        // We're the main thread, try executing chunk tasks for regions not being ticked
++                        level.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(region.getRegionPos(), () -> {
++                            region.getInternalTaskQueue().executeTask();
++                        });
++                    }
++                });
++            }
++            // ShreddedPaper end
+             // Paper start - rewrite chunk system
+             final ServerChunkCache serverChunkCache = ServerChunkCache.this;
+             if (serverChunkCache.runDistanceManagerUpdates()) {
+                 return true;
+             } else {
+-                return super.pollTask() | ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)serverChunkCache.level).moonrise$getChunkTaskScheduler().executeMainThreadTask();
++                return (!ShreddedPaperTickThread.isShreddedPaperTickThread() && super.pollTask()) | ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)serverChunkCache.level).moonrise$getChunkTaskScheduler().executeMainThreadTask(); // ShreddedPaper - don't run main thread tasks on workers
+             }
+             // Paper end - rewrite chunk system
+         }
