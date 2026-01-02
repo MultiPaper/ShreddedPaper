@@ -8,6 +8,14 @@
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.longs.LongSet;
+@@ -26,6 +_,7 @@
+ import java.util.Optional;
+ import java.util.Set;
+ import java.util.UUID;
++import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.Executor;
+ import java.util.function.BooleanSupplier;
+ import java.util.function.Function;
 @@ -221,6 +_,7 @@
      private double preciseTime; // Purpur - Configurable daylight cycle
      private boolean forceTime; // Purpur - Configurable daylight cycle
@@ -16,3 +24,202 @@
      final LevelDebugSynchronizers debugSynchronizers = new LevelDebugSynchronizers(this);
  
      // CraftBukkit start
+@@ -317,8 +_,8 @@
+     private final ca.spottedleaf.moonrise.common.misc.NearbyPlayers nearbyPlayers = new ca.spottedleaf.moonrise.common.misc.NearbyPlayers((ServerLevel)(Object)this);
+     private static final LevelChunk[] EMPTY_LEVEL_CHUNKS = new LevelChunk[0];
+     private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> loadedChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
+-    private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> tickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
+-    private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> entityTickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
++    // private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> tickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS); // ShreddedPaper - unused, ensure it remains that way
++    // private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> entityTickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS); // ShreddedPaper - unused, ensure it remains that way
+ 
+     @Override
+     public final LevelChunk moonrise$getFullChunkIfLoaded(final int chunkX, final int chunkZ) {
+@@ -499,12 +_,12 @@
+ 
+     @Override
+     public final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> moonrise$getTickingChunks() {
+-        return this.tickingChunks;
++        throw new UnsupportedOperationException("Removed by ShreddedPaper"); // return this.tickingChunks; // ShreddedPaper - unused, ensure it remains that way
+     }
+ 
+     @Override
+     public final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> moonrise$getEntityTickingChunks() {
+-        return this.entityTickingChunks;
++        throw new UnsupportedOperationException("Removed by ShreddedPaper"); // return this.entityTickingChunks; // ShreddedPaper - unused, ensure it remains that way
+     }
+ 
+     @Override
+@@ -530,75 +_,77 @@
+    }
+     // Paper end - rewrite chunk system
+     // Paper start - chunk tick iteration
+-    private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> playerTickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
+-    private final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap playerTickingRequests = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
+-
+-    @Override
+-    public final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> moonrise$getPlayerTickingChunks() {
+-        return this.playerTickingChunks;
+-    }
+-
+-    @Override
+-    public final void moonrise$markChunkForPlayerTicking(final LevelChunk chunk) {
+-        final ChunkPos pos = chunk.getPos();
+-        if (!this.playerTickingRequests.containsKey(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(pos))) {
+-            return;
+-        }
+-
+-        this.playerTickingChunks.add(chunk);
+-    }
+-
+-    @Override
+-    public final void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk) {
+-        this.playerTickingChunks.remove(chunk);
+-    }
+-
+-    @Override
+-    public final void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ) {
+-        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot add ticking request async");
+-
+-        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
+-
+-        if (this.playerTickingRequests.addTo(chunkKey, 1) != 0) {
+-            // already added
+-            return;
+-        }
+-
+-        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)(ServerLevel)(Object)this).moonrise$getChunkTaskScheduler()
+-            .chunkHolderManager.getChunkHolder(chunkKey);
+-
+-        if (chunkHolder == null || !chunkHolder.isTickingReady()) {
+-            return;
+-        }
+-
+-        this.playerTickingChunks.add((LevelChunk)chunkHolder.getCurrentChunk());
+-    }
+-
+-    @Override
+-    public final void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ) {
+-        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot remove ticking request async");
+-
+-        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
+-        final int val = this.playerTickingRequests.addTo(chunkKey, -1);
+-
+-        if (val <= 0) {
+-            throw new IllegalStateException("Negative counter");
+-        }
+-
+-        if (val != 1) {
+-            // still has at least one request
+-            return;
+-        }
+-
+-        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)(ServerLevel)(Object)this).moonrise$getChunkTaskScheduler()
+-            .chunkHolderManager.getChunkHolder(chunkKey);
+-
+-        if (chunkHolder == null || !chunkHolder.isTickingReady()) {
+-            return;
+-        }
+-
+-        this.playerTickingChunks.remove((LevelChunk)chunkHolder.getCurrentChunk());
+-    }
++    // ShreddedPaper start - handled by the regions
++//    private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> playerTickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
++//    private final it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap playerTickingRequests = new it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap();
++//
++//    @Override
++//    public final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> moonrise$getPlayerTickingChunks() {
++//        return this.playerTickingChunks;
++//    }
++//
++//    @Override
++//    public final void moonrise$markChunkForPlayerTicking(final LevelChunk chunk) {
++//        final ChunkPos pos = chunk.getPos();
++//        if (!this.playerTickingRequests.containsKey(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(pos))) {
++//            return;
++//        }
++//
++//        this.playerTickingChunks.add(chunk);
++//    }
++//
++//    @Override
++//    public final void moonrise$removeChunkForPlayerTicking(final LevelChunk chunk) {
++//        this.playerTickingChunks.remove(chunk);
++//    }
++//
++//    @Override
++//    public final void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ) {
++//        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot add ticking request async");
++//
++//        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
++//
++//        if (this.playerTickingRequests.addTo(chunkKey, 1) != 0) {
++//            // already added
++//            return;
++//        }
++//
++//        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)(ServerLevel)(Object)this).moonrise$getChunkTaskScheduler()
++//            .chunkHolderManager.getChunkHolder(chunkKey);
++//
++//        if (chunkHolder == null || !chunkHolder.isTickingReady()) {
++//            return;
++//        }
++//
++//        this.playerTickingChunks.add((LevelChunk)chunkHolder.getCurrentChunk());
++//    }
++//
++//    @Override
++//    public final void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ) {
++//        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot remove ticking request async");
++//
++//        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
++//        final int val = this.playerTickingRequests.addTo(chunkKey, -1);
++//
++//        if (val <= 0) {
++//            throw new IllegalStateException("Negative counter");
++//        }
++//
++//        if (val != 1) {
++//            // still has at least one request
++//            return;
++//        }
++//
++//        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)(ServerLevel)(Object)this).moonrise$getChunkTaskScheduler()
++//            .chunkHolderManager.getChunkHolder(chunkKey);
++//
++//        if (chunkHolder == null || !chunkHolder.isTickingReady()) {
++//            return;
++//        }
++//
++//        this.playerTickingChunks.remove((LevelChunk)chunkHolder.getCurrentChunk());
++//    }
++    // ShreddedPaper end - handled by the regions
+     // Paper end - chunk tick iteration
+ 
+     public ServerLevel(
+@@ -767,7 +_,7 @@
+         return this.environmentAttributes;
+     }
+ 
+-    public void tick(BooleanSupplier hasTimeLeft) {
++    public CompletableFuture<Void> tick(BooleanSupplier hasTimeLeft) { // ShreddedPaper - run async
+         ProfilerFiller profilerFiller = Profiler.get();
+         this.handlingTick = true;
+         TickRateManager tickRateManager = this.tickRateManager();
+@@ -827,7 +_,7 @@
+         }
+ 
+         profilerFiller.popPush("chunkSource");
+-        this.getChunkSource().tick(hasTimeLeft, true);
++        return this.getChunkSource().tick(hasTimeLeft, true).thenRun(() -> { // ShreddedPaper - run async
+         profilerFiller.popPush("blockEvents");
+         if (runsNormally) {
+             this.runBlockEvents();
+@@ -898,6 +_,7 @@
+         this.debugSynchronizers.tick(this.server.debugSubscribers());
+         profilerFiller.pop();
+         this.environmentAttributes().invalidateTickCache();
++        }); // ShreddedPaper - run async
+     }
+ 
+     @Override

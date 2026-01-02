@@ -8,6 +8,14 @@
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ObjectArraySet;
  import java.io.File;
+@@ -23,6 +_,7 @@
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+ import java.security.KeyPair;
++import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.Collection;
+ import java.util.Collections;
 @@ -1020,6 +_,7 @@
  
          LOGGER.info("Stopping server");
@@ -16,3 +24,68 @@
          // Purpur start - UPnP Port Forwarding
          if (upnp) {
              if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
+@@ -1059,7 +_,7 @@
+ 
+             for (ServerLevel serverLevelx : this.getAllLevels()) {
+                 serverLevelx.getChunkSource().deactivateTicketsOnClosing();
+-                serverLevelx.getChunkSource().tick(() -> true, false);
++                serverLevelx.getChunkSource().tick(() -> true, false).join(); // ShreddedPaper - run async
+             }
+ 
+             this.waitUntilNextTick();
+@@ -1632,7 +_,7 @@
+                 }
+                 for (final ServerLevel level : this.levels.values()) {
+                     // process unloads
+-                    level.getChunkSource().tick(() -> true, false);
++                    level.getChunkSource().tick(() -> true, false).join(); // ShreddedPaper - run async
+                 }
+                 // Paper end - avoid issues with certain tasks not processing during sleep
+                 this.server.spark.executeMainThreadTasks(); // Paper - spark
+@@ -1793,7 +_,7 @@
+         this.getPlayerList().getPlayers().forEach(serverPlayer1 -> serverPlayer1.connection.suspendFlushing());
+         this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
+         // Paper start - optimise Folia entity scheduler
+-        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler)org.bukkit.Bukkit.getGlobalRegionScheduler()).tick();
++        // ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler)org.bukkit.Bukkit.getGlobalRegionScheduler()).tick(); // ShreddedPaper - moved global scheduler down
+         for (io.papermc.paper.threadedregions.EntityScheduler scheduler : this.entitySchedulerTickList.getAllSchedulers()) {
+             if (scheduler.isRetired()) {
+                 continue;
+@@ -1837,6 +_,7 @@
+         }
+ 
+         this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
++        List<CompletableFuture<Void>> futures = new ArrayList<>(); // ShreddedPaper - tick worlds async
+         for (ServerLevel serverLevel : this.getAllLevels()) {
+             serverLevel.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
+             serverLevel.hasEntityMoveEvent = io.papermc.paper.event.entity.EntityMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - Add EntityMoveEvent
+@@ -1855,7 +_,9 @@
+             profilerFiller.push("tick");
+ 
+             try {
+-                serverLevel.tick(hasTimeLeft);
++                futures.add(CompletableFuture.runAsync(() -> serverLevel.tick(hasTimeLeft), ShreddedPaperTickThread.getExecutor()).thenRun(() -> { // ShreddedPaper - tick worlds async
++                    serverLevel.explosionDensityCache.clear(); // Paper - Optimize explosions // ShreddedPaper - moved up from below
++                })); // ShreddedPaper
+             } catch (Throwable var7) {
+                 CrashReport crashReport = CrashReport.forThrowable(var7, "Exception ticking world");
+                 serverLevel.fillReportDetails(crashReport);
+@@ -1864,9 +_,17 @@
+ 
+             profilerFiller.pop();
+             profilerFiller.pop();
+-            serverLevel.explosionDensityCache.clear(); // Paper - Optimize explosions
++            // serverLevel.explosionDensityCache.clear(); // Paper - Optimize explosions // ShreddedPaper - moved up
+         }
+         this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
++
++        // ShreddedPaper start - tick worlds async
++        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) org.bukkit.Bukkit.getGlobalRegionScheduler()).tick(); // Run global region scheduler async to world ticking
++        for (CompletableFuture<Void> future : futures) {
++            this.managedBlock(future::isDone);
++            future.join();
++        }
++        // ShreddedPaper end - tick worlds async
+ 
+         profilerFiller.popPush("connection");
+         this.tickConnection();

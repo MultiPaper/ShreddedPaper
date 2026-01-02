@@ -1,0 +1,19 @@
+--- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
++++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
+@@ -28,12 +_,14 @@
+         SPAWN_RANGE {
+             @Override
+             void addTo(final ServerPlayer player, final ServerLevel world, final int chunkX, final int chunkZ) {
+-                ((ChunkTickServerLevel)world).moonrise$addPlayerTickingRequest(chunkX, chunkZ);
++                ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ); // ShreddedPaper
++                world.chunkSource.tickingRegions.getOrCreate(chunkPos.getRegionPos()).addPlayerTickingRequest(chunkPos); // ((ChunkTickServerLevel)world).moonrise$addPlayerTickingRequest(chunkX, chunkZ); // ShreddedPaper - handled by the regions
+             }
+ 
+             @Override
+             void removeFrom(final ServerPlayer player, final ServerLevel world, final int chunkX, final int chunkZ) {
+-                ((ChunkTickServerLevel)world).moonrise$removePlayerTickingRequest(chunkX, chunkZ);
++                ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ); // ShreddedPaper
++                world.chunkSource.tickingRegions.getOrCreate(chunkPos.getRegionPos()).removePlayerTickingRequest(chunkPos); // ((ChunkTickServerLevel)world).moonrise$removePlayerTickingRequest(chunkX, chunkZ); // ShreddedPaper - handled by the regions
+             }
+         };
+         // Moonrise end - chunk tick iteration

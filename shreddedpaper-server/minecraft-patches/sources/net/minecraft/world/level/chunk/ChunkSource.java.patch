@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/level/chunk/ChunkSource.java
++++ b/net/minecraft/world/level/chunk/ChunkSource.java
+@@ -2,6 +_,7 @@
+ 
+ import it.unimi.dsi.fastutil.longs.LongSet;
+ import java.io.IOException;
++import java.util.concurrent.CompletableFuture;
+ import java.util.function.BooleanSupplier;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
+@@ -28,7 +_,7 @@
+ 
+     public abstract @Nullable ChunkAccess getChunk(int x, int z, ChunkStatus chunkStatus, boolean requireChunk);
+ 
+-    public abstract void tick(BooleanSupplier hasTimeLeft, boolean tickChunks);
++    public abstract CompletableFuture<Void> tick(BooleanSupplier hasTimeLeft, boolean tickChunks); // ShreddedPaper - run async
+ 
+     public void onSectionEmptinessChanged(int x, int y, int z, boolean isEmpty) {
+     }

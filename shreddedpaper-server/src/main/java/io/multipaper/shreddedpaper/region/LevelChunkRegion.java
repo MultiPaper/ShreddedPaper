@@ -1,8 +1,9 @@
 package io.multipaper.shreddedpaper.region;
 
-import ca.spottedleaf.concurrentutil.executor.standard.PrioritisedThreadedTaskQueue;
-import io.papermc.paper.util.maplist.IteratorSafeOrderedReferenceSet;
+import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
+import ca.spottedleaf.moonrise.common.util.TickThread;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
@@ -12,6 +13,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.BlockEventData;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.RedstoneTorchBlock;
 import net.minecraft.world.level.block.entity.TickingBlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -24,13 +26,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 public class LevelChunkRegion {
 
     private final ServerLevel level;
     private final RegionPos regionPos;
     private final List<LevelChunk> levelChunks = new ArrayList<>(RegionPos.REGION_SIZE * RegionPos.REGION_SIZE);
+    private final LongOpenHashSet playerTickingChunkRequests = new LongOpenHashSet(); // ChunkPos.longKey
     private final IteratorSafeOrderedReferenceSet<Entity> tickingEntities = new IteratorSafeOrderedReferenceSet<>(); // Use IteratorSafeOrderedReferenceSet to maintain entity tick order
     private final Set<Entity> trackedEntities = new ObjectOpenHashSet<>();
     private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
@@ -49,23 +51,41 @@ public class LevelChunkRegion {
     }
 
     public synchronized void add(LevelChunk levelChunk) {
-        levelChunks.add(levelChunk);
+        this.levelChunks.add(levelChunk);
     }
 
     public synchronized void remove(LevelChunk levelChunk) {
-        if (!levelChunks.remove(levelChunk)) {
+        if (!this.levelChunks.remove(levelChunk)) {
             throw new IllegalStateException("Tried to remove a chunk that wasn't in the region: " + levelChunk.getPos());
         }
     }
 
+    public void addPlayerTickingRequest(final ChunkPos chunkPos) {
+        TickThread.ensureTickThread(this.level, chunkPos, "Cannot add player ticking request async");
+        this.playerTickingChunkRequests.add(chunkPos.toLong());
+    }
+
+    public void removePlayerTickingRequest(final ChunkPos chunkPos) {
+        TickThread.ensureTickThread(this.level, chunkPos, "Cannot remove player ticking request async");
+        this.playerTickingChunkRequests.remove(chunkPos.toLong());
+    }
+
+    public boolean isPlayerTickingRequested(final ChunkPos chunkPos) {
+        if (chunkPos.getRegionPos().toLong() != this.regionPos.toLong()) {
+            throw new IllegalStateException("Chunk %s is not in region %s".formatted(chunkPos, this.regionPos));
+        }
+
+        return this.playerTickingChunkRequests.contains(chunkPos.toLong());
+    }
+
     public synchronized void addTickingEntity(Entity entity) {
-        if (!tickingEntities.add(entity)) {
+        if (!this.tickingEntities.add(entity)) {
             throw new IllegalStateException("Tried to add an entity that was already in the ticking list: " + entity);
         }
     }
 
     public synchronized void removeTickingEntity(Entity entity) {
-        if (!tickingEntities.remove(entity)) {
+        if (!this.tickingEntities.remove(entity)) {
             throw new IllegalStateException("Tried to remove an entity that wasn't in the ticking list: " + entity);
         }
     }
@@ -98,15 +118,15 @@ public class LevelChunkRegion {
     }
 
     public ServerLevel getLevel() {
-        return level;
+        return this.level;
     }
 
     public void scheduleTask(Runnable task, long delay) {
-        scheduledTasks.add(new DelayedTask(task, delay));
+        this.scheduledTasks.add(new DelayedTask(task, delay));
     }
 
     public PrioritisedThreadedTaskQueue getInternalTaskQueue() {
-        return internalTasks;
+        return this.internalTasks;
     }
 
     public synchronized void addPlayer(ServerPlayer player) {
@@ -126,11 +146,11 @@ public class LevelChunkRegion {
     }
 
     public synchronized void addNavigationMob(Mob mob) {
-        navigatingMobs.add(mob);
+        this.navigatingMobs.add(mob);
     }
 
     public synchronized void removeNavigationMob(Mob mob) {
-        navigatingMobs.remove(mob);
+        this.navigatingMobs.remove(mob);
     }
 
     public synchronized void collectNavigatingMobs(List<Mob> collection) {
@@ -143,9 +163,9 @@ public class LevelChunkRegion {
 
     public void forEach(Consumer<LevelChunk> consumer) {
         // This method has the chance of skipping a chunk if a chunk is removed via another thread during this iteration
-        for (int i = 0; i < levelChunks.size(); i++) {
+        for (int i = 0; i < this.levelChunks.size(); i++) {
             try {
-                LevelChunk levelChunk = levelChunks.get(i);
+                LevelChunk levelChunk = this.levelChunks.get(i);
                 if (levelChunk != null) {
                     consumer.accept(levelChunk);
                 }
@@ -156,17 +176,17 @@ public class LevelChunkRegion {
     }
 
     public void tickTasks() {
-        if (scheduledTasks.isEmpty()) return;
+        if (this.scheduledTasks.isEmpty()) return;
 
         List<DelayedTask> toRun = new ArrayList<>();
-        for (DelayedTask task : scheduledTasks) {
+        for (DelayedTask task : this.scheduledTasks) {
             // Check if a task should run before executing the tasks, as tasks may add more tasks while they are running
             if (task.shouldRun()) {
                 toRun.add(task);
             }
         }
 
-        scheduledTasks.removeAll(toRun);
+        this.scheduledTasks.removeAll(toRun);
         toRun.forEach(DelayedTask::run);
     }
 
