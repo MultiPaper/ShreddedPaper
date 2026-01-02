@@ -16,6 +16,15 @@
  import java.util.concurrent.Executor;
  import java.util.function.BooleanSupplier;
  import java.util.function.Function;
+@@ -194,7 +_,7 @@
+     public final ServerChunkCache chunkSource;
+     private final MinecraftServer server;
+     public final net.minecraft.world.level.storage.PrimaryLevelData serverLevelData; // CraftBukkit - type
+-    final EntityTickList entityTickList = new EntityTickList();
++    // final EntityTickList entityTickList = new EntityTickList(); // ShreddedPaper - moved into each region
+     private final ServerWaypointManager waypointManager;
+     private final EnvironmentAttributeSystem environmentAttributes;
+     // Paper - rewrite chunk system
 @@ -221,6 +_,7 @@
      private double preciseTime; // Purpur - Configurable daylight cycle
      private boolean forceTime; // Purpur - Configurable daylight cycle
@@ -215,6 +224,67 @@
          profilerFiller.popPush("blockEvents");
          if (runsNormally) {
              this.runBlockEvents();
+@@ -853,32 +_,34 @@
+             }
+ 
+             io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
+-            this.entityTickList
+-                .forEach(
+-                    entity -> {
+-                        if (!entity.isRemoved()) {
+-                            if (!tickRateManager.isEntityFrozen(entity)) {
+-                                profilerFiller.push("checkDespawn");
+-                                entity.checkDespawn();
+-                                profilerFiller.pop();
+-                                if (true) { // Paper - rewrite chunk system
+-                                    Entity vehicle = entity.getVehicle();
+-                                    if (vehicle != null) {
+-                                        if (!vehicle.isRemoved() && vehicle.hasPassenger(entity)) {
+-                                            return;
+-                                        }
+-
+-                                        entity.stopRiding();
+-                                    }
+-
+-                                    profilerFiller.push("tick");
+-                                    this.guardEntityTick(this::tickNonPassenger, entity);
+-                                    profilerFiller.pop();
+-                                }
+-                            }
+-                        }
+-                    }
+-                );
++            // ShreddedPaper start - moved to ShreddedPaperEntityTicker
++//            this.entityTickList
++//                .forEach(
++//                    entity -> {
++//                        if (!entity.isRemoved()) {
++//                            if (!tickRateManager.isEntityFrozen(entity)) {
++//                                profilerFiller.push("checkDespawn");
++//                                entity.checkDespawn();
++//                                profilerFiller.pop();
++//                                if (true) { // Paper - rewrite chunk system
++//                                    Entity vehicle = entity.getVehicle();
++//                                    if (vehicle != null) {
++//                                        if (!vehicle.isRemoved() && vehicle.hasPassenger(entity)) {
++//                                            return;
++//                                        }
++//
++//                                        entity.stopRiding();
++//                                    }
++//
++//                                    profilerFiller.push("tick");
++//                                    this.guardEntityTick(this::tickNonPassenger, entity);
++//                                    profilerFiller.pop();
++//                                }
++//                            }
++//                        }
++//                    }
++//                );
++            // ShreddedPaper end - moved to ShreddedPaperEntityTicker
+             profilerFiller.popPush("blockEntities");
+             this.tickBlockEntities();
+             profilerFiller.pop();
 @@ -889,15 +_,16 @@
          profilerFiller.pop();
          profilerFiller.push("debugSynchronizers");
@@ -235,3 +305,44 @@
      }
  
      @Override
+@@ -1467,7 +_,7 @@
+     private void tickPassenger(Entity ridingEntity, Entity passengerEntity, final boolean isActive) { // Paper - EAR 2
+         if (passengerEntity.isRemoved() || passengerEntity.getVehicle() != ridingEntity) {
+             passengerEntity.stopRiding();
+-        } else if (passengerEntity instanceof Player || this.entityTickList.contains(passengerEntity)) {
++        } else if (passengerEntity instanceof Player || passengerEntity.isTicking()) { // ShreddedPaper - use a different method to check if passenger is ticking
+             passengerEntity.setOldPosAndRot();
+             passengerEntity.tickCount++;
+             passengerEntity.totalEntityAge++; // Paper - age-like counter for all entities
+@@ -2630,7 +_,7 @@
+ 
+     @Override
+     public LevelEntityGetter<Entity> getEntities() {
+-        org.spigotmc.AsyncCatcher.catchOp("Chunk getEntities call"); // Spigot
++        // org.spigotmc.AsyncCatcher.catchOp("Chunk getEntities call"); // Spigot // ShreddedPaper - thread safe now
+         return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
+     }
+ 
+@@ -2857,12 +_,12 @@
+         @Override
+         public void onTickingStart(Entity entity) {
+             if (entity instanceof net.minecraft.world.entity.Marker && !paperConfig().entities.markers.tick) return; // Paper - Configurable marker ticking
+-            ServerLevel.this.entityTickList.add(entity);
++            ServerLevel.this.getChunkSource().tickingRegions.addTickingEntity(entity); // ShreddedPaper - move entityTickList to the regions
+         }
+ 
+         @Override
+         public void onTickingEnd(Entity entity) {
+-            ServerLevel.this.entityTickList.remove(entity);
++            ServerLevel.this.getChunkSource().tickingRegions.removeTickingEntity(entity); // ShreddedPaper - move entityTickList to the regions
+             // Paper start - Reset pearls when they stop being ticked
+             if (ServerLevel.this.paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && ServerLevel.this.paperConfig().misc.legacyEnderPearlBehavior && entity instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl pearl) {
+                 pearl.setOwner(null);
+@@ -2991,6 +_,7 @@
+         @Override
+         public void onSectionChange(Entity entity) {
+             entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
++            ServerLevel.this.chunkSource.tickingRegions.moveTickingEntity(entity); // ShreddedPaper - move ticking entity into the new region
+         }
+     }
+ 
