@@ -215,7 +215,19 @@
          profilerFiller.popPush("blockEvents");
          if (runsNormally) {
              this.runBlockEvents();
-@@ -898,6 +_,7 @@
+@@ -889,15 +_,16 @@
+         profilerFiller.pop();
+         profilerFiller.push("debugSynchronizers");
+         if (this.debugSynchronizers.hasAnySubscriberFor(DebugSubscriptions.NEIGHBOR_UPDATES)) {
+-            this.neighborUpdater
+-                .setDebugListener(blockPos -> this.debugSynchronizers.broadcastEventToTracking(blockPos, DebugSubscriptions.NEIGHBOR_UPDATES, blockPos));
++            // this.neighborUpdater // ShreddedPaper - unneeded
++            //     .setDebugListener(blockPos -> this.debugSynchronizers.broadcastEventToTracking(blockPos, DebugSubscriptions.NEIGHBOR_UPDATES, blockPos)); // ShreddedPaper - unneeded
+         } else {
+-            this.neighborUpdater.setDebugListener(null);
++            // this.neighborUpdater.setDebugListener(null); // ShreddedPaper - unneeded
+         }
+ 
          this.debugSynchronizers.tick(this.server.debugSubscribers());
          profilerFiller.pop();
          this.environmentAttributes().invalidateTickCache();
