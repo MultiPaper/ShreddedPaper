@@ -1,5 +1,6 @@
 package io.multipaper.shreddedpaper.region;
 
+import ca.spottedleaf.concurrentutil.executor.queue.PrioritisedTaskQueue;
 import ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet;
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
@@ -36,7 +37,7 @@ public class LevelChunkRegion {
     private final IteratorSafeOrderedReferenceSet<Entity> tickingEntities = new IteratorSafeOrderedReferenceSet<>(); // Use IteratorSafeOrderedReferenceSet to maintain entity tick order
     private final Set<Entity> trackedEntities = new ObjectOpenHashSet<>();
     private final ConcurrentLinkedQueue<DelayedTask> scheduledTasks = new ConcurrentLinkedQueue<>(); // Writable tasks
-    private final PrioritisedThreadedTaskQueue internalTasks = new PrioritisedThreadedTaskQueue(); // Read-only tasks
+    private final PrioritisedTaskQueue internalTasks = new PrioritisedTaskQueue(); // Read-only tasks
     private final ObjectOpenHashSet<ServerPlayer> players = new ObjectOpenHashSet<>();
     public final LongLinkedOpenHashSet unloadQueue = new LongLinkedOpenHashSet();
     public final List<TickingBlockEntity> tickingBlockEntities = new ReferenceArrayList<>();
@@ -125,7 +126,7 @@ public class LevelChunkRegion {
         this.scheduledTasks.add(new DelayedTask(task, delay));
     }
 
-    public PrioritisedThreadedTaskQueue getInternalTaskQueue() {
+    public PrioritisedTaskQueue getInternalTaskQueue() {
         return this.internalTasks;
     }
 

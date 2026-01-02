@@ -1,0 +1,101 @@
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
+@@ -24,6 +_,8 @@
+ import com.google.gson.JsonArray;
+ import com.google.gson.JsonObject;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.util.SimpleStampedLock;
+ import it.unimi.dsi.fastutil.longs.Long2ByteLinkedOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.Long2ByteMap;
+ import it.unimi.dsi.fastutil.longs.Long2IntMap;
+@@ -85,6 +_,7 @@
+     private long currentTick;
+ 
+     private final ArrayDeque<NewChunkHolder> pendingFullLoadUpdate = new ArrayDeque<>();
++    private final SimpleStampedLock autoSaveQueueLock = new SimpleStampedLock(); // ShreddedPaper - multithread-safe auto save queue
+     private final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = new MultiThreadedQueue<>();
+     private final ObjectRBTreeSet<NewChunkHolder> autoSaveQueue = new ObjectRBTreeSet<>((final NewChunkHolder c1, final NewChunkHolder c2) -> {
+         if (c1 == c2) {
+@@ -230,9 +_,9 @@
+     }
+ 
+     void ensureInAutosave(final NewChunkHolder holder) {
+-        if (!this.autoSaveQueue.contains(holder)) {
++        if (!this.autoSaveQueueLock.optimisticRead(() -> this.autoSaveQueue.contains(holder))) { // ShreddedPaper - multithread-safe auto save queue
+             holder.lastAutoSave = this.currentTick;
+-            this.autoSaveQueue.add(holder);
++            this.autoSaveQueueLock.write(() -> this.autoSaveQueue.add(holder)); // ShreddedPaper - multithread-safe auto save queue
+         }
+     }
+ 
+@@ -241,30 +_,37 @@
+         final long currentTick = this.currentTick;
+         final long maxSaveTime = currentTick - Math.max(1L, PlatformHooks.get().configAutoSaveInterval(this.world));
+         final int maxToSave = PlatformHooks.get().configMaxAutoSavePerTick(this.world);
+-        for (int autoSaved = 0; autoSaved < maxToSave && !this.autoSaveQueue.isEmpty();) {
+-            final NewChunkHolder holder = this.autoSaveQueue.first();
++        for (int autoSaved = 0; autoSaved < this.world.paperConfig().chunks.maxAutoSaveChunksPerTick;) { // ShreddedPaper - multithread-safe auto save queue
++            final NewChunkHolder holder = this.autoSaveQueueLock.optimisticRead(() -> this.autoSaveQueue.isEmpty() ? null : this.autoSaveQueue.first()); // ShreddedPaper - multithread-safe auto save queue
++
++            if (holder == null) break; // ShreddedPaper - multithread-safe auto save queue
+ 
+             if (holder.lastAutoSave > maxSaveTime) {
+                 break;
+             }
+ 
+-            this.autoSaveQueue.remove(holder);
++            this.autoSaveQueueLock.write(() -> this.autoSaveQueue.remove(holder)); // ShreddedPaper - multithread-safe auto save queue
+ 
+             holder.lastAutoSave = currentTick;
+-            if (holder.save(false) != null) {
+-                ++autoSaved;
+-            }
++            // ShreddedPaper start - run on chunk's thread
++            ShreddedPaper.runSync(holder.world, new ChunkPos(holder.chunkX, holder.chunkZ), () -> {
++                holder.save(false);
++            });
++            ++autoSaved;
++            // ShreddedPaper end - run on chunk's thread
+ 
+             if (holder.getChunkStatus().isOrAfter(FullChunkStatus.FULL)) {
+                 reschedule.add(holder);
+             }
+         }
+ 
++        this.autoSaveQueueLock.write(() -> { // ShreddedPaper - multithread-safe auto save queue
+         for (final NewChunkHolder holder : reschedule) {
+             if (holder.getChunkStatus().isOrAfter(FullChunkStatus.FULL)) {
+                 this.autoSaveQueue.add(holder);
+             }
+         }
++        }); // ShreddedPaper - multithread-safe auto save queue
+     }
+ 
+     public void saveAllChunks(final boolean flush, final boolean shutdown, final boolean logProgress,
+@@ -1129,6 +_,16 @@
+         if (changedFullStatus.isEmpty()) {
+             return;
+         }
++        // ShreddedPaper start
++        for (NewChunkHolder chunkHolder : changedFullStatus) {
++            this.taskScheduler.scheduleChunkTask(chunkHolder.chunkX, chunkHolder.chunkZ, () -> {
++                List<NewChunkHolder> newChangedFullStatus = new ArrayList<>();
++                chunkHolder.handleFullStatusChange(newChangedFullStatus);
++                addChangedStatuses(newChangedFullStatus);
++            });
++        }
++        if (true) return;
++        // ShreddedPaper end
+         if (!TickThread.isTickThread()) {
+             // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
+             // which will invoke processTicketUpdates
+@@ -1143,7 +_,7 @@
+ 
+     private void removeChunkHolder(final NewChunkHolder holder) {
+         holder.onUnload();
+-        this.autoSaveQueue.remove(holder);
++        this.autoSaveQueueLock.write(() -> this.autoSaveQueue.remove(holder)); // ShreddedPaper - multithread-safe auto save queue
+         PlatformHooks.get().onChunkHolderDelete(this.world, holder.vanillaChunkHolder);
+         this.chunkHolders.remove(CoordinateUtils.getChunkKey(holder.chunkX, holder.chunkZ));
+     }

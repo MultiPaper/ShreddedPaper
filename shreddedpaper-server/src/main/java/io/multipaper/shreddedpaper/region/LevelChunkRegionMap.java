@@ -169,7 +169,7 @@ public class LevelChunkRegionMap {
      * tasks must be read-only. Eg loading a chunk, saving data, sending packets, etc.
      */
     public void execute(RegionPos regionPos, Runnable task) {
-        getOrCreate(regionPos).getInternalTaskQueue().queueRunnable(task);
+        getOrCreate(regionPos).getInternalTaskQueue().queueTask(task);
     }
 
     /**

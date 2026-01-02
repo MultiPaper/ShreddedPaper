@@ -16,6 +16,31 @@
  import java.util.Arrays;
  import java.util.Collection;
  import java.util.Collections;
+@@ -437,6 +_,8 @@
+         return executed;
+     }
+ 
++    public final ThreadLocal<Boolean> executingMidTickTasks = ThreadLocal.withInitial(() -> false); // ShreddedPaper
++
+     @Override
+     public final void moonrise$executeMidTickTasks() {
+         final long startTime = System.nanoTime();
+@@ -446,6 +_,7 @@
+             return;
+         }
+ 
++        this.executingMidTickTasks.set(true); try { // ShreddedPaper
+         for (;;) {
+             final boolean moreTasks = this.tickMidTickTasks();
+             final long currTime = System.nanoTime();
+@@ -470,6 +_,7 @@
+                 return;
+             }
+         }
++        } finally { this.executingMidTickTasks.set(false); } // ShreddedPaper
+     }
+ 
+    @Override
 @@ -1020,6 +_,7 @@
  
          LOGGER.info("Stopping server");
@@ -42,15 +67,31 @@
                  }
                  // Paper end - avoid issues with certain tasks not processing during sleep
                  this.server.spark.executeMainThreadTasks(); // Paper - spark
-@@ -1793,7 +_,7 @@
+@@ -1793,14 +_,16 @@
          this.getPlayerList().getPlayers().forEach(serverPlayer1 -> serverPlayer1.connection.suspendFlushing());
          this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
          // Paper start - optimise Folia entity scheduler
 -        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler)org.bukkit.Bukkit.getGlobalRegionScheduler()).tick();
+-        for (io.papermc.paper.threadedregions.EntityScheduler scheduler : this.entitySchedulerTickList.getAllSchedulers()) {
+-            if (scheduler.isRetired()) {
+-                continue;
+-            }
+-
+-            scheduler.executeTick();
+-        }
 +        // ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler)org.bukkit.Bukkit.getGlobalRegionScheduler()).tick(); // ShreddedPaper - moved global scheduler down
-         for (io.papermc.paper.threadedregions.EntityScheduler scheduler : this.entitySchedulerTickList.getAllSchedulers()) {
-             if (scheduler.isRetired()) {
-                 continue;
++        // ShreddedPaper start - moved to ShreddedPaperChunkTicker
++//        for (io.papermc.paper.threadedregions.EntityScheduler scheduler : this.entitySchedulerTickList.getAllSchedulers()) {
++//            if (scheduler.isRetired()) {
++//                continue;
++//            }
++//
++//            scheduler.executeTick();
++//        }
++        // ShreddedPaper end - moved to ShreddedPaperChunkTicker
+         // Paper end - optimise Folia entity scheduler
+         io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.ADVENTURE_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
+         io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.DIALOG_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
 @@ -1837,6 +_,7 @@
          }
  
