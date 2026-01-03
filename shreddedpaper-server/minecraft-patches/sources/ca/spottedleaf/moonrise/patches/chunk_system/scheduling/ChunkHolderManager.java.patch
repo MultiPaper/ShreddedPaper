@@ -1,14 +1,24 @@
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-@@ -24,6 +_,8 @@
+@@ -24,6 +_,9 @@
  import com.google.gson.JsonArray;
  import com.google.gson.JsonObject;
  import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.region.LevelChunkRegion;
 +import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  import it.unimi.dsi.fastutil.longs.Long2ByteLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ByteMap;
  import it.unimi.dsi.fastutil.longs.Long2IntMap;
+@@ -77,7 +_,7 @@
+ 
+     private final ConcurrentLong2ReferenceChainedHashTable<TicketSet> tickets = new ConcurrentLong2ReferenceChainedHashTable<>();
+     private final ConcurrentLong2ReferenceChainedHashTable<Long2IntOpenHashMap> sectionToChunkToExpireCount = new ConcurrentLong2ReferenceChainedHashTable<>();
+-    final ChunkUnloadQueue unloadQueue;
++    // final ChunkUnloadQueue unloadQueue; // ShreddedPaper - use our own unload queue
+ 
+     private final ConcurrentLong2ReferenceChainedHashTable<NewChunkHolder> chunkHolders = ConcurrentLong2ReferenceChainedHashTable.createWithCapacity(16384, 0.25f);
+     private final ServerLevel world;
 @@ -85,6 +_,7 @@
      private long currentTick;
  
@@ -17,6 +27,15 @@
      private final MultiThreadedQueue<NewChunkHolder> offThreadPendingFullLoadUpdate = new MultiThreadedQueue<>();
      private final ObjectRBTreeSet<NewChunkHolder> autoSaveQueue = new ObjectRBTreeSet<>((final NewChunkHolder c1, final NewChunkHolder c2) -> {
          if (c1 == c2) {
+@@ -114,7 +_,7 @@
+         this.world = world;
+         this.taskScheduler = taskScheduler;
+         this.ticketLockArea = new ReentrantAreaLock(taskScheduler.getChunkSystemLockShift());
+-        this.unloadQueue = new ChunkUnloadQueue(((ChunkSystemServerLevel)world).moonrise$getRegionChunkShift());
++        // this.unloadQueue = new ChunkUnloadQueue(((ChunkSystemServerLevel)world).moonrise$getRegionChunkShift()); // ShreddedPaper - use our own unload queue
+     }
+ 
+     public boolean processTicketUpdates(final int chunkX, final int chunkZ) {
 @@ -230,9 +_,9 @@
      }
  
@@ -90,7 +109,7 @@
          if (!TickThread.isTickThread()) {
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
-@@ -1143,7 +_,7 @@
+@@ -1143,94 +_,110 @@
  
      private void removeChunkHolder(final NewChunkHolder holder) {
          holder.onUnload();
@@ -99,3 +118,194 @@
          PlatformHooks.get().onChunkHolderDelete(this.world, holder.vanillaChunkHolder);
          this.chunkHolders.remove(CoordinateUtils.getChunkKey(holder.chunkX, holder.chunkZ));
      }
+ 
+     // note: never call while inside the chunk system, this will absolutely break everything
+-    public void processUnloads() {
++    public void processUnloads(final LevelChunkRegion region) { // ShreddedPaper - use our own unload queue
++        if (region.unloadQueue.isEmpty()) return; // ShreddedPaper - use our own unload queue
++
+         TickThread.ensureTickThread("Cannot unload chunks off-main");
+ 
+         if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
+             throw new IllegalStateException("Cannot unload chunks recursively");
+         }
+-        final int sectionShift = this.unloadQueue.coordinateShift; // sectionShift <= lock shift
+-        final List<ChunkUnloadQueue.SectionToUnload> unloadSectionsForRegion = this.unloadQueue.retrieveForAllRegions();
+-        int unloadCountTentative = 0;
+-        for (final ChunkUnloadQueue.SectionToUnload sectionRef : unloadSectionsForRegion) {
+-            final ChunkUnloadQueue.UnloadSection section
+-                = this.unloadQueue.getSectionUnsynchronized(sectionRef.sectionX(), sectionRef.sectionZ());
+-
+-            if (section == null) {
+-                // removed concurrently
+-                continue;
+-            }
+-
+-            // technically reading the size field is unsafe, and it may be incorrect.
+-            // We assume that the error here cumulatively goes away over many ticks. If it did not, then it is possible
+-            // for chunks to never unload or not unload fast enough.
+-            unloadCountTentative += section.chunks.size();
+-        }
+-
+-        if (unloadCountTentative <= 0) {
+-            // no work to do
+-            return;
+-        }
++        // ShreddedPaper start - use our own unload queue
++//        final int sectionShift = this.unloadQueue.coordinateShift; // sectionShift <= lock shift
++//        final List<ChunkUnloadQueue.SectionToUnload> unloadSectionsForRegion = this.unloadQueue.retrieveForAllRegions();
++//        int unloadCountTentative = 0;
++//        for (final ChunkUnloadQueue.SectionToUnload sectionRef : unloadSectionsForRegion) {
++//            final ChunkUnloadQueue.UnloadSection section
++//                = this.unloadQueue.getSectionUnsynchronized(sectionRef.sectionX(), sectionRef.sectionZ());
++//
++//            if (section == null) {
++//                // removed concurrently
++//                continue;
++//            }
++//
++//            // technically reading the size field is unsafe, and it may be incorrect.
++//            // We assume that the error here cumulatively goes away over many ticks. If it did not, then it is possible
++//            // for chunks to never unload or not unload fast enough.
++//            unloadCountTentative += section.chunks.size();
++//        }
++//
++//        if (unloadCountTentative <= 0) {
++//            // no work to do
++//            return;
++//        }
++        // ShreddedPaper end - use our own unload queue
+ 
+         // We do need to process updates here so that any addTicket that is synchronised before this call does not go missed.
+         this.processTicketUpdates();
+ 
+-        final int toUnloadCount = Math.max(50, (int)(unloadCountTentative * 0.05));
++        final int toUnloadCount = 50; // Math.max(50, (int)(unloadCountTentative * 0.05)); // ShreddedPaper - use our own unload queue
+         int processedCount = 0;
+ 
+-        for (final ChunkUnloadQueue.SectionToUnload sectionRef : unloadSectionsForRegion) {
++        // for (final ChunkUnloadQueue.SectionToUnload sectionRef : unloadSectionsForRegion) { // ShreddedPaper - use our own unload queue
+             final List<NewChunkHolder> stage1 = new ArrayList<>();
+             final List<NewChunkHolder.UnloadState> stage2 = new ArrayList<>();
+ 
+-            final int sectionLowerX = sectionRef.sectionX() << sectionShift;
+-            final int sectionLowerZ = sectionRef.sectionZ() << sectionShift;
++            final int sectionLowerX = region.getRegionPos().getLowerChunkX(); // sectionRef.sectionX() << sectionShift; // ShreddedPaper - use our own unload queue
++            final int sectionLowerZ = region.getRegionPos().getLowerChunkZ(); // sectionRef.sectionZ() << sectionShift; // ShreddedPaper - use our own unload queue
+ 
+             // stage 1: set up for stage 2 while holding critical locks
+             ReentrantAreaLock.Node ticketLock = this.ticketLockArea.lock(sectionLowerX, sectionLowerZ);
+             try {
+                 final ReentrantAreaLock.Node scheduleLock = this.taskScheduler.schedulingLockArea.lock(sectionLowerX, sectionLowerZ);
+                 try {
+-                    final ChunkUnloadQueue.UnloadSection section
+-                        = this.unloadQueue.getSectionUnsynchronized(sectionRef.sectionX(), sectionRef.sectionZ());
+-
+-                    if (section == null) {
+-                        // removed concurrently
+-                        continue;
+-                    }
+-
+-                    // collect the holders to run stage 1 on
+-                    final int sectionCount = section.chunks.size();
+-
+-                    if ((sectionCount + processedCount) <= toUnloadCount) {
+-                        // we can just drain the entire section
+-
+-                        for (final LongIterator iterator = section.chunks.iterator(); iterator.hasNext();) {
+-                            final NewChunkHolder holder = this.chunkHolders.get(iterator.nextLong());
+-                            if (holder == null) {
+-                                throw new IllegalStateException();
+-                            }
+-                            stage1.add(holder);
+-                        }
+-
+-                        // remove section
+-                        this.unloadQueue.removeSection(sectionRef.sectionX(), sectionRef.sectionZ());
+-                    } else {
+-                        // processedCount + len = toUnloadCount
+-                        // we cannot drain the entire section
+-                        for (int i = 0, len = toUnloadCount - processedCount; i < len; ++i) {
+-                            final NewChunkHolder holder = this.chunkHolders.get(section.chunks.removeFirstLong());
+-                            if (holder == null) {
+-                                throw new IllegalStateException();
+-                            }
+-                            stage1.add(holder);
+-                        }
+-                    }
++                    // ShreddedPaper start - use our own unload queue
++                    while (processedCount < toUnloadCount && !region.unloadQueue.isEmpty()) {
++                        final NewChunkHolder holder = this.chunkHolders.get(region.unloadQueue.removeFirstLong());
++                        if (holder == null) {
++                            continue;
++                        }
++                        stage1.add(holder);
++                        processedCount++;
++                    }
++                    // ShreddedPaper end - use our own unload queue
++                    // ShreddedPaper start - use our own unload queue
++//                    final ChunkUnloadQueue.UnloadSection section
++//                        = this.unloadQueue.getSectionUnsynchronized(sectionRef.sectionX(), sectionRef.sectionZ());
++//
++//                    if (section == null) {
++//                        // removed concurrently
++//                        continue;
++//                    }
++//
++//                    // collect the holders to run stage 1 on
++//                    final int sectionCount = section.chunks.size();
++//
++//                    if ((sectionCount + processedCount) <= toUnloadCount) {
++//                        // we can just drain the entire section
++//
++//                        for (final LongIterator iterator = section.chunks.iterator(); iterator.hasNext();) {
++//                            final NewChunkHolder holder = this.chunkHolders.get(iterator.nextLong());
++//                            if (holder == null) {
++//                                throw new IllegalStateException();
++//                            }
++//                            stage1.add(holder);
++//                        }
++//
++//                        // remove section
++//                        this.unloadQueue.removeSection(sectionRef.sectionX(), sectionRef.sectionZ());
++//                    } else {
++//                        // processedCount + len = toUnloadCount
++//                        // we cannot drain the entire section
++//                        for (int i = 0, len = toUnloadCount - processedCount; i < len; ++i) {
++//                            final NewChunkHolder holder = this.chunkHolders.get(section.chunks.removeFirstLong());
++//                            if (holder == null) {
++//                                throw new IllegalStateException();
++//                            }
++//                            stage1.add(holder);
++//                        }
++//                    }
++                    // ShreddedPaper end - use our own unload queue
+ 
+                     // run stage 1
+                     for (int i = 0, len = stage1.size(); i < len; ++i) {
+@@ -1295,10 +_,12 @@
+ 
+             processedCount += stage1.size();
+ 
+-            if (processedCount >= toUnloadCount) {
+-                break;
+-            }
+-        }
++        // ShreddedPaper start - use our own unload queue
++//            if (processedCount >= toUnloadCount) {
++//                break;
++//            }
++//        }
++        // ShreddedPaper end - use our own unload queue
+     }
+ 
+     public enum TicketOperationType {
+@@ -1515,7 +_,7 @@
+     public JsonObject getDebugJson() {
+         final JsonObject ret = new JsonObject();
+ 
+-        ret.add("unload_queue", this.unloadQueue.toDebugJson());
++        // ret.add("unload_queue", this.unloadQueue.toDebugJson()); // ShreddedPaper - use our own unload queue
+ 
+         final JsonArray holders = new JsonArray();
+         ret.add("chunkholders", holders);
