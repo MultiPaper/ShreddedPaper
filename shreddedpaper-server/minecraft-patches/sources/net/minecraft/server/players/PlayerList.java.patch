@@ -1,0 +1,48 @@
+--- a/net/minecraft/server/players/PlayerList.java
++++ b/net/minecraft/server/players/PlayerList.java
+@@ -19,8 +_,11 @@
+ import java.util.Optional;
+ import java.util.Set;
+ import java.util.UUID;
++import java.util.concurrent.CompletableFuture;
+ import java.util.function.Function;
+ import java.util.function.Predicate;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.core.BlockPos;
+@@ -85,6 +_,7 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
+ import net.minecraft.world.item.crafting.RecipeManager;
++import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+@@ -595,12 +_,13 @@
+     }
+ 
+     // Paper start - respawn event
+-    public ServerPlayer respawn(ServerPlayer player, boolean keepInventory, Entity.RemovalReason reason, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason respawnReason) {
+-        ServerPlayer.RespawnResult result = player.findRespawnPositionAndUseSpawnBlock0(!keepInventory, TeleportTransition.DO_NOTHING, respawnReason);
++    public CompletableFuture<ServerPlayer> respawnAsync(ServerPlayer player, boolean keepInventory, Entity.RemovalReason reason, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason respawnReason) { // ShreddedPaper - respawn async
++        return player.findRespawnPositionAndUseSpawnBlock0Async(!keepInventory, TeleportTransition.DO_NOTHING, respawnReason).thenCompose(result -> { // ShreddedPaper - respawn async
+         if (result == null) { // disconnected player during the respawn event
+-            return player;
++            return CompletableFuture.completedFuture(player);
+         }
+         TeleportTransition teleportTransition = result.transition();
++        return CompletableFuture.supplyAsync(() -> { // ShreddedPaper - respawn async
+         Level fromLevel = player.level();
+         // Paper end - respawn event
+         this.players.remove(player);
+@@ -707,6 +_,8 @@
+         // Paper end
+ 
+         return serverPlayer;
++        }, r -> ShreddedPaper.ensureSync(player, teleportTransition.newLevel(), new ChunkPos(teleportTransition.position().floorToBlockPos()), r)); // ShreddedPaper - respawn async
++        }); // ShreddedPaper - respawn async
+     }
+ 
+     public void sendActivePlayerEffects(ServerPlayer player) {

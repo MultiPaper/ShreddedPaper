@@ -67,7 +67,15 @@ public class ShreddedPaper {
 
     public static void ensureSync(Entity entity1, ServerLevel serverLevel2, ChunkPos chunkPos2, Runnable runnable) {
         if (!isSync((ServerLevel) entity1.level(), entity1.chunkPosition()) || !isSync(serverLevel2, chunkPos2)) {
-            runSync((ServerLevel) entity1.level(), entity1.chunkPosition(), serverLevel2, chunkPos2, runnable);
+            runSync((ServerLevel) entity1.level(), entity1.chunkPosition(), serverLevel2, chunkPos2, () -> ensureSync(entity1, serverLevel2, chunkPos2, runnable)); // Entity may have moved since, ensure still sync
+        } else {
+            runnable.run();
+        }
+    }
+
+    public static void ensureSync(Entity entity1, Entity entity2, Runnable runnable) {
+        if (!isSync((ServerLevel) entity1.level(), entity1.chunkPosition()) || !isSync((ServerLevel) entity2.level(), entity2.chunkPosition())) {
+            runSync((ServerLevel) entity1.level(), entity1.chunkPosition(), (ServerLevel) entity2.level(), entity2.chunkPosition(), () -> ensureSync(entity1, entity2, runnable)); // Entity may have moved since, ensure still sync
         } else {
             runnable.run();
         }

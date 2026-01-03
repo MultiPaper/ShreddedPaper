@@ -1,5 +1,15 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
+@@ -22,6 +_,9 @@
+ import java.util.UUID;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.stream.Collectors;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.util.ObjectHolder;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
 @@ -259,6 +_,7 @@
      private @Nullable Vec3 enteredLavaOnVehiclePosition;
      private SectionPos lastSectionPos = SectionPos.of(0, 0, 0);
@@ -8,3 +18,171 @@
      private ServerPlayer.@Nullable RespawnConfig respawnConfig;
      private final TextFilter textFilter;
      private boolean textFilteringEnabled;
+@@ -1352,39 +_,43 @@
+     public record RespawnResult(TeleportTransition transition, boolean isBedSpawn, boolean isAnchorSpawn) {
+     }
+ 
+-    public @Nullable TeleportTransition findRespawnPositionAndUseSpawnBlock(boolean useCharge, TeleportTransition.PostTeleportTransition postTeleportTransition, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason respawnReason) {
+-        RespawnResult result = this.findRespawnPositionAndUseSpawnBlock0(useCharge, postTeleportTransition, respawnReason);
++    public CompletableFuture<TeleportTransition> findRespawnPositionAndUseSpawnBlockAsync(boolean useCharge, TeleportTransition.PostTeleportTransition postTeleportTransition, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason respawnReason) { // ShreddedPaper - respawn async
++        return this.findRespawnPositionAndUseSpawnBlock0Async(useCharge, postTeleportTransition, respawnReason).thenApply(result -> { // ShreddedPaper - respawn async
+         return result == null ? null : result.transition();
++        }); // ShreddedPaper - respawn async
+     }
+ 
+-    public @Nullable RespawnResult findRespawnPositionAndUseSpawnBlock0(boolean useCharge, TeleportTransition.PostTeleportTransition postTeleportTransition, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason respawnReason) {
+-        TeleportTransition teleportTransition;
+-        boolean isBedSpawn = false;
+-        boolean isAnchorSpawn = false;
+-        Runnable consumeAnchorCharge = null;
++    public CompletableFuture<RespawnResult> findRespawnPositionAndUseSpawnBlock0Async(boolean useCharge, TeleportTransition.PostTeleportTransition postTeleportTransition, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason respawnReason) { // ShreddedPaper - respawn async
++        // TeleportTransition teleportTransition; // ShreddedPaper - respawn async
++        ObjectHolder<Boolean> isBedSpawn = new ObjectHolder<>(false); // ShreddedPaper - respawn async
++        ObjectHolder<Boolean> isAnchorSpawn = new ObjectHolder<>(false); // ShreddedPaper - respawn async
++        ObjectHolder<Runnable> consumeAnchorCharge = new ObjectHolder<>(null); // ShreddedPaper - respawn async
+         // Paper end
+         ServerPlayer.RespawnConfig respawnConfig = this.getRespawnConfig();
+         ServerLevel level = this.server.getLevel(ServerPlayer.RespawnConfig.getDimensionOrDefault(respawnConfig));
++        CompletableFuture<TeleportTransition> future; // ShreddedPaper - respawn async
+         if (level != null && respawnConfig != null) {
+-            Optional<ServerPlayer.RespawnPosAngle> optional = findRespawnAndUseSpawnBlock(level, respawnConfig, useCharge);
++            future = findRespawnAndUseSpawnBlockAsync(level, respawnConfig, useCharge).thenCompose(optional -> { // ShreddedPaper - respawn async
+             if (optional.isPresent()) {
+                 ServerPlayer.RespawnPosAngle respawnPosAngle = optional.get();
+                 // CraftBukkit start
+-                isBedSpawn = respawnPosAngle.isBedSpawn();
+-                isAnchorSpawn = respawnPosAngle.isAnchorSpawn();
+-                consumeAnchorCharge = respawnPosAngle.consumeAnchorCharge();
+-                teleportTransition = new TeleportTransition(
++                isBedSpawn.value(respawnPosAngle.isBedSpawn()); // ShreddedPaper - respawn async
++                isAnchorSpawn.value(respawnPosAngle.isAnchorSpawn()); // ShreddedPaper - respawn async
++                consumeAnchorCharge.value(respawnPosAngle.consumeAnchorCharge()); // ShreddedPaper - respawn async
++                return CompletableFuture.completedFuture(new TeleportTransition( // ShreddedPaper - respawn async
+                     level, respawnPosAngle.position(), Vec3.ZERO, respawnPosAngle.yaw(), respawnPosAngle.pitch(), postTeleportTransition
+-                );
++                )); // ShreddedPaper - respawn async
+                 // CraftBukkit end
+             } else {
+-                teleportTransition = TeleportTransition.missingRespawnBlock(this, postTeleportTransition); // CraftBukkit
++                return TeleportTransition.missingRespawnBlockAsync(this, postTeleportTransition); // CraftBukkit // ShreddedPaper - respawn async
+             }
++            }); // ShreddedPaper - respawn async
+         } else {
+             // CraftBukkit start
+-            teleportTransition = TeleportTransition.createDefault(this, postTeleportTransition);
++            future = TeleportTransition.createDefaultAsync(this, postTeleportTransition); // ShreddedPaper - respawn async
+         }
+ 
++        return future.thenApply(teleportTransition -> { // ShreddedPaper - respawn async
+         org.bukkit.entity.Player respawnPlayer = this.getBukkitEntity();
+         org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(
+             teleportTransition.position(),
+@@ -1397,8 +_,8 @@
+         org.bukkit.event.player.PlayerRespawnEvent respawnEvent = new org.bukkit.event.player.PlayerRespawnEvent(
+             respawnPlayer,
+             location,
+-            isBedSpawn,
+-            isAnchorSpawn,
++            isBedSpawn.value(), // ShreddedPaper - respawn async
++            isAnchorSpawn.value(), // ShreddedPaper - respawn async
+             teleportTransition.missingRespawnBlock(),
+             respawnReason
+         );
+@@ -1412,7 +_,7 @@
+ 
+         // Paper start - consume anchor charge if location hasn't changed
+         if (location.equals(respawnEvent.getRespawnLocation()) && consumeAnchorCharge != null) {
+-            consumeAnchorCharge.run();
++            consumeAnchorCharge.value().run(); // ShreddedPaper - respawn async
+         }
+         // Paper end - consume anchor charge if location hasn't changed
+         location = respawnEvent.getRespawnLocation();
+@@ -1430,10 +_,11 @@
+                 teleportTransition.postTeleportTransition(),
+                 teleportTransition.cause()
+             ),
+-            isBedSpawn,
+-            isAnchorSpawn
++            isBedSpawn.value(), // ShreddedPaper - respawn async
++            isAnchorSpawn.value() // ShreddedPaper - respawn async
+         );
+         // CraftBukkit end
++        }); // ShreddedPaper - respawn async
+     }
+ 
+     public boolean isReceivingWaypoints() {
+@@ -1454,7 +_,7 @@
+         super.onAttributeUpdated(attribute);
+     }
+ 
+-    public static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(
++    public static CompletableFuture<Optional<ServerPlayer.RespawnPosAngle>> findRespawnAndUseSpawnBlockAsync( // ShreddedPaper - respawn async
+         ServerLevel level, ServerPlayer.RespawnConfig respawnConfig, boolean useCharge
+     ) {
+         LevelData.RespawnData respawnData = respawnConfig.respawnData;
+@@ -1462,22 +_,32 @@
+         float yaw = respawnData.yaw();
+         float pitch = respawnData.pitch();
+         boolean flag = respawnConfig.forced;
++        return CompletableFuture.supplyAsync(() -> { // ShreddedPaper - respawn async
+         BlockState blockState = level.getBlockState(blockPos);
+         Block block = blockState.getBlock();
+         if (block instanceof RespawnAnchorBlock
+-            && (flag || blockState.getValue(RespawnAnchorBlock.CHARGE) > 0)
+-            && RespawnAnchorBlock.canSetSpawn(level, blockPos)) {
++                && (flag || blockState.getValue(RespawnAnchorBlock.CHARGE) > 0)
++                && RespawnAnchorBlock.canSetSpawn(level, blockPos)) {
+             Optional<Vec3> optional = RespawnAnchorBlock.findStandUpPosition(EntityType.PLAYER, level, blockPos);
+             Runnable consumeAnchorCharge = null; // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
+             if (!flag && useCharge && optional.isPresent()) {
+-                consumeAnchorCharge = () -> level.setBlock(blockPos, blockState.setValue(RespawnAnchorBlock.CHARGE, blockState.getValue(RespawnAnchorBlock.CHARGE) - 1), Block.UPDATE_ALL); // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
++                // ShreddedPaper start - respawn anchor block update async
++                consumeAnchorCharge = () -> {
++                    ShreddedPaper.ensureSync(level, blockPos, () -> {
++                        BlockState blockState2 = level.getBlockState(blockPos); // Use the latest block state in case it has been modified since
++                        if (blockState2.getBlock() instanceof RespawnAnchorBlock && blockState2.getValue(RespawnAnchorBlock.CHARGE) > 0) { // Ensure this block is still a respawn anchor block
++                            level.setBlock(blockPos, blockState2.setValue(RespawnAnchorBlock.CHARGE, blockState2.getValue(RespawnAnchorBlock.CHARGE) - 1), Block.UPDATE_ALL); // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
++                        }
++                    });
++                };
++                // ShreddedPaper end - respawn anchor block update async
+             }
+             final Runnable finalConsumeAnchorCharge = consumeAnchorCharge; // Paper - Fix SPIGOT-5989
+ 
+             return optional.map(pos -> ServerPlayer.RespawnPosAngle.of(pos, blockPos, 0.0F, false, true, finalConsumeAnchorCharge)); // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
+         } else if (block instanceof BedBlock && level.environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, blockPos).canSetSpawn(level)) {
+             return BedBlock.findStandUpPosition(EntityType.PLAYER, level, blockPos, blockState.getValue(BedBlock.FACING), yaw)
+-                .map(pos -> ServerPlayer.RespawnPosAngle.of(pos, blockPos, 0.0F, true, false, null)); // Paper - Fix SPIGOT-5989
++                    .map(pos -> ServerPlayer.RespawnPosAngle.of(pos, blockPos, 0.0F, true, false, null)); // Paper - Fix SPIGOT-5989
+         } else if (!flag) {
+             return Optional.empty();
+         } else {
+@@ -1485,9 +_,10 @@
+             BlockState blockState1 = level.getBlockState(blockPos.above());
+             boolean isPossibleToRespawnInThis1 = blockState1.getBlock().isPossibleToRespawnInThis(blockState1);
+             return isPossibleToRespawnInThis && isPossibleToRespawnInThis1
+-                ? Optional.of(new ServerPlayer.RespawnPosAngle(new Vec3(blockPos.getX() + 0.5, blockPos.getY() + 0.1, blockPos.getZ() + 0.5), yaw, pitch, false, false, null)) // Paper - Fix SPIGOT-5989
+-                : Optional.empty();
++                    ? Optional.of(new ServerPlayer.RespawnPosAngle(new Vec3(blockPos.getX() + 0.5, blockPos.getY() + 0.1, blockPos.getZ() + 0.5), yaw, pitch, false, false, null)) // Paper - Fix SPIGOT-5989
++                    : Optional.empty();
+         }
++        }, r -> ShreddedPaper.ensureSync(level, blockPos, r));
+     }
+ 
+     public void showEndCredits() {
+@@ -2655,6 +_,7 @@
+     }
+ 
+     public void setCamera(@Nullable Entity entityToSpectate) {
++        ShreddedPaper.ensureSync(this, entityToSpectate == null ? this : entityToSpectate, () -> { // ShreddedPaper - run on entity's thread
+         Entity camera = this.getCamera();
+         this.camera = (Entity)(entityToSpectate == null ? this : entityToSpectate);
+         if (camera != this.camera) {
+@@ -2684,6 +_,7 @@
+             this.connection.send(new ClientboundSetCameraPacket(this.camera));
+             this.connection.resetPosition();
+         }
++        });  // ShreddedPaper - run on entity's thread
+     }
+ 
+     @Override
