@@ -1,6 +1,7 @@
 package io.multipaper.shreddedpaper.threading;
 
 import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.profiling.Profiler;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -37,9 +38,13 @@ public class ShreddedPaperEntityTicker {
         }
     }
 
+    /** processTrackQueue has been renamed to newTrackerTick */
     public static void processTrackQueue(Entity entity) {
-        ChunkMap.TrackedEntity tracker = Objects.requireNonNull(entity.tracker);
-        tracker.updatePlayers(entity.getPlayersInTrackRange());
-        tracker.serverEntity.sendChanges();
+        ChunkMap.TrackedEntity tracker = Objects.requireNonNull(entity.moonrise$getTrackedEntity());
+        ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
+        if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
+                || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
+            tracker.serverEntity.sendChanges();
+        }
     }
 }

@@ -468,11 +468,12 @@
                  ServerLevel.this.players.remove(serverPlayer);
                  ServerLevel.this.getWaypointManager().removePlayer(serverPlayer);
                  ServerLevel.this.updateSleepingPlayerList();
-@@ -2991,6 +_,8 @@
+@@ -2991,6 +_,9 @@
          @Override
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
 +            ServerLevel.this.chunkSource.tickingRegions.moveTickingEntity(entity); // ShreddedPaper - move ticking entity into the new region
++            ServerLevel.this.chunkSource.tickingRegions.moveTrackedEntity(entity); // ShreddedPaper - move tracked entity into the new region
 +            if (entity instanceof ServerPlayer serverPlayer) ServerLevel.this.chunkSource.tickingRegions.movePlayer(serverPlayer); // ShreddedPaper - move player into the new region
          }
      }
