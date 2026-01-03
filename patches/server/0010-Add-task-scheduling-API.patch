@@ -6,7 +6,7 @@ Subject: [PATCH] Add task scheduling API
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..25899aea12e866834b7513e69b30aa14437bc945
+index 0000000000000000000000000000000000000000..fd36882c99720cc04c72d30f18a943e2e70e0e99
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 @@ -0,0 +1,78 @@
@@ -69,7 +69,7 @@ index 0000000000000000000000000000000000000000..25899aea12e866834b7513e69b30aa14
 +
 +    public static void ensureSync(Entity entity1, ServerLevel serverLevel2, ChunkPos chunkPos2, Runnable runnable) {
 +        if (!isSync((ServerLevel) entity1.level(), entity1.chunkPosition()) || !isSync(serverLevel2, chunkPos2)) {
-+            runSync((ServerLevel) entity1.level(), entity1.chunkPosition(), serverLevel2, chunkPos2, runnable);
++            runSync((ServerLevel) entity1.level(), entity1.chunkPosition(), serverLevel2, chunkPos2, () -> ensureSync(entity1, serverLevel2, chunkPos2, runnable)); // Entity may have moved since, ensure still sync);
 +        } else {
 +            runnable.run();
 +        }
