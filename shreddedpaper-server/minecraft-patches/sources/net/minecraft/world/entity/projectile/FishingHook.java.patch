@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/entity/projectile/FishingHook.java
++++ b/net/minecraft/world/entity/projectile/FishingHook.java
+@@ -3,6 +_,8 @@
+ import com.mojang.logging.LogUtils;
+ import java.util.Collections;
+ import java.util.List;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.particles.ParticleTypes;
+@@ -210,7 +_,12 @@
+                         if (!this.hookedIn.isRemoved() && this.hookedIn.canInteractWithLevel() && this.hookedIn.level().dimension() == this.level().dimension()
+                             )
+                          {
+-                            this.setPos(this.hookedIn.getX(), this.hookedIn.getY(0.8), this.hookedIn.getZ());
++                             // ShreddedPaper start - ensure sync
++                             final Vec3 toPosition = this.hookedIn.position(); // The entity's position could change once the ensureSync method is called
++                             ShreddedPaper.ensureSync(this, (ServerLevel) this.hookedIn.level(), this.hookedIn.chunkPosition(), () -> {
++                                 this.setPos(toPosition.x(), this.hookedIn.getY(0.8D), toPosition.z());
++                             });
++                            // ShreddedPaper end - ensure sync
+                         } else {
+                             this.setHookedEntity(null);
+                             new io.papermc.paper.event.entity.FishHookStateChangeEvent((org.bukkit.entity.FishHook) getBukkitEntity(), org.bukkit.entity.FishHook.HookState.UNHOOKED).callEvent(); // Paper - Add FishHookStateChangeEvent. #UNHOOKED

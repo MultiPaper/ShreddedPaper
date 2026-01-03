@@ -1,0 +1,53 @@
+--- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
++++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
+@@ -1,6 +_,8 @@
+ package net.minecraft.world.entity.projectile.throwableitemprojectile;
+ 
+ import java.util.UUID;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.core.particles.ParticleTypes;
+@@ -18,6 +_,7 @@
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
++import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+@@ -100,6 +_,7 @@
+             Entity owner = this.getOwner();
+             if (owner != null && isAllowedToTeleportOwner(owner, serverLevel)) {
+                 Vec3 vec3 = this.oldPosition();
++                ShreddedPaper.ensureSync(owner, serverLevel, new ChunkPos(vec3.floorToBlockPos()), () -> { // ShreddedPaper - teleport async
+                 if (owner instanceof ServerPlayer serverPlayer) {
+                     if (serverPlayer.connection.isAcceptingMessages()) {
+                         // CraftBukkit start
+@@ -108,7 +_,7 @@
+                         final float preTeleportYRot = serverPlayer.getYRot(), preTeleportXRot = serverPlayer.getXRot();
+                         ServerPlayer serverPlayer1 = serverPlayer.teleport(new TeleportTransition(serverLevel, vec3, Vec3.ZERO, 0.0F, 0.0F, Relative.union(Relative.ROTATION, Relative.DELTA), TeleportTransition.DO_NOTHING, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.ENDER_PEARL));
+                         if (serverPlayer1 == null) {
+-                            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT);
++                            // this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // ShreddedPaper - already removed as part of async teleport
+                             return;
+                         }
+                         // CraftBukkit end
+@@ -142,7 +_,7 @@
+                     }
+                 } else {
+                     Entity entity = owner.teleport(
+-                        new TeleportTransition(serverLevel, vec3, owner.getDeltaMovement(), owner.getYRot(), owner.getXRot(), TeleportTransition.DO_NOTHING)
++                            new TeleportTransition(serverLevel, vec3, owner.getDeltaMovement(), owner.getYRot(), owner.getXRot(), TeleportTransition.DO_NOTHING)
+                     );
+                     if (entity != null) {
+                         entity.resetFallDistance();
+@@ -150,6 +_,7 @@
+ 
+                     this.playSound(serverLevel, vec3);
+                 }
++                }); // ShreddedPaper - teleport async
+ 
+                 this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+             } else {

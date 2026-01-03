@@ -1,0 +1,29 @@
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -1461,9 +_,12 @@
+             return CraftLocation.toBukkit(respawnData.pos(), world, respawnData.yaw(), respawnData.pitch());
+         }
+ 
+-        return ServerPlayer.findRespawnAndUseSpawnBlock(world, respawnConfig, false)
+-            .map(pos -> CraftLocation.toBukkit(pos.position(), world, pos.yaw(), pos.pitch()))
+-            .orElse(null);
++        // ShreddedPaper start - can't get respawn location sync
++        throw new UnsupportedOperationException("Cannot get respawn location synchronously");
++        // return ServerPlayer.findRespawnAndUseSpawnBlock(world, respawnConfig, false)
++        //     .map(pos -> CraftLocation.toBukkit(pos.position(), world, pos.yaw(), pos.pitch()))
++        //     .orElse(null);
++        // ShreddedPaper end - can't get respawn location sync
+     }
+ 
+     @Override
+@@ -3136,8 +_,9 @@
+         @Override
+         public void respawn() {
+             if (CraftPlayer.this.getHealth() <= 0 && CraftPlayer.this.isOnline()) {
+-                CraftPlayer.this.server.getServer().getPlayerList().respawn(CraftPlayer.this.getHandle(), false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.PLUGIN);
++                CraftPlayer.this.server.getServer().getPlayerList().respawnAsync(CraftPlayer.this.getHandle(), false, Entity.RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.PLUGIN).thenRun(() -> { // ShreddedPaper - async respawn
+                 CraftPlayer.this.getHandle().connection.restartClientLoadTimerAfterRespawn();
++                }); // ShreddedPaper - async respawn
+             }
+         }
+ 

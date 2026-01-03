@@ -1,0 +1,46 @@
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -6,6 +_,7 @@
+ import com.google.common.collect.ImmutableSet;
+ import com.google.common.collect.Lists;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import io.papermc.paper.datacomponent.DataComponentType;
+ import io.papermc.paper.entity.LookAnchor;
+ import io.papermc.paper.entity.TeleportFlag;
+@@ -34,6 +_,7 @@
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+ import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
++import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.portal.TeleportTransition;
+ import net.minecraft.world.level.storage.TagValueOutput;
+ import net.minecraft.world.level.storage.ValueInput;
+@@ -1141,9 +_,26 @@
+         ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
+         CompletableFuture<Boolean> ret = new CompletableFuture<>();
+ 
++        // ShreddedPaper start - run sync if possible
++        ChunkPos fromChunkPos = this.getHandle().chunkPosition();
++        ChunkPos toChunkPos = CraftLocation.toChunkPosition(locationClone);
++        if (ShreddedPaper.isSync((ServerLevel) this.getHandle().level(), fromChunkPos)
++                && ShreddedPaper.isSync(world, toChunkPos)
++                && this.getHandle().level().hasChunk(fromChunkPos.x, fromChunkPos.z)
++                && world.hasChunk(toChunkPos.x, toChunkPos.z)) {
++            try {
++                ret.complete(CraftEntity.this.teleport0(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
++            } catch (Throwable throwable) {
++                MinecraftServer.LOGGER.error("Failed to teleport entity {}", CraftEntity.this, throwable);
++                ret.completeExceptionally(throwable);
++            }
++            return ret;
++        }
++        // ShreddedPaper end - run sync if possible
++
+         world.loadChunksForMoveAsync(this.getHandle().getBoundingBoxAt(locationClone.getX(), locationClone.getY(), locationClone.getZ()),
+             this instanceof CraftPlayer ? ca.spottedleaf.concurrentutil.util.Priority.HIGHER : ca.spottedleaf.concurrentutil.util.Priority.NORMAL, (chunks) -> {
+-                MinecraftServer.getServer().scheduleOnMain(() -> {
++                ShreddedPaper.ensureSync(this.getHandle(), world, toChunkPos, () -> { // ShreddedPaper - run on correct thread
+                     final ServerChunkCache chunkCache = world.getChunkSource();
+                     for (final net.minecraft.world.level.chunk.ChunkAccess chunk : chunks) {
+                         chunkCache.addTicketAtLevel(TicketType.POST_TELEPORT, chunk.getPos(), ChunkLevel.FULL_CHUNK_LEVEL);

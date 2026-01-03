@@ -1,0 +1,61 @@
+--- a/net/minecraft/world/level/portal/TeleportTransition.java
++++ b/net/minecraft/world/level/portal/TeleportTransition.java
+@@ -1,6 +_,9 @@
+ package net.minecraft.world.level.portal;
+ 
+ import java.util.Set;
++import java.util.concurrent.CompletableFuture;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.network.protocol.game.ClientboundLevelEventPacket;
+ import net.minecraft.server.level.ServerLevel;
+@@ -75,12 +_,13 @@
+         entity.placePortalTicket(BlockPos.containing(entity.position()));
+     }
+ 
+-    public static TeleportTransition createDefault(ServerPlayer player, TeleportTransition.PostTeleportTransition postTeleportTransition) {
++    public static CompletableFuture<TeleportTransition> createDefaultAsync(ServerPlayer player, TeleportTransition.PostTeleportTransition postTeleportTransition) { // ShreddedPaper - respawn async
+         ServerLevel serverLevel = player.level().getServer().findRespawnDimension();
+         LevelData.RespawnData respawnData = serverLevel.getRespawnData();
++        return findAdjustedSharedSpawnPosAsync(serverLevel, player).thenApply(pos -> { // ShreddedPaper - respawn async
+         return new TeleportTransition(
+             serverLevel,
+-            findAdjustedSharedSpawnPos(serverLevel, player),
++            pos, // ShreddedPaper - respawn async
+             Vec3.ZERO,
+             respawnData.yaw(),
+             respawnData.pitch(),
+@@ -89,14 +_,16 @@
+             Set.of(),
+             postTeleportTransition
+         );
++        }); // ShreddedPaper - respawn async
+     }
+ 
+-    public static TeleportTransition missingRespawnBlock(ServerPlayer player, TeleportTransition.PostTeleportTransition postTeleportTransition) {
++    public static CompletableFuture<TeleportTransition> missingRespawnBlockAsync(ServerPlayer player, TeleportTransition.PostTeleportTransition postTeleportTransition) { // ShreddedPaper - respawn async
+         ServerLevel serverLevel = player.level().getServer().findRespawnDimension();
+         LevelData.RespawnData respawnData = serverLevel.getRespawnData();
++        return findAdjustedSharedSpawnPosAsync(serverLevel, player).thenApply(pos -> { // ShreddedPaper - respawn async
+         return new TeleportTransition(
+             serverLevel,
+-            findAdjustedSharedSpawnPos(serverLevel, player),
++            pos, // ShreddedPaper - respawn async
+             Vec3.ZERO,
+             respawnData.yaw(),
+             respawnData.pitch(),
+@@ -105,10 +_,11 @@
+             Set.of(),
+             postTeleportTransition
+         );
++        }); // ShreddedPaper - respawn async
+     }
+ 
+-    private static Vec3 findAdjustedSharedSpawnPos(ServerLevel level, Entity entity) {
+-        return entity.adjustSpawnLocation(level, level.getRespawnData().pos()).getBottomCenter();
++    private static CompletableFuture<Vec3> findAdjustedSharedSpawnPosAsync(ServerLevel level, Entity entity) { // ShreddedPaper - respawn async
++        return CompletableFuture.supplyAsync(() -> entity.adjustSpawnLocation(level, level.getRespawnData().pos()).getBottomCenter(), r -> ShreddedPaper.ensureSync(level, level.getRespawnData().pos(), r)); // ShreddedPaper - respawn async
+     }
+ 
+     public TeleportTransition withRotation(float yRot, float xRot) {

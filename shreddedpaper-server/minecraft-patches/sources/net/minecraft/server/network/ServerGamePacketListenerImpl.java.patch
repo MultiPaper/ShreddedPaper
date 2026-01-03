@@ -15,6 +15,42 @@
  import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
  import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+@@ -626,6 +_,12 @@
+                     return;
+                 }
+                 // Paper end - Prevent moving into unloaded chunks
++                // ShreddedPaper start - Check we own the destination location
++                if (!TickThread.isTickThreadFor(this.player.level(), new Vec3(toX, toY, toZ))) {
++                    this.connection.send(ClientboundMoveVehiclePacket.fromEntity(rootVehicle));
++                    return;
++                }
++                // ShreddedPaper end - Check we own the destination location
+                 if (d7 - d6 > Math.max(100.0, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed)) && !this.isSingleplayerOwner()) {
+                     // CraftBukkit end
+                     LOGGER.warn("{} (vehicle of {}) moved too quickly! {},{},{}", rootVehicle.getPlainTextName(), this.player.getPlainTextName(), d3, d4, d5);
+@@ -1573,6 +_,12 @@
+                                         // Paper end - Add fail move event
+                                     }
+                                     // Paper end - Prevent moving into unloaded chunks
++                                    // ShreddedPaper start - Check we own the destination location
++                                    if (!TickThread.isTickThreadFor(this.player.level(), new Vec3(toX, toY, toZ))) {
++                                        this.internalTeleport(PositionMoveRotation.of(this.player), Collections.emptySet());
++                                        return;
++                                    }
++                                    // ShreddedPaper end - Check we own the destination location
+ 
+                                     if (this.shouldCheckPlayerMovement(isFallFlying)) {
+                                         float f2 = isFallFlying ? 300.0F : 100.0F;
+@@ -2288,7 +_,9 @@
+             for (ServerLevel serverLevel : this.server.getAllLevels()) {
+                 Entity entity = packet.getEntity(serverLevel);
+                 if (entity != null) {
++                    ShreddedPaper.ensureSync(this.player, entity, () -> { // ShreddedPaper - ensure on entity's thread
+                     this.player.teleportTo(serverLevel, entity.getX(), entity.getY(), entity.getZ(), Set.of(), entity.getYRot(), entity.getXRot(), true, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE); // CraftBukkit
++                    }); // ShreddedPaper - ensure on entity's thread
+                     return;
+                 }
+             }
 @@ -2312,12 +_,14 @@
              this.processedDisconnect = true;
          }
@@ -39,6 +75,36 @@
              } else {
                  handler.run();
              }
+@@ -3030,23 +_,27 @@
+         switch (action) {
+             case PERFORM_RESPAWN:
+                 if (this.player.wonGame) {
++                    this.server.getPlayerList().respawnAsync(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, RespawnReason.END_PORTAL).thenAccept(player -> { // CraftBukkit // ShreddedPaper - async respawn
++                    this.player = player; // ShreddedPaper - async respawn
+                     this.player.wonGame = false;
+-                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, RespawnReason.END_PORTAL); // CraftBukkit
+                     this.resetPosition();
+                     this.restartClientLoadTimerAfterRespawn();
+                     CriteriaTriggers.CHANGED_DIMENSION.trigger(this.player, Level.END, Level.OVERWORLD);
++                    }); // ShreddedPaper - async respawn
+                 } else {
+                     if (this.player.getHealth() > 0.0F) {
+                         return;
+                     }
+ 
+-                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, RespawnReason.DEATH); // CraftBukkit
++                    this.server.getPlayerList().respawnAsync(this.player, false, Entity.RemovalReason.KILLED, RespawnReason.DEATH).thenAccept(player -> { // CraftBukkit // ShreddedPaper - async respawn
++                    this.player = player; // ShreddedPaper - async respawn
+                     this.resetPosition();
+                     this.restartClientLoadTimerAfterRespawn();
+                     if (this.server.isHardcore()) {
+                         this.player.setGameMode(GameType.SPECTATOR, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.HARDCORE_DEATH, null); // Paper - Expand PlayerGameModeChangeEvent
+                         this.player.level().getGameRules().set(GameRules.SPECTATORS_GENERATE_CHUNKS, false, this.player.level()); // CraftBukkit - per-world
+                     }
++                    }); // ShreddedPaper - async respawn
+                 }
+                 break;
+             case REQUEST_STATS:
 @@ -3833,7 +_,7 @@
  
      @Override

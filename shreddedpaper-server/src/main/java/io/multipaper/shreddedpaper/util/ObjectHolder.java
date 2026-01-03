@@ -1,22 +1,24 @@
 package io.multipaper.shreddedpaper.util;
 
+import javax.annotation.Nullable;
+
 public class ObjectHolder <T> {
 
-    T value;
+    @Nullable T value;
 
     public ObjectHolder() {
         this(null);
     }
 
-    public ObjectHolder(T object) {
+    public ObjectHolder(@Nullable T object) {
         this.value = object;
     }
 
-    public T value() {
+    public @Nullable T value() {
         return value;
     }
 
-    public void value(T value) {
+    public void value(@Nullable T value) {
         this.value = value;
     }
 }
