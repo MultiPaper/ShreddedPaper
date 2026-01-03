@@ -1,5 +1,31 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
+@@ -8,6 +_,7 @@
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.MapCodec;
++import io.multipaper.shreddedpaper.util.Int2ObjectMapWrapper;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.Long2ByteMap;
+@@ -36,6 +_,7 @@
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.CompletionException;
+ import java.util.concurrent.CompletionStage;
++import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.Executor;
+ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.function.BooleanSupplier;
+@@ -139,7 +_,8 @@
+     public final ChunkMap.DistanceManager distanceManager;
+     private final String storageName;
+     private final PlayerMap playerMap = new PlayerMap();
+-    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new Int2ObjectOpenHashMap<>();
++    public final ConcurrentHashMap<Integer, ChunkMap.TrackedEntity> entityConcurrentMap = new ConcurrentHashMap<>(); // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
++    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new Int2ObjectMapWrapper(this.entityConcurrentMap); // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
+     private final Long2ByteMap chunkTypeCache = new Long2ByteOpenHashMap();
+     // Paper - rewrite chunk system
+     public int serverViewDistance;
 @@ -708,7 +_,7 @@
      }
  
@@ -9,17 +35,54 @@
          final ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData chunkData = ((ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkSystemLevelChunk)levelChunk).moonrise$getChunkHolder().holderData;
          final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk nearbyPlayers = chunkData.nearbyPlayers;
          if (nearbyPlayers == null) {
-@@ -1003,6 +_,7 @@
+@@ -985,9 +_,9 @@
+     public void addEntity(Entity entity) {
+         org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot
+         // Paper start - ignore and warn about illegal addEntity calls instead of crashing server
+-        if (!entity.valid || entity.level() != this.level || this.entityMap.containsKey(entity.getId())) {
++        if (!entity.valid || entity.level() != this.level || this.entityConcurrentMap.containsKey(entity.getId())) { // ShreddedPaper - use entityConcurrentMap
+             LOGGER.error("Illegal ChunkMap::addEntity for world " + this.level.getWorld().getName()
+-                + ": " + entity  + (this.entityMap.containsKey(entity.getId()) ? " ALREADY CONTAINED (This would have crashed your server)" : ""), new Throwable());
++                + ": " + entity  + (this.entityConcurrentMap.containsKey(entity.getId()) ? " ALREADY CONTAINED (This would have crashed your server)" : ""), new Throwable()); // ShreddedPaper - use entityConcurrentMap
+             return;
+         }
+         // Paper end - ignore and warn about illegal addEntity calls instead of crashing server
+@@ -998,11 +_,12 @@
+             i = org.spigotmc.TrackingRange.getEntityTrackingRange(entity, i); // Spigot
+             if (i != 0) {
+                 int updateInterval = type.updateInterval();
+-                if (this.entityMap.containsKey(entity.getId())) {
++                if (this.entityConcurrentMap.containsKey(entity.getId())) { // ShreddedPaper - use entityConcurrentMap
+                     throw (IllegalStateException)Util.pauseInIde(new IllegalStateException("Entity is already tracked!"));
                  } else {
                      ChunkMap.TrackedEntity trackedEntity = new ChunkMap.TrackedEntity(entity, i, updateInterval, type.trackDeltas());
-                     this.entityMap.put(entity.getId(), trackedEntity);
+-                    this.entityMap.put(entity.getId(), trackedEntity);
++                    this.entityConcurrentMap.put(entity.getId(), trackedEntity); // ShreddedPaper - use entityConcurrentMap
 +                    this.level.getChunkSource().tickingRegions.addTrackedEntity(entity); // ShreddedPaper
                      // Paper start - optimise entity tracker
                      if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$getTrackedEntity() != null) {
                          throw new IllegalStateException("Entity is already tracked");
-@@ -1036,6 +_,7 @@
+@@ -1013,7 +_,7 @@
+                     if (entity instanceof ServerPlayer serverPlayer) {
+                         this.updatePlayerStatus(serverPlayer, true);
  
-         ChunkMap.TrackedEntity trackedEntity1 = this.entityMap.remove(entity.getId());
+-                        for (ChunkMap.TrackedEntity trackedEntity1 : this.entityMap.values()) {
++                        for (ChunkMap.TrackedEntity trackedEntity1 : this.entityConcurrentMap.values()) { // ShreddedPaper - use entityConcurrentMap
+                             if (trackedEntity1.entity != serverPlayer) {
+                                 trackedEntity1.updatePlayer(serverPlayer);
+                             }
+@@ -1029,13 +_,14 @@
+         if (entity instanceof ServerPlayer serverPlayer) {
+             this.updatePlayerStatus(serverPlayer, false);
+ 
+-            for (ChunkMap.TrackedEntity trackedEntity : this.entityMap.values()) {
++            for (ChunkMap.TrackedEntity trackedEntity : this.entityConcurrentMap.values()) { // ShreddedPaper - use entityConcurrentMap
+                 trackedEntity.removePlayer(serverPlayer);
+             }
+         }
+ 
+-        ChunkMap.TrackedEntity trackedEntity1 = this.entityMap.remove(entity.getId());
++        ChunkMap.TrackedEntity trackedEntity1 = this.entityConcurrentMap.remove(entity.getId()); // ShreddedPaper - use entityConcurrentMap
          if (trackedEntity1 != null) {
 +            this.level.getChunkSource().tickingRegions.removeTrackedEntity(entity); // ShreddedPaper - only remove if it actually existed
              trackedEntity1.broadcastRemoved();
@@ -33,7 +96,24 @@
          final ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup entityLookup = (ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup)((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getEntityLookup();;
  
          final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = entityLookup.trackerEntities;
-@@ -1101,28 +_,28 @@
+@@ -1074,7 +_,7 @@
+         List<ServerPlayer> list = Lists.newArrayList();
+         List<ServerPlayer> list1 = this.level.players();
+ 
+-        for (ChunkMap.TrackedEntity trackedEntity : this.entityMap.values()) {
++        for (ChunkMap.TrackedEntity trackedEntity : this.entityConcurrentMap.values()) { // ShreddedPaper - use entityConcurrentMap
+             SectionPos sectionPos = trackedEntity.lastSectionPos;
+             SectionPos sectionPos1 = SectionPos.of(trackedEntity.entity);
+             boolean flag = !Objects.equals(sectionPos, sectionPos1);
+@@ -1094,40 +_,40 @@
+         }
+ 
+         if (!list.isEmpty()) {
+-            for (ChunkMap.TrackedEntity trackedEntity : this.entityMap.values()) {
++            for (ChunkMap.TrackedEntity trackedEntity : this.entityConcurrentMap.values()) { // ShreddedPaper - use entityConcurrentMap
+                 trackedEntity.updatePlayers(list);
+             }
+         }
      }
  
      public void sendToTrackingPlayers(Entity entity, Packet<? super ClientGamePacketListener> packet) {
@@ -66,3 +146,9 @@
          return trackedEntity != null && !trackedEntity.seenBy.isEmpty();
      }
  
+     public void forEachEntityTrackedBy(ServerPlayer player, Consumer<Entity> action) {
+-        for (ChunkMap.TrackedEntity trackedEntity : this.entityMap.values()) {
++        for (ChunkMap.TrackedEntity trackedEntity : this.entityConcurrentMap.values()) { // ShreddedPaper - use entityConcurrentMap
+             if (trackedEntity.seenBy.contains(player.connection)) {
+                 action.accept(trackedEntity.entity);
+             }
