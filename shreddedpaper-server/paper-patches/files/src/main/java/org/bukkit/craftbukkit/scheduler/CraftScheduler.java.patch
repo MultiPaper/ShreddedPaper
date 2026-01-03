@@ -1,5 +1,23 @@
 --- a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
 +++ b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
+@@ -17,6 +_,8 @@
+ import java.util.function.Consumer;
+ import java.util.function.IntUnaryOperator;
+ import java.util.logging.Level;
++
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
+ import org.bukkit.plugin.IllegalPluginAccessException;
+ import org.bukkit.plugin.Plugin;
+ import org.bukkit.scheduler.BukkitRunnable;
+@@ -471,7 +_,7 @@
+             if (task.isSync()) {
+                 this.currentTask = task;
+                 try {
+-                    task.run();
++                    SynchronousPluginExecution.execute(task.getOwner(), task::run); // ShreddedPaper - run unsupported plugins in sync
+                 } catch (final Throwable throwable) {
+                     // Paper start
+                     final String logMessage = String.format(
 @@ -491,7 +_,7 @@
                  this.parsePending();
              } else {

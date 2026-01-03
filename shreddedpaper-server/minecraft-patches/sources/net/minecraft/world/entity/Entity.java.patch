@@ -63,7 +63,7 @@
 +        if (!TickThread.isTickThreadFor(level, vec3) || !TickThread.isTickThreadFor(this)) {
 +            LOGGER.error("Trying to async move {} to {} {} {}", this, x, y, z);
 +            TickThread.ensureTickThread(this, "Cannot async move entity");
-+            TickThread.ensureTickThread(level, vec3.floorToBlockPos(), "Cannot move entity to async destination");
++            TickThread.ensureTickThread(level, BlockPos.containing(vec3), "Cannot move entity to async destination");
 +        }
 +        // ShreddedPaper end
          // Paper start - rewrite chunk system

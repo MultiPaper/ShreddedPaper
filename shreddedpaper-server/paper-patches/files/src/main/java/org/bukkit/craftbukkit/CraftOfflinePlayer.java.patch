@@ -1,0 +1,18 @@
+--- a/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftOfflinePlayer.java
+@@ -385,9 +_,12 @@
+             return CraftLocation.toBukkit(respawnConfig.respawnData().pos(), level, respawnConfig.respawnData().yaw(), respawnConfig.respawnData().pitch());
+         }
+ 
+-        return ServerPlayer.findRespawnAndUseSpawnBlock(level, respawnConfig, false)
+-            .map(resolvedPos -> CraftLocation.toBukkit(resolvedPos.position(), level, resolvedPos.yaw(), resolvedPos.pitch()))
+-            .orElse(null);
++        // ShreddedPaper start - can't get respawn location sync
++        throw new UnsupportedOperationException("Cannot get respawn location synchronously");
++//        return ServerPlayer.findRespawnAndUseSpawnBlock(level, respawnConfig, false)
++//                .map(resolvedPos -> CraftLocation.toBukkit(resolvedPos.position(), level, resolvedPos.yaw(), resolvedPos.pitch()))
++//                .orElse(null);
++        // ShreddedPaper end - can't get respawn location sync
+     }
+ 
+     private ServerStatsCounter getStatisticManager() {

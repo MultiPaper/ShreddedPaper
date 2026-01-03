@@ -1,6 +1,7 @@
 package io.multipaper.shreddedpaper.util;
 
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
 public class ObjectHolder <T> {
 
@@ -14,11 +15,15 @@ public class ObjectHolder <T> {
         this.value = object;
     }
 
-    public @Nullable T value() {
+    public @Nullable T get() {
         return value;
     }
 
-    public void value(@Nullable T value) {
+    public void set(@Nullable T value) {
         this.value = value;
+    }
+
+    public void map(Function<T, T> mapper) {
+        this.set(mapper.apply(this.get()));
     }
 }

@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/level/block/Portal.java
++++ b/net/minecraft/world/level/block/Portal.java
+@@ -6,12 +_,14 @@
+ import net.minecraft.world.level.portal.TeleportTransition;
+ import org.jspecify.annotations.Nullable;
+ 
++import java.util.concurrent.CompletableFuture;
++
+ public interface Portal {
+     default int getPortalTransitionTime(ServerLevel level, Entity entity) {
+         return 0;
+     }
+ 
+-    @Nullable TeleportTransition getPortalDestination(ServerLevel level, Entity entity, BlockPos pos);
++    CompletableFuture<@Nullable TeleportTransition> getPortalDestinationAsync(ServerLevel level, Entity entity, BlockPos pos); // ShreddedPaper - async teleportation
+ 
+     default Portal.Transition getLocalTransition() {
+         return Portal.Transition.NONE;

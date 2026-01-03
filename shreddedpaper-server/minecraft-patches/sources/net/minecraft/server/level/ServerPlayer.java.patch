@@ -10,6 +10,14 @@
  import net.minecraft.ChatFormatting;
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
+@@ -64,7 +_,6 @@
+ import net.minecraft.network.protocol.game.ClientboundMerchantOffersPacket;
+ import net.minecraft.network.protocol.game.ClientboundMountScreenOpenPacket;
+ import net.minecraft.network.protocol.game.ClientboundOpenBookPacket;
+-import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
+ import net.minecraft.network.protocol.game.ClientboundOpenSignEditorPacket;
+ import net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket;
+ import net.minecraft.network.protocol.game.ClientboundPlayerCombatEndPacket;
 @@ -259,6 +_,7 @@
      private @Nullable Vec3 enteredLavaOnVehiclePosition;
      private SectionPos lastSectionPos = SectionPos.of(0, 0, 0);
@@ -54,9 +62,9 @@
 -                isAnchorSpawn = respawnPosAngle.isAnchorSpawn();
 -                consumeAnchorCharge = respawnPosAngle.consumeAnchorCharge();
 -                teleportTransition = new TeleportTransition(
-+                isBedSpawn.value(respawnPosAngle.isBedSpawn()); // ShreddedPaper - respawn async
-+                isAnchorSpawn.value(respawnPosAngle.isAnchorSpawn()); // ShreddedPaper - respawn async
-+                consumeAnchorCharge.value(respawnPosAngle.consumeAnchorCharge()); // ShreddedPaper - respawn async
++                isBedSpawn.set(respawnPosAngle.isBedSpawn()); // ShreddedPaper - respawn async
++                isAnchorSpawn.set(respawnPosAngle.isAnchorSpawn()); // ShreddedPaper - respawn async
++                consumeAnchorCharge.set(respawnPosAngle.consumeAnchorCharge()); // ShreddedPaper - respawn async
 +                return CompletableFuture.completedFuture(new TeleportTransition( // ShreddedPaper - respawn async
                      level, respawnPosAngle.position(), Vec3.ZERO, respawnPosAngle.yaw(), respawnPosAngle.pitch(), postTeleportTransition
 -                );
@@ -83,8 +91,8 @@
              location,
 -            isBedSpawn,
 -            isAnchorSpawn,
-+            isBedSpawn.value(), // ShreddedPaper - respawn async
-+            isAnchorSpawn.value(), // ShreddedPaper - respawn async
++            isBedSpawn.get(), // ShreddedPaper - respawn async
++            isAnchorSpawn.get(), // ShreddedPaper - respawn async
              teleportTransition.missingRespawnBlock(),
              respawnReason
          );
@@ -93,7 +101,7 @@
          // Paper start - consume anchor charge if location hasn't changed
          if (location.equals(respawnEvent.getRespawnLocation()) && consumeAnchorCharge != null) {
 -            consumeAnchorCharge.run();
-+            consumeAnchorCharge.value().run(); // ShreddedPaper - respawn async
++            consumeAnchorCharge.get().run(); // ShreddedPaper - respawn async
          }
          // Paper end - consume anchor charge if location hasn't changed
          location = respawnEvent.getRespawnLocation();
@@ -103,8 +111,8 @@
              ),
 -            isBedSpawn,
 -            isAnchorSpawn
-+            isBedSpawn.value(), // ShreddedPaper - respawn async
-+            isAnchorSpawn.value() // ShreddedPaper - respawn async
++            isBedSpawn.get(), // ShreddedPaper - respawn async
++            isAnchorSpawn.get() // ShreddedPaper - respawn async
          );
          // CraftBukkit end
 +        }); // ShreddedPaper - respawn async

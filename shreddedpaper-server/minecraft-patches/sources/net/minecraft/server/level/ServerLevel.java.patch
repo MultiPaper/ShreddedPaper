@@ -458,15 +458,17 @@
      }
  
      @VisibleForTesting
-@@ -2600,7 +_,7 @@
+@@ -2600,8 +_,8 @@
              this.players.size(),
              this.moonrise$getEntityLookup().getDebugInfo(), // Paper - rewrite chunk system
              getTypeCount(this.moonrise$getEntityLookup().getAll(), entity -> BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString()), // Paper - rewrite chunk system
 -            this.blockEntityTickers.size(),
+-            getTypeCount(this.blockEntityTickers, TickingBlockEntity::getType),
 +            0 /*this.blockEntityTickers.size()*/, // ShreddedPaper - removed blockEntityTickers
-             getTypeCount(this.blockEntityTickers, TickingBlockEntity::getType),
++            0 /*getTypeCount(this.blockEntityTickers, TickingBlockEntity::getType)*/, // ShreddedPaper - removed blockEntityTickers
              this.getBlockTicks().count(),
              this.getFluidTicks().count(),
+             this.gatherChunkSourceStats()
 @@ -2630,7 +_,7 @@
  
      @Override

@@ -1,0 +1,45 @@
+--- a/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java
++++ b/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java
+@@ -6,6 +_,7 @@
+ import com.mojang.brigadier.tree.LiteralCommandNode;
+ import io.leangen.geantyref.GenericTypeReflector;
+ import io.leangen.geantyref.TypeToken;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
+ import io.papermc.paper.command.brigadier.CommandSourceStack;
+ import io.papermc.paper.command.brigadier.Commands;
+ import io.papermc.paper.plugin.configuration.PluginMeta;
+@@ -57,8 +_,21 @@
+                                       performance issues.
+                                       """));
+ 
++    // ShreddedPaper start
++    private static final Component NON_FOLIA_PLUGIN_INFO = Component.text("ℹ What is a non-supported plugin?", INFO_COLOR)
++            .append(asPlainComponents("""
++                                         A non-supported plugin is a plugin that was not made
++                                         to run in a multi-threaded environment.
++                                         
++                                         It is encouraged that you replace this plugin,
++                                         as they might not work correctly and may cause
++                                         performance issues.
++                                         """));
++    // ShreddedPaper end
++
+     private static final Component LEGACY_PLUGIN_STAR = Component.text('*', TextColor.color(255, 212, 42)).hoverEvent(LEGACY_PLUGIN_INFO);
+     private static final Component INFO_ICON_START = Component.text("ℹ ", INFO_COLOR);
++    private static final Component NON_FOLIA_PLUGIN_STAR = Component.text('⁺', TextColor.color(255, 212, 42)).hoverEvent(NON_FOLIA_PLUGIN_INFO); // ShreddedPaper
+     private static final Component PLUGIN_TICK = Component.text("- ", NamedTextColor.DARK_GRAY);
+     private static final Component PLUGIN_TICK_EMPTY = Component.text(" ");
+ 
+@@ -109,6 +_,12 @@
+         if (provider instanceof final SpigotPluginProvider spigotPluginProvider && CraftMagicNumbers.isLegacy(spigotPluginProvider.getMeta())) {
+             builder.append(LEGACY_PLUGIN_STAR);
+         }
++
++        // ShreddedPaper start
++        if (provider instanceof SpigotPluginProvider spigotPluginProvider && ShreddedPaperConfiguration.get().multithreading.threadCount != 1 && !spigotPluginProvider.getMeta().isFoliaSupported()) {
++            builder.append(NON_FOLIA_PLUGIN_STAR);
++        }
++        // ShreddedPaper end
+ 
+         final String name = provider.getMeta().getName();
+         // Purpur start - Improve output of plugins command
