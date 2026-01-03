@@ -25,6 +25,14 @@
  import java.util.Arrays;
  import java.util.Collection;
  import java.util.Collections;
+@@ -309,6 +_,7 @@
+     public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
+     public boolean lagging = false; // Purpur - Lagging threshold
+     protected boolean upnp = false; // Purpur - UPnP Port Forwarding
++    public static boolean isBukkitSchedulerHearbeat = false;
+     // Paper start - improve tick loop
+     public final ca.spottedleaf.moonrise.common.time.TickData tickTimes1s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
+     public final ca.spottedleaf.moonrise.common.time.TickData tickTimes5s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
 @@ -437,6 +_,8 @@
          return executed;
      }
@@ -67,6 +75,16 @@
              }
  
              this.waitUntilNextTick();
+@@ -1624,7 +_,9 @@
+                     this.autoSave();
+                 }
+ 
++                MinecraftServer.isBukkitSchedulerHearbeat = true; // ShreddedPaper
+                 this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
++                MinecraftServer.isBukkitSchedulerHearbeat = false; // ShreddedPaper
+                 // Paper start - avoid issues with certain tasks not processing during sleep
+                 Runnable task;
+                 while ((task = this.processQueue.poll()) != null) {
 @@ -1632,7 +_,7 @@
                  }
                  for (final ServerLevel level : this.levels.values()) {
@@ -76,9 +94,13 @@
                  }
                  // Paper end - avoid issues with certain tasks not processing during sleep
                  this.server.spark.executeMainThreadTasks(); // Paper - spark
-@@ -1793,14 +_,16 @@
+@@ -1791,16 +_,20 @@
+     protected void tickChildren(BooleanSupplier hasTimeLeft) {
+         ProfilerFiller profilerFiller = Profiler.get();
          this.getPlayerList().getPlayers().forEach(serverPlayer1 -> serverPlayer1.connection.suspendFlushing());
++        MinecraftServer.isBukkitSchedulerHearbeat = true; // ShreddedPaper
          this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
++        MinecraftServer.isBukkitSchedulerHearbeat = false; // ShreddedPaper
          // Paper start - optimise Folia entity scheduler
 -        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler)org.bukkit.Bukkit.getGlobalRegionScheduler()).tick();
 -        for (io.papermc.paper.threadedregions.EntityScheduler scheduler : this.entitySchedulerTickList.getAllSchedulers()) {

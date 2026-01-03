@@ -1,22 +1,10 @@
 --- a/net/minecraft/world/phys/Vec3.java
 +++ b/net/minecraft/world/phys/Vec3.java
-@@ -4,6 +_,8 @@
+@@ -4,6 +_,7 @@
  import io.netty.buffer.ByteBuf;
  import java.util.EnumSet;
  import java.util.List;
 +
-+import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.Position;
  import net.minecraft.core.Vec3i;
-@@ -335,4 +_,10 @@
-     public boolean isFinite() {
-         return Double.isFinite(this.x) && Double.isFinite(this.y) && Double.isFinite(this.z);
-     }
-+
-+    // ShreddedPaper start
-+    public BlockPos floorToBlockPos() {
-+        return new BlockPos((int) this.x, (int) this.y, (int) this.z);
-+    }
-+    // ShreddedPaper end
- }

@@ -1,0 +1,48 @@
+--- a/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java
++++ b/src/main/java/org/bukkit/plugin/PluginDescriptionFile.java
+@@ -260,6 +_,7 @@
+     private Set<PluginAwareness> awareness = ImmutableSet.of();
+     private String apiVersion = null;
+     private List<String> libraries = ImmutableList.of();
++    private String foliaSupported = null; // ShreddedPaper
+     // Paper start - plugin loader api
+     private String paperPluginLoader;
+     @org.jetbrains.annotations.ApiStatus.Internal @org.jetbrains.annotations.Nullable
+@@ -1057,6 +_,11 @@
+         return libraries;
+     }
+ 
++    // ShreddedPaper start
++    public boolean isFoliaSupported() {
++        return "true".equalsIgnoreCase(foliaSupported);
++    }
++
+     /**
+      * @return unused
+      * @deprecated unused
+@@ -1258,6 +_,12 @@
+         }
+         // Paper end - plugin loader api
+ 
++        // ShreddedPaper start
++        if (map.get("folia-supported") != null) {
++            foliaSupported = map.get("folia-supported").toString();
++        }
++        // ShreddedPaper end
++
+         try {
+             lazyPermissions = (Map<?, ?>) map.get("permissions");
+         } catch (ClassCastException ex) {
+@@ -1335,6 +_,12 @@
+         if (libraries != null) {
+             map.put("libraries", libraries);
+         }
++
++        // ShreddedPaper start
++        if (foliaSupported != null) {
++            map.put("folia-supported", foliaSupported);
++        }
++        // ShreddedPaper end
+ 
+         if (classLoaderOf != null) {
+             map.put("class-loader-of", classLoaderOf);

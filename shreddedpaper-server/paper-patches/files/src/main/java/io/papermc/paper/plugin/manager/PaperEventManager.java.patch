@@ -1,0 +1,27 @@
+--- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
++++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+@@ -4,6 +_,7 @@
+ import com.destroystokyo.paper.event.server.ServerExceptionEvent;
+ import com.destroystokyo.paper.exception.ServerEventException;
+ import com.google.common.collect.Sets;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
+ import org.bukkit.Server;
+ import org.bukkit.Warning;
+ import org.bukkit.event.Event;
+@@ -51,7 +_,15 @@
+             }
+ 
+             try {
+-                registration.callEvent(event);
++                // ShreddedPaper start - run unsupported plugins in sync
++                if (event.isAsynchronous()) {
++                    registration.callEvent(event);
++                } else {
++                    SynchronousPluginExecution.execute(registration.getPlugin(), () -> {
++                        registration.callEvent(event);
++                    });
++                }
++                // ShreddedPaper end - run unsupported plugins in sync
+             } catch (AuthorNagException ex) {
+                 Plugin plugin = registration.getPlugin();
+ 

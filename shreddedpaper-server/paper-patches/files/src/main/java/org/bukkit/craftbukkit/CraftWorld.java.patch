@@ -1,6 +1,6 @@
 --- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
-@@ -2,10 +_,12 @@
+@@ -2,10 +_,13 @@
  
  import ca.spottedleaf.moonrise.common.list.ReferenceList;
  import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
@@ -10,6 +10,7 @@
  import com.google.common.collect.Lists;
  import com.mojang.datafixers.util.Pair;
 +import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
  import io.papermc.paper.FeatureHooks;
  import io.papermc.paper.raytracing.BlockCollisionMode;
  import io.papermc.paper.raytracing.PositionedRayTraceConfigurationBuilder;
@@ -64,3 +65,31 @@
          if (entityTracker != null) {
              entityTracker.sendToTrackingPlayersAndSelf(packet);
          }
+@@ -2051,11 +_,12 @@
+     @Override
+     public void getChunkAtAsync(int x, int z, boolean gen, boolean urgent, @NotNull Consumer<? super Chunk> cb) {
+         warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
++        Plugin plugin = SynchronousPluginExecution.getCurrentPlugin(); // ShreddedPaper - synchronous plugin execution
+         ca.spottedleaf.moonrise.common.PlatformHooks.get().scheduleChunkLoad(
+             this.getHandle(), x, z, gen, ChunkStatus.FULL, true,
+             urgent ? ca.spottedleaf.concurrentutil.util.Priority.HIGHER : ca.spottedleaf.concurrentutil.util.Priority.NORMAL,
+             (ChunkAccess chunk) -> {
+-                cb.accept(chunk == null ? null : new CraftChunk((net.minecraft.world.level.chunk.LevelChunk)chunk));
++                SynchronousPluginExecution.executeNoException(plugin, () -> cb.accept(chunk == null ? null : new CraftChunk((net.minecraft.world.level.chunk.LevelChunk)chunk))); // ShreddedPaper - synchronous plugin execution
+             }
+         );
+ 
+@@ -2065,11 +_,12 @@
+     public void getChunksAtAsync(int minX, int minZ, int maxX, int maxZ, boolean urgent, Runnable cb) {
+         warnUnsafeChunk("getting a faraway chunk async", minX, minZ); // Paper
+         warnUnsafeChunk("getting a faraway chunk async", maxX, maxZ); // Paper
++        Plugin plugin = SynchronousPluginExecution.getCurrentPlugin(); // ShreddedPaper - synchronous plugin execution
+         this.getHandle().loadChunks(
+             minX, minZ, maxX, maxZ,
+             urgent ? ca.spottedleaf.concurrentutil.util.Priority.HIGHER : ca.spottedleaf.concurrentutil.util.Priority.NORMAL,
+             (List<ChunkAccess> chunks) -> {
+-                cb.run();
++                SynchronousPluginExecution.executeNoException(plugin, () -> cb.run()); // ShreddedPaper - synchronous plugin execution
+             }
+         );
+     }

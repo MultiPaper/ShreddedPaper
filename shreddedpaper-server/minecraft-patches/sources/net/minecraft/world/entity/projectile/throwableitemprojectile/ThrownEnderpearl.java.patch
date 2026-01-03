@@ -21,7 +21,7 @@
              Entity owner = this.getOwner();
              if (owner != null && isAllowedToTeleportOwner(owner, serverLevel)) {
                  Vec3 vec3 = this.oldPosition();
-+                ShreddedPaper.ensureSync(owner, serverLevel, new ChunkPos(vec3.floorToBlockPos()), () -> { // ShreddedPaper - teleport async
++                ShreddedPaper.ensureSync(owner, serverLevel, new ChunkPos(BlockPos.containing(vec3)), () -> { // ShreddedPaper - teleport async
                  if (owner instanceof ServerPlayer serverPlayer) {
                      if (serverPlayer.connection.isAcceptingMessages()) {
                          // CraftBukkit start

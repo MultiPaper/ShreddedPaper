@@ -1,10 +1,11 @@
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
-@@ -6,6 +_,7 @@
+@@ -6,6 +_,8 @@
  import com.google.common.collect.ImmutableSet;
  import com.google.common.collect.Lists;
  import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
  import io.papermc.paper.datacomponent.DataComponentType;
  import io.papermc.paper.entity.LookAnchor;
  import io.papermc.paper.entity.TeleportFlag;
@@ -52,10 +53,12 @@
  
          if (entityTracker == null) {
              return;
-@@ -1141,9 +_,26 @@
+@@ -1140,10 +_,28 @@
+ 
          ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
          CompletableFuture<Boolean> ret = new CompletableFuture<>();
- 
++        Plugin plugin = SynchronousPluginExecution.getCurrentPlugin(); // ShreddedPaper - synchronous plugin execution
++
 +        // ShreddedPaper start - run sync if possible
 +        ChunkPos fromChunkPos = this.getHandle().chunkPosition();
 +        ChunkPos toChunkPos = CraftLocation.toChunkPosition(locationClone);
@@ -64,15 +67,15 @@
 +                && this.getHandle().level().hasChunk(fromChunkPos.x, fromChunkPos.z)
 +                && world.hasChunk(toChunkPos.x, toChunkPos.z)) {
 +            try {
-+                ret.complete(CraftEntity.this.teleport0(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
++                SynchronousPluginExecution.executeNoException(plugin, () -> ret.complete(CraftEntity.this.teleport0(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE)); // ShreddedPaper - synchronous plugin execution
 +            } catch (Throwable throwable) {
 +                MinecraftServer.LOGGER.error("Failed to teleport entity {}", CraftEntity.this, throwable);
-+                ret.completeExceptionally(throwable);
++                SynchronousPluginExecution.executeNoException(plugin, () -> ret.completeExceptionally(throwable)); // ShreddedPaper - synchronous plugin execution
 +            }
 +            return ret;
 +        }
 +        // ShreddedPaper end - run sync if possible
-+
+ 
          world.loadChunksForMoveAsync(this.getHandle().getBoundingBoxAt(locationClone.getX(), locationClone.getY(), locationClone.getZ()),
              this instanceof CraftPlayer ? ca.spottedleaf.concurrentutil.util.Priority.HIGHER : ca.spottedleaf.concurrentutil.util.Priority.NORMAL, (chunks) -> {
 -                MinecraftServer.getServer().scheduleOnMain(() -> {

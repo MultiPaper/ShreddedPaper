@@ -41,7 +41,7 @@
          // Paper end
  
          return serverPlayer;
-+        }, r -> ShreddedPaper.ensureSync(player, teleportTransition.newLevel(), new ChunkPos(teleportTransition.position().floorToBlockPos()), r)); // ShreddedPaper - respawn async
++        }, r -> ShreddedPaper.ensureSync(player, teleportTransition.newLevel(), new ChunkPos(BlockPos.containing(teleportTransition.position())), r)); // ShreddedPaper - respawn async
 +        }); // ShreddedPaper - respawn async
      }
  
