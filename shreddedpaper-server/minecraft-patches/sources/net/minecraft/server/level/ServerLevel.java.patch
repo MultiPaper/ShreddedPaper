@@ -38,7 +38,7 @@
      private final ServerWaypointManager waypointManager;
      private final EnvironmentAttributeSystem environmentAttributes;
      // Paper - rewrite chunk system
-@@ -203,8 +_,8 @@
+@@ -203,11 +_,11 @@
      private final SleepStatus sleepStatus;
      private int emptyTime;
      private final PortalForcer portalForcer;
@@ -47,8 +47,13 @@
 +    public final LevelTicksRegionProxy<Block> blockTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded); // ShreddedPaper
 +    public final LevelTicksRegionProxy<Fluid> fluidTicks = new LevelTicksRegionProxy<>(this::isPositionTickingWithEntitiesLoaded); // ShreddedPaper
      private final PathTypeCache pathTypesByPosCache = new PathTypeCache();
-     final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>();
-     volatile boolean isUpdatingNavigations;
+-    final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>();
+-    volatile boolean isUpdatingNavigations;
++    // final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>(); // ShreddedPaper - handled ourselves
++    final ThreadLocal<Boolean> isUpdatingNavigations = ThreadLocal.withInitial(() -> false); // ShreddedPaper - make thread local
+     protected final Raids raids;
+     private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
+     private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
 @@ -221,6 +_,7 @@
      private double preciseTime; // Purpur - Configurable daylight cycle
      private boolean forceTime; // Purpur - Configurable daylight cycle
@@ -375,6 +380,40 @@
              passengerEntity.setOldPosAndRot();
              passengerEntity.tickCount++;
              passengerEntity.totalEntityAge++; // Paper - age-like counter for all entities
+@@ -1903,7 +_,7 @@
+ 
+     @Override
+     public void sendBlockUpdated(BlockPos pos, BlockState oldState, BlockState newState, int flags) {
+-        if (this.isUpdatingNavigations) {
++        if (this.isUpdatingNavigations.get()) { // ShreddedPaper - use thread local
+             String string = "recursive call to sendBlockUpdated";
+             Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
+         }
+@@ -1917,7 +_,7 @@
+             List<PathNavigation> list = new ObjectArrayList<>();
+ 
+             try { // Paper - catch CME see below why
+-            for (Mob mob : this.navigatingMobs) {
++            for (Mob mob : this.chunkSource.tickingRegions.collectRelevantNavigatingMobs(RegionPos.forChunk(new ChunkPos(pos)))) { // ShreddedPaper
+                 PathNavigation navigation = mob.getNavigation();
+                 if (navigation.shouldRecomputePath(pos)) {
+                     list.add(navigation);
+@@ -1934,13 +_,13 @@
+             // Paper end - catch CME see below why
+ 
+             try {
+-                this.isUpdatingNavigations = true;
++                this.isUpdatingNavigations.set(true); // ShreddedPaper - use thread local
+ 
+                 for (PathNavigation pathNavigation : list) {
+                     pathNavigation.recomputePath();
+                 }
+             } finally {
+-                this.isUpdatingNavigations = false;
++                this.isUpdatingNavigations.set(false); // ShreddedPaper - use thread local
+             }
+         }
+         } // Paper - option to disable pathfinding updates
 @@ -2412,11 +_,11 @@
          Optional<Holder<PoiType>> optional1 = PoiTypes.forState(newState);
          if (!Objects.equals(optional, optional1)) {
@@ -452,7 +491,12 @@
              // Paper start - Reset pearls when they stop being ticked
              if (ServerLevel.this.paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && ServerLevel.this.paperConfig().misc.legacyEnderPearlBehavior && entity instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl pearl) {
                  pearl.setOwner(null);
-@@ -2876,6 +_,7 @@
+@@ -2872,10 +_,11 @@
+ 
+         @Override
+         public void onTrackingStart(Entity entity) {
+-            org.spigotmc.AsyncCatcher.catchOp("entity register"); // Spigot
++            TickThread.ensureTickThread(entity, "entity register"); // org.spigotmc.AsyncCatcher.catchOp("entity register"); // Spigot // ShreddedPaper
              // ServerLevel.this.getChunkSource().addEntity(entity); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
              if (entity instanceof ServerPlayer serverPlayer) {
                  ServerLevel.this.players.add(serverPlayer);
@@ -460,7 +504,33 @@
                  if (serverPlayer.isReceivingWaypoints()) {
                      ServerLevel.this.getWaypointManager().addPlayer(serverPlayer);
                  }
-@@ -2953,6 +_,7 @@
+@@ -2888,14 +_,14 @@
+             }
+ 
+             if (entity instanceof Mob mob) {
+-                if (false && ServerLevel.this.isUpdatingNavigations) { // Paper - Remove unnecessary onTrackingStart during navigation warning
++                if (false && ServerLevel.this.isUpdatingNavigations.get()) { // Paper - Remove unnecessary onTrackingStart during navigation warning // ShreddedPaper - use thread local
+                     String string = "onTrackingStart called during navigation iteration";
+                     Util.logAndPauseIfInIde(
+                         "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
+                     );
+                 }
+ 
+-                ServerLevel.this.navigatingMobs.add(mob);
++                // ServerLevel.this.navigatingMobs.add(mob); // ShreddedPaper - handled ourselves
+             }
+ 
+             if (entity instanceof EnderDragon enderDragon) {
+@@ -2922,7 +_,7 @@
+ 
+         @Override
+         public void onTrackingEnd(Entity entity) {
+-            org.spigotmc.AsyncCatcher.catchOp("entity unregister"); // Spigot
++            TickThread.ensureTickThread(entity, "entity unregister"); // org.spigotmc.AsyncCatcher.catchOp("entity unregister"); // Spigot // ShreddedPaper
+             // Spigot start // TODO I don't think this is needed anymore
+             if (entity instanceof Player player) {
+                 for (final ServerLevel level : ServerLevel.this.getServer().getAllLevels()) {
+@@ -2953,20 +_,21 @@
              // Spigot end
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer serverPlayer) {
@@ -468,6 +538,22 @@
                  ServerLevel.this.players.remove(serverPlayer);
                  ServerLevel.this.getWaypointManager().removePlayer(serverPlayer);
                  ServerLevel.this.updateSleepingPlayerList();
+             }
+ 
+             if (entity instanceof Mob mob) {
+-                if (false && ServerLevel.this.isUpdatingNavigations) { // Paper - Remove unnecessary onTrackingStart during navigation warning
++                if (false && ServerLevel.this.isUpdatingNavigations.get()) { // Paper - Remove unnecessary onTrackingStart during navigation warning // ShreddedPaper - use thread local
+                     String string = "onTrackingStart called during navigation iteration";
+                     Util.logAndPauseIfInIde(
+                         "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
+                     );
+                 }
+ 
+-                ServerLevel.this.navigatingMobs.remove(mob);
++                // ServerLevel.this.navigatingMobs.remove(mob); // ShreddedPaper - handled ourselves
+             }
+ 
+             if (entity instanceof EnderDragon enderDragon) {
 @@ -2991,6 +_,9 @@
          @Override
          public void onSectionChange(Entity entity) {

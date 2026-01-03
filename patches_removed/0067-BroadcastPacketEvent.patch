@@ -1,0 +1,143 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sun, 10 Aug 2025 18:50:42 +0900
+Subject: [PATCH] BroadcastPacketEvent
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/event/BroadcastPacketEvent.java b/src/main/java/io/multipaper/shreddedpaper/event/BroadcastPacketEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..33b427802ec5bdcbf6c8fed236fe718d6fee60e2
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/event/BroadcastPacketEvent.java
+@@ -0,0 +1,67 @@
++package io.multipaper.shreddedpaper.event;
++
++import net.minecraft.network.protocol.Packet;
++import org.bukkit.World;
++import org.bukkit.entity.Entity;
++import org.bukkit.event.Event;
++import org.bukkit.event.HandlerList;
++import org.jetbrains.annotations.ApiStatus;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++/**
++ * Called whenever a packet is broadcasted to players, but will not be sent to
++ * the player that initiates the packet. Will be called even if no players will
++ * receive the packet.
++ */
++@ApiStatus.Experimental
++public class BroadcastPacketEvent extends Event {
++
++    private static final HandlerList HANDLER_LIST = new HandlerList();
++
++    private final World world;
++    private final Packet<?> packet;
++    private final Entity source;
++
++    public BroadcastPacketEvent(@NotNull World world, @NotNull Packet<?> packet, @Nullable Entity source) {
++        this.world = world;
++        this.packet = packet;
++        this.source = source;
++    }
++
++    /**
++     * The world the packet is being broadcasted in.
++     */
++    @NotNull
++    public World getWorld() {
++        return world;
++    }
++
++    /**
++     * The packet being broadcasted.
++     */
++    @NotNull
++    public Packet<?> getPacket() {
++        return packet;
++    }
++
++    /**
++     * Gets the entity that triggered this packet to be broadcasted. May be null
++     * if the packet was not triggered by an entity.
++     */
++    @Nullable
++    public Entity getSource() {
++        return source;
++    }
++
++    @NotNull
++    @Override
++    public HandlerList getHandlers() {
++        return HANDLER_LIST;
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return HANDLER_LIST;
++    }
++}
+diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
+index 456b8450c0c55f1213701ed53c5aa9f8fbc56518..3026b340d162e5ad75488e35e25eb10f9d6d8d79 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkMap.java
++++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
+@@ -1505,6 +1505,8 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
+             }
+ 
+             } finally { seenByLock.unlock(); } // ShreededPaper - seenBy thread safety
++
++            new io.multipaper.shreddedpaper.event.BroadcastPacketEvent(ChunkMap.this.level.getWorld(), packet, this.entity.getBukkitEntity()).callEvent(); // ShreddedPaper - BroadcastPacketEvent
+         }
+ 
+         public void broadcastAndSend(Packet<?> packet) {
+diff --git a/src/main/java/net/minecraft/server/level/ServerLevel.java b/src/main/java/net/minecraft/server/level/ServerLevel.java
+index 5f99874eb7d8e33686c2fb662e1220d05883fd0a..0ecc3fa3d70a1180709a5f3b5b6f9a5b1b1c5322 100644
+--- a/src/main/java/net/minecraft/server/level/ServerLevel.java
++++ b/src/main/java/net/minecraft/server/level/ServerLevel.java
+@@ -1845,7 +1845,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+ 
+     @Override
+     public void destroyBlockProgress(int entityId, BlockPos pos, int progress) {
+-        Iterator iterator = this.server.getPlayerList().getPlayers().iterator();
++        Iterator iterator = this.players.iterator(); // ShreddedPaper - BroadcastPacketEvent - optimisation: use the level's players instead of all players
+ 
+         // CraftBukkit start
+         Player entityhuman = null;
+@@ -1864,6 +1864,8 @@ public class ServerLevel extends Level implements WorldGenLevel {
+         }
+         // Paper end - Add BlockBreakProgressUpdateEvent
+ 
++        ClientboundBlockDestructionPacket packet = new ClientboundBlockDestructionPacket(entityId, pos, progress); // ShreddedPaper - BroadcastPacketEvent - move packet creation out of loop
++        new io.multipaper.shreddedpaper.event.BroadcastPacketEvent(this.getWorld(), packet, entity == null ? null : entity.getBukkitEntity()).callEvent(); // ShreddedPaper - BroadcastPacketEvent
+         while (iterator.hasNext()) {
+             ServerPlayer entityplayer = (ServerPlayer) iterator.next();
+ 
+@@ -1879,7 +1881,7 @@ public class ServerLevel extends Level implements WorldGenLevel {
+                 // CraftBukkit end
+ 
+                 if (d0 * d0 + d1 * d1 + d2 * d2 < 1024.0D) {
+-                    entityplayer.connection.send(new ClientboundBlockDestructionPacket(entityId, pos, progress));
++                    entityplayer.connection.send(packet); // ShreddedPaper - BroadcastPacketEvent - move packet creation out of loop
+                 }
+             }
+         }
+diff --git a/src/main/java/net/minecraft/server/players/PlayerList.java b/src/main/java/net/minecraft/server/players/PlayerList.java
+index ab96dcb873758f9d92eecb62b473b84dc9e295a2..dc99d088d6d915de789a1215df810a4a86212e42 100644
+--- a/src/main/java/net/minecraft/server/players/PlayerList.java
++++ b/src/main/java/net/minecraft/server/players/PlayerList.java
+@@ -76,6 +76,7 @@ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.PlayerAdvancements;
+ import net.minecraft.server.RegistryLayer;
+ import net.minecraft.server.ServerScoreboard;
++import net.minecraft.server.level.ChunkMap;
+ import net.minecraft.server.level.ClientInformation;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+@@ -1333,6 +1334,7 @@ public abstract class PlayerList {
+     }
+ 
+     public void broadcast(@Nullable net.minecraft.world.entity.player.Player player, double x, double y, double z, double distance, ResourceKey<Level> worldKey, Packet<?> packet) {
++        if (player != null) new io.multipaper.shreddedpaper.event.BroadcastPacketEvent(this.getServer().getLevel(worldKey).getWorld(), packet, player.getBukkitEntity()).callEvent(); // ShreddedPaper - BroadcastPacketEvent
+         for (int i = 0; i < this.players.size(); ++i) {
+             ServerPlayer entityplayer = (ServerPlayer) this.players.get(i);
+ 

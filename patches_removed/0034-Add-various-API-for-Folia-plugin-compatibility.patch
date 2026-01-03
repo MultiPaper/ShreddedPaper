@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ProdPreva1l <prod.preva1l@gmail.com>
+Date: Wed, 5 Jun 2024 20:27:53 +1000
+Subject: [PATCH] Add various API for Folia plugin compatibility
+
+
+diff --git a/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..69db3090c24ab058549cdd8e78ca1beb7be5e7a8
+--- /dev/null
++++ b/src/main/java/io/papermc/paper/threadedregions/RegionizedServer.java
+@@ -0,0 +1,7 @@
++package io.papermc.paper.threadedregions;
++
++@SuppressWarnings("unused")
++public class RegionizedServer {
++    /* We have nothing here because this is just to fix compat
++     for Folia plugins that have hard coded checks for Folia */
++}
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index ade6396885d63991640dbee0f7d1a56b02d22397..c11924979735e79655a2a0ae5485cd6ef74555b1 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -16,6 +16,7 @@ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
+ import io.multipaper.shreddedpaper.ShreddedPaper;
+ import io.multipaper.shreddedpaper.threading.ShreddedPaperPlayerTicker;
++import io.papermc.paper.threadedregions.RegionizedServerInitEvent;
+ import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.longs.LongIterator;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+@@ -1161,6 +1162,8 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+             this.statusIcon = (ServerStatus.Favicon) this.loadStatusIcon().orElse(null); // CraftBukkit - decompile error
+             this.status = this.buildServerStatus();
+ 
++            new RegionizedServerInitEvent().callEvent(); // ShreddedPaper - Folia plugin support
++
+             // Spigot start
+             // Paper start - move done tracking
+             LOGGER.info("Running delayed init tasks");
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 0e0a098f543e19a41b4bae73156ece970b9f7d50..ea13875caf0d5df2750d6ab6758053a7372d966e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -13,6 +13,8 @@ import com.mojang.brigadier.StringReader;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.serialization.Dynamic;
+ import com.mojang.serialization.Lifecycle;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
++import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import java.awt.image.BufferedImage;
+ import java.io.ByteArrayOutputStream;
+@@ -380,6 +382,13 @@ public final class CraftServer implements Server {
+     }
+     // Paper end - Folia reagion threading API
+ 
++    // ShreddedPaper start - Folia region api
++    @Override
++    public boolean isGlobalTickThread() {
++        return TickThread.isTickThread() && !ShreddedPaperTickThread.isShreddedPaperTickThread();
++    }
++    // ShreddedPaper end - Folia region api
++
+     static {
+         ConfigurationSerialization.registerClass(CraftOfflinePlayer.class);
+         ConfigurationSerialization.registerClass(CraftPlayerProfile.class);

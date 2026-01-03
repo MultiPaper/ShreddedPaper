@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sun, 4 Aug 2024 00:46:29 +0900
+Subject: [PATCH] Synchronize playersSentChunkTo
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ChunkHolder.java b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+index 8da6278f841e0ac032ae74ed75b7689d43e2cdfb..d1d0bc714ddb0ba148c215b69f62d0d195459b37 100644
+--- a/src/main/java/net/minecraft/server/level/ChunkHolder.java
++++ b/src/main/java/net/minecraft/server/level/ChunkHolder.java
+@@ -102,15 +102,19 @@ public class ChunkHolder {
+     private final com.destroystokyo.paper.util.maplist.ReferenceList<ServerPlayer> playersSentChunkTo = new com.destroystokyo.paper.util.maplist.ReferenceList<>();
+ 
+     public void addPlayer(ServerPlayer player) {
++        synchronized (playersSentChunkTo) { // ShreddedPaper
+         if (!this.playersSentChunkTo.add(player)) {
+             throw new IllegalStateException("Already sent chunk " + this.pos + " in world '" + this.chunkMap.level.getWorld().getName() + "' to player " + player);
+         }
++        } // ShreddedPaper
+     }
+ 
+     public void removePlayer(ServerPlayer player) {
++        synchronized (playersSentChunkTo) { // ShreddedPaper
+         if (!this.playersSentChunkTo.remove(player)) {
+             throw new IllegalStateException("Have not sent chunk " + this.pos + " in world '" + this.chunkMap.level.getWorld().getName() + "' to player " + player);
+         }
++        } // ShreddedPaper
+     }
+ 
+     public boolean hasChunkBeenSent() {
+@@ -118,7 +122,9 @@ public class ChunkHolder {
+     }
+ 
+     public boolean hasBeenSent(ServerPlayer to) {
++        synchronized (playersSentChunkTo) { // ShreddedPaper
+         return this.playersSentChunkTo.contains(to);
++        } // ShreddedPaper
+     }
+     // Paper end - replace player chunk loader
+     public ChunkHolder(ChunkPos pos, LevelHeightAccessor world, LevelLightEngine lightingProvider, ChunkHolder.PlayerProvider playersWatchingChunkProvider, io.papermc.paper.chunk.system.scheduling.NewChunkHolder newChunkHolder) { // Paper - rewrite chunk system
+@@ -360,6 +366,7 @@ public class ChunkHolder {
+     public List<ServerPlayer> getPlayers(boolean onlyOnWatchDistanceEdge) {
+         List<ServerPlayer> ret = new java.util.ArrayList<>();
+ 
++        synchronized (playersSentChunkTo) { // ShreddedPaper
+         for (int i = 0, len = this.playersSentChunkTo.size(); i < len; ++i) {
+             ServerPlayer player = this.playersSentChunkTo.getUnchecked(i);
+             if (onlyOnWatchDistanceEdge && !this.chunkMap.level.playerChunkLoader.isChunkSent(player, this.pos.x, this.pos.z, onlyOnWatchDistanceEdge)) {
+@@ -367,6 +374,7 @@ public class ChunkHolder {
+             }
+             ret.add(player);
+         }
++        } // ShreddedPaper
+ 
+         return ret;
+     }
