@@ -1,10 +1,12 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -10,6 +_,8 @@
+@@ -10,6 +_,10 @@
  import java.util.function.Consumer;
  import java.util.function.Predicate;
  import java.util.stream.Collectors;
 +
++import io.multipaper.shreddedpaper.region.LevelChunkRegion;
++import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.PerThreadNeighborUpdater;
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
@@ -17,15 +19,28 @@
  import net.minecraft.world.level.redstone.Orientation;
  import net.minecraft.world.level.saveddata.maps.MapId;
  import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
-@@ -113,7 +_,7 @@
+@@ -112,9 +_,9 @@
+         .add(new ExplosionParticleInfo(ParticleTypes.POOF, 0.5F, 1.0F))
          .add(new ExplosionParticleInfo(ParticleTypes.SMOKE, 1.0F, 1.0F))
          .build();
-     public final List<TickingBlockEntity> blockEntityTickers = Lists.newArrayList();
+-    public final List<TickingBlockEntity> blockEntityTickers = Lists.newArrayList();
 -    protected final CollectingNeighborUpdater neighborUpdater;
+-    private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
++    // public final List<TickingBlockEntity> blockEntityTickers = Lists.newArrayList(); // ShreddedPaper - handle block entities ourselves
 +    protected final NeighborUpdater neighborUpdater; // ShreddedPaper - thread safe CollectingNeighborUpdater
-     private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
++    // private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList(); // ShreddedPaper - handle block entities ourselves
      private boolean tickingBlockEntities;
      public final Thread thread;
+     private final boolean isDebug;
+@@ -168,7 +_,7 @@
+ 
+     public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur - Purpur config files
+     public static @Nullable BlockPos lastPhysicsProblem; // Spigot
+-    private int tileTickPosition;
++    // private int tileTickPosition; // ShreddedPaper - removed tileTickPosition
+     public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
+     public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
+ 
 @@ -908,7 +_,7 @@
          this.thread = Thread.currentThread();
          this.biomeManager = new BiomeManager(this, biomeZoomSeed);
@@ -35,6 +50,57 @@
          this.registryAccess = registryAccess;
          this.palettedContainerFactory = PalettedContainerFactory.create(registryAccess);
          this.damageSources = new DamageSources(registryAccess);
+@@ -1434,15 +_,25 @@
+     }
+ 
+     public void addBlockEntityTicker(TickingBlockEntity ticker) {
+-        (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(ticker);
++        // ShreddedPaper start - handle block entities ourselves
++        LevelChunkRegion region = ((ServerLevel) this).chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(new ChunkPos(ticker.getPos())));
++        synchronized (region.pendingBlockEntityTickers) {
++            region.pendingBlockEntityTickers.add(ticker);
++        }
++        // ShreddedPaper end - handle block entities ourselves
++//        (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(ticker); // ShreddedPaper - handle block entities ourselves
+     }
+ 
+-    public void tickBlockEntities() {
++    public void tickBlockEntities(final List<TickingBlockEntity> blockEntityTickers, final List<TickingBlockEntity> pendingBlockEntityTickers) { // ShreddedPaper - handle block entities ourselves
+         this.tickingBlockEntities = true;
+-        if (!this.pendingBlockEntityTickers.isEmpty()) {
+-            this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
+-            this.pendingBlockEntityTickers.clear();
++        // ShreddedPaper start - handle block entities ourselves
++        if (!pendingBlockEntityTickers.isEmpty()) {
++            synchronized (pendingBlockEntityTickers) {
++                blockEntityTickers.addAll(pendingBlockEntityTickers);
++                pendingBlockEntityTickers.clear();
++            }
+         }
++        // ShreddedPaper end - handle block entities ourselves
+ 
+         // Spigot start
+         boolean runsNormally = this.tickRateManager().runsNormally();
+@@ -1450,8 +_,8 @@
+         int tickedEntities = 0; // Paper - rewrite chunk system
+         var toRemove = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<TickingBlockEntity>(); // Paper - Fix MC-117075; use removeAll
+         toRemove.add(null); // Paper - Fix MC-117075
+-        for (this.tileTickPosition = 0; this.tileTickPosition < this.blockEntityTickers.size(); this.tileTickPosition++) { // Paper - Disable tick limiters
+-            TickingBlockEntity tickingBlockEntity = this.blockEntityTickers.get(this.tileTickPosition);
++        for (int tileTickPosition = 0; tileTickPosition < blockEntityTickers.size(); tileTickPosition++) { // Paper - Disable tick limiters // ShreddedPaper - handle block entities ourselves
++            TickingBlockEntity tickingBlockEntity = blockEntityTickers.get(tileTickPosition); // ShreddedPaper - handle block entities ourselves
+             // Spigot end
+             if (tickingBlockEntity.isRemoved()) {
+                 toRemove.add(tickingBlockEntity); // Paper - Fix MC-117075; use removeAll
+@@ -1464,7 +_,7 @@
+                 // Paper end - rewrite chunk system
+             }
+         }
+-        this.blockEntityTickers.removeAll(toRemove); // Paper - Fix MC-117075
++        blockEntityTickers.removeAll(toRemove); // Paper - Fix MC-117075 // ShreddedPaper - handle block entities ourselves
+ 
+         this.tickingBlockEntities = false;
+         this.spigotConfig.currentPrimedTnt = 0; // Spigot
 @@ -1481,7 +_,7 @@
              entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
              // Paper end - Prevent block entity and entity crashes

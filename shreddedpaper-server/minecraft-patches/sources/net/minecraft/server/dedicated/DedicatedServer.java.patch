@@ -1,0 +1,18 @@
+--- a/net/minecraft/server/dedicated/DedicatedServer.java
++++ b/net/minecraft/server/dedicated/DedicatedServer.java
+@@ -6,6 +_,7 @@
+ import com.google.common.net.HostAndPort;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.commands.ShreddedPaperCommands;
+ import io.netty.handler.ssl.SslContext;
+ import java.io.BufferedReader;
+ import java.io.IOException;
+@@ -267,6 +_,7 @@
+         }
+         org.purpurmc.purpur.PurpurConfig.registerCommands();
+         // Purpur end - Migrate Setting to reintroduce end void rings
++        ShreddedPaperCommands.registerCommands(this); // ShreddedPaper
+         // Paper start - initialize global and world-defaults configuration
+         this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
+         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());

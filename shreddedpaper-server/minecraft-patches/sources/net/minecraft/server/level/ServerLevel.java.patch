@@ -248,7 +248,7 @@
          profilerFiller.popPush("blockEvents");
          if (runsNormally) {
              this.runBlockEvents();
-@@ -853,32 +_,34 @@
+@@ -853,34 +_,36 @@
              }
  
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
@@ -307,8 +307,11 @@
 +//                );
 +            // ShreddedPaper end - moved to ShreddedPaperEntityTicker
              profilerFiller.popPush("blockEntities");
-             this.tickBlockEntities();
+-            this.tickBlockEntities();
++            // this.tickBlockEntities(); // ShreddedPaper - handled locally in the region
              profilerFiller.pop();
+         }
+ 
 @@ -889,15 +_,16 @@
          profilerFiller.pop();
          profilerFiller.push("debugSynchronizers");
@@ -386,6 +389,45 @@
                  // Paper start - Remove stale POIs
                  if (optional.isEmpty() && this.getPoiManager().exists(blockPos, ignored -> true)) {
                      this.getPoiManager().remove(blockPos);
+@@ -2479,7 +_,7 @@
+             }
+ 
+             bufferedWriter.write(String.format(Locale.ROOT, "entities: %s\n", this.moonrise$getEntityLookup().getDebugInfo()));  // Paper - rewrite chunk system
+-            bufferedWriter.write(String.format(Locale.ROOT, "block_entity_tickers: %d\n", this.blockEntityTickers.size()));
++            // bufferedWriter.write(String.format(Locale.ROOT, "block_entity_tickers: %d\n", this.blockEntityTickers.size())); // ShreddedPaper - removed blockEntityTickers
+             bufferedWriter.write(String.format(Locale.ROOT, "block_ticks: %d\n", this.getBlockTicks().count()));
+             bufferedWriter.write(String.format(Locale.ROOT, "fluid_ticks: %d\n", this.getFluidTicks().count()));
+             bufferedWriter.write("distance_manager: " + chunkMap.getDistanceManager().getDebugStatus() + "\n");
+@@ -2547,12 +_,14 @@
+     }
+ 
+     private void dumpBlockEntityTickers(Writer output) throws IOException {
+-        CsvOutput csvOutput = CsvOutput.builder().addColumn("x").addColumn("y").addColumn("z").addColumn("type").build(output);
+-
+-        for (TickingBlockEntity tickingBlockEntity : this.blockEntityTickers) {
+-            BlockPos pos = tickingBlockEntity.getPos();
+-            csvOutput.writeRow(pos.getX(), pos.getY(), pos.getZ(), tickingBlockEntity.getType());
+-        }
++        // ShreddedPaper start - removed blockEntityTickers
++//        CsvOutput csvOutput = CsvOutput.builder().addColumn("x").addColumn("y").addColumn("z").addColumn("type").build(output);
++//
++//        for (TickingBlockEntity tickingBlockEntity : this.blockEntityTickers) {
++//            BlockPos pos = tickingBlockEntity.getPos();
++//            csvOutput.writeRow(pos.getX(), pos.getY(), pos.getZ(), tickingBlockEntity.getType());
++//        }
++        // ShreddedPaper end - removed blockEntityTickers
+     }
+ 
+     @VisibleForTesting
+@@ -2600,7 +_,7 @@
+             this.players.size(),
+             this.moonrise$getEntityLookup().getDebugInfo(), // Paper - rewrite chunk system
+             getTypeCount(this.moonrise$getEntityLookup().getAll(), entity -> BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString()), // Paper - rewrite chunk system
+-            this.blockEntityTickers.size(),
++            0 /*this.blockEntityTickers.size()*/, // ShreddedPaper - removed blockEntityTickers
+             getTypeCount(this.blockEntityTickers, TickingBlockEntity::getType),
+             this.getBlockTicks().count(),
+             this.getFluidTicks().count(),
 @@ -2630,7 +_,7 @@
  
      @Override

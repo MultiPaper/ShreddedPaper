@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/chunk/LevelChunk.java
++++ b/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -85,7 +_,7 @@
+             return "<null>";
+         }
+     };
+-    private final Map<BlockPos, LevelChunk.RebindableTickingBlockEntityWrapper> tickersInLevel = Maps.newHashMap();
++    private final Map<BlockPos, LevelChunk.RebindableTickingBlockEntityWrapper> tickersInLevel = Maps.newConcurrentMap(); // ShreddedPaper - use concurrent map
+     public boolean loaded;
+     public final ServerLevel level; // CraftBukkit - type
+     private @Nullable Supplier<FullChunkStatus> fullStatus;

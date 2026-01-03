@@ -1,9 +1,10 @@
 --- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
-@@ -12,6 +_,8 @@
+@@ -12,6 +_,9 @@
  import com.mojang.brigadier.exceptions.CommandSyntaxException;
  import com.mojang.serialization.Dynamic;
  import com.mojang.serialization.Lifecycle;
++import io.multipaper.shreddedpaper.commands.ShreddedPaperCommands;
 +import io.multipaper.shreddedpaper.permissions.ShreddedPaperPermissions;
 +import io.multipaper.shreddedpaper.region.ShreddedPaperRegionSchedulerApiImpl;
  import io.papermc.paper.configuration.GlobalConfiguration;
@@ -26,6 +27,14 @@
              if (!io.papermc.paper.configuration.GlobalConfiguration.get().misc.loadPermissionsYmlBeforePlugins) this.loadCustomPermissions(); // Paper
              this.syncCommands();
          }
+@@ -1041,6 +_,7 @@
+         io.papermc.paper.command.PaperCommands.registerCommands(this.console); // Paper
+         this.spark.registerCommandBeforePlugins(this); // Paper - spark
+         org.purpurmc.purpur.PurpurConfig.registerCommands(); // Purpur - Purpur config files
++        ShreddedPaperCommands.registerCommands(this.getServer()); // ShreddedPaper
+         this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
+         this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
+ 
 @@ -2941,6 +_,7 @@
          if (!io.papermc.paper.configuration.GlobalConfiguration.get().misc.loadPermissionsYmlBeforePlugins) loadCustomPermissions();
          DefaultPermissions.registerCorePermissions();
