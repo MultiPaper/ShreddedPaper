@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Mon, 1 Jul 2024 14:11:36 +0900
+Subject: [PATCH] Purpur teleportIfOutsideBorder - use teleportAsync
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/LivingEntity.java b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+index 6f840e64c2f416f5e98c9c462fd29e3291a56fcf..d54e696d425e83a286de12ea8082ae7acfe3fb05 100644
+--- a/src/main/java/net/minecraft/world/entity/LivingEntity.java
++++ b/src/main/java/net/minecraft/world/entity/LivingEntity.java
+@@ -440,7 +440,7 @@ public abstract class LivingEntity extends Entity implements Attackable {
+                         double d1 = this.level().getWorldBorder().getDamagePerBlock();
+ 
+                         if (d1 > 0.0D) {
+-                            if (level().purpurConfig.teleportIfOutsideBorder && this instanceof ServerPlayer serverPlayer) { serverPlayer.teleport(io.papermc.paper.util.MCUtil.toLocation(level(), ((ServerLevel) level()).getSharedSpawnPos())); return; } // Purpur
++                            if (level().purpurConfig.teleportIfOutsideBorder && this instanceof ServerPlayer serverPlayer) { serverPlayer.getBukkitEntity().teleportAsync(io.papermc.paper.util.MCUtil.toLocation(level(), ((ServerLevel) level()).getSharedSpawnPos())); return; } // Purpur // ShreddedPaper - use teleportAsync
+                             this.hurt(this.damageSources().outOfBorder(), (float) Math.max(1, Mth.floor(-d0 * d1)));
+                         }
+                     }

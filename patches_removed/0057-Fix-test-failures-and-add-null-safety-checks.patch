@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: UnlimitedBytes <admin@unlimitedbytes.ovh>
+Date: Mon, 9 Jun 2025 00:56:34 +0200
+Subject: [PATCH] Fix test failures and add null safety checks
+
+Add null safety check for ShreddedPaperConfiguration in SynchronousPluginExecution
+Add null safety check for server in PaperEventManager.callEvent
+Add missing EntityRemoveEvent.Cause to entity discard calls in Entity.tick and FireworkRocketEntity.tick
+
+Fixes SyntheticEventTest and EntityRemoveEventTest failures.
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
+index 1740789c109533b952c4407175eb733f7edc0290..d17f397c8c523063cf25b4ea410af5d8e67557ab 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
+@@ -42,7 +42,8 @@ public class SynchronousPluginExecution {
+     }
+ 
+     public static void execute(Plugin plugin, RunnableWithException runnable) throws Exception {
+-        if (plugin == null || !ShreddedPaperConfiguration.get().multithreading.runUnsupportedPluginsInSync || plugin.getDescription().isFoliaSupported() || TickThread.isShutdownThread()) {
++        ShreddedPaperConfiguration config = ShreddedPaperConfiguration.get();
++        if (plugin == null || config == null || !config.multithreading.runUnsupportedPluginsInSync || plugin.getDescription().isFoliaSupported() || TickThread.isShutdownThread()) {
+             // Multi-thread safe plugin, run it straight away
+             runnable.run();
+             return;
+diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+index 143638f994a842472e827cb9b4efc160a7235aa4..17d1e11fbb68ddf30d0ccf09216ffb506e532b28 100644
+--- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
++++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+@@ -42,7 +42,7 @@ class PaperEventManager {
+     public void callEvent(@NotNull Event event) {
+         if (event.isAsynchronous() && (Thread.currentThread() instanceof TickThread || ShreddedPaperTickThread.isShreddedPaperTickThread())) {
+             throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
+-        } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
++        } else if (!event.isAsynchronous() && this.server != null && !this.server.isPrimaryThread() && !this.server.isStopping()) {
+             throw new IllegalStateException(event.getEventName() + " may only be triggered synchronously.");
+         }
+ 
+diff --git a/src/main/java/net/minecraft/world/entity/Entity.java b/src/main/java/net/minecraft/world/entity/Entity.java
+index f45ae96bdb13e8d697fc48a50f3e405a3b681a73..e13e62e2cb33c3bb4a02912e34b4c011d08d6d51 100644
+--- a/src/main/java/net/minecraft/world/entity/Entity.java
++++ b/src/main/java/net/minecraft/world/entity/Entity.java
+@@ -902,7 +902,7 @@ public abstract class Entity implements SyncedDataHolder, Nameable, EntityAccess
+     public void tick() {
+         // Pufferfish start - entity TTL
+         if (type != EntityType.PLAYER && type.ttl >= 0 && this.tickCount >= type.ttl) {
+-            discard();
++            discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // ShreddedPaper - add Bukkit remove cause
+             return;
+         }
+         // Pufferfish end - entity TTL
+diff --git a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+index 4671f34ba2796c1284af5bd9b2d2edfe37869ad6..15f44a51cbaf66b39ba211eadb1567e346ab4ac0 100644
+--- a/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
++++ b/src/main/java/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+@@ -153,7 +153,7 @@ public class FireworkRocketEntity extends Projectile implements ItemSupplier {
+ 
+                 // ShreddedPaper start - remove firework rocket if entity teleported away
+                 if (!TickThread.isTickThreadFor((ServerLevel) this.level(), new Vec3(this.attachedToEntity.getX() + vec3d.x, this.attachedToEntity.getY() + vec3d.y, this.attachedToEntity.getZ() + vec3d.z))) {
+-                    this.discard();
++                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD); // ShreddedPaper - add Bukkit remove cause
+                     return;
+                 }
+                 // ShreddedPaper end - remove firework rocket if entity teleported away

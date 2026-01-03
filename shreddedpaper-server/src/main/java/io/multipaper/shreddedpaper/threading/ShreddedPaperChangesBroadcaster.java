@@ -1,6 +1,6 @@
 package io.multipaper.shreddedpaper.threading;
 
-import io.papermc.paper.util.TickThread;
+import ca.spottedleaf.moonrise.common.util.TickThread;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.server.level.ChunkHolder;
 
@@ -37,13 +37,13 @@ public class ShreddedPaperChangesBroadcaster {
             ReferenceOpenHashSet<ChunkHolder> copy = needsChangeBroadcasting.clone();
             needsChangeBroadcasting.clear();
             for (ChunkHolder holder : copy) {
-                if (!TickThread.isTickThreadFor(holder.newChunkHolder.world, holder.pos)) {
+                if (!TickThread.isTickThreadFor(holder.moonrise$getRealChunkHolder().world, holder.getPos())) {
                     // The changes will get picked up by the correct thread when it is ticked
                     continue;
                 }
 
                 holder.broadcastChanges(holder.getFullChunkNowUnchecked()); // LevelChunks are NEVER unloaded
-                if (holder.needsBroadcastChanges()) {
+                if (holder.hasChangesToBroadcast()) {
                     // I DON'T want to KNOW what DUMB plugins might be doing.
                     needsChangeBroadcasting.add(holder);
                 }

@@ -1,13 +1,12 @@
 package io.multipaper.shreddedpaper.commands;
 
-import io.papermc.paper.chunk.system.scheduling.NewChunkHolder;
+import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
-import io.multipaper.shreddedpaper.ShreddedPaper;
 
 public class MPMapCommand extends MapCommandBase {
 
@@ -18,7 +17,7 @@ public class MPMapCommand extends MapCommandBase {
 
     @Override
     protected ChunkStatus getStatus(Player player, ChunkPos chunkPos) {
-        NewChunkHolder newChunkHolder = ((ServerLevel) ((CraftPlayer) player).getHandle().level()).chunkTaskScheduler.chunkHolderManager.getChunkHolder(chunkPos.x, chunkPos.z);
+        NewChunkHolder newChunkHolder = ((ServerLevel) ((CraftPlayer) player).getHandle().level()).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolder(chunkPos.x, chunkPos.z);
 
         NamedTextColor color;
         String name;

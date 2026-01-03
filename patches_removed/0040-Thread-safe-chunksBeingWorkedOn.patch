@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Thu, 20 Jun 2024 14:56:49 +0900
+Subject: [PATCH] Thread-safe chunksBeingWorkedOn
+
+
+diff --git a/src/main/java/net/minecraft/server/level/ThreadedLevelLightEngine.java b/src/main/java/net/minecraft/server/level/ThreadedLevelLightEngine.java
+index 8ef22f8f0d6da49247a90152e5cfa9ffc7f596a4..161b847fe36613a6bc76ed7399ff118a356c05aa 100644
+--- a/src/main/java/net/minecraft/server/level/ThreadedLevelLightEngine.java
++++ b/src/main/java/net/minecraft/server/level/ThreadedLevelLightEngine.java
+@@ -5,7 +5,10 @@ import com.mojang.logging.LogUtils;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import it.unimi.dsi.fastutil.objects.ObjectList;
+ import it.unimi.dsi.fastutil.objects.ObjectListIterator;
++
++import java.util.Map;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.IntSupplier;
+ import javax.annotation.Nullable;
+@@ -114,7 +117,7 @@ public class ThreadedLevelLightEngine extends LevelLightEngine implements AutoCl
+         return totalChunks;
+     }
+ 
+-    private final Long2IntOpenHashMap chunksBeingWorkedOn = new Long2IntOpenHashMap();
++    private final Map<Long, Integer> chunksBeingWorkedOn = new ConcurrentHashMap<>(); // ShreddedPaper - thread-safe chunksBeingWorkedOn
+ 
+     private void queueTaskForSection(final int chunkX, final int chunkY, final int chunkZ,
+                                      final Supplier<io.papermc.paper.chunk.system.light.LightQueue.ChunkTasks> runnable) { // Paper - rewrite chunk system
+@@ -157,21 +160,31 @@ public class ThreadedLevelLightEngine extends LevelLightEngine implements AutoCl
+         }
+         updateFuture.isTicketAdded = true;
+ 
+-        final int references = this.chunksBeingWorkedOn.addTo(key, 1);
+-        if (references == 0) {
+-            final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+-            world.getChunkSource().addRegionTicket(ca.spottedleaf.starlight.common.light.StarLightInterface.CHUNK_WORK_TICKET, pos, 0, pos);
+-        }
+-
+-        updateFuture.onComplete.thenAcceptAsync((final Void ignore) -> {
+-            final int newReferences = this.chunksBeingWorkedOn.get(key);
+-            if (newReferences == 1) {
+-                this.chunksBeingWorkedOn.remove(key);
++        // ShreddedPaper start - thread-safe chunksBeingWorkedOn
++        this.chunksBeingWorkedOn.compute(key, (k, references) -> {
++            if (references == null || references == 0) {
+                 final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+-                world.getChunkSource().removeRegionTicket(ca.spottedleaf.starlight.common.light.StarLightInterface.CHUNK_WORK_TICKET, pos, 0, pos);
+-            } else {
+-                this.chunksBeingWorkedOn.put(key, newReferences - 1);
++                world.getChunkSource().addRegionTicket(ca.spottedleaf.starlight.common.light.StarLightInterface.CHUNK_WORK_TICKET, pos, 0, pos);
++                return 1;
+             }
++            return references + 1;
++        });
++        // ShreddedPaper end - thread-safe chunksBeingWorkedOn
++
++        updateFuture.onComplete.thenAcceptAsync((final Void ignore) -> {
++            // ShreddedPaper start - thread-safe chunksBeingWorkedOn
++            this.chunksBeingWorkedOn.compute(key, (k, newReferences) -> {
++                if (newReferences == null) {
++                    throw new NullPointerException("newReferences should not be null here! Should be at least 1 or larger");
++                }
++                if (newReferences == 1) {
++                    final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
++                    world.getChunkSource().removeRegionTicket(ca.spottedleaf.starlight.common.light.StarLightInterface.CHUNK_WORK_TICKET, pos, 0, pos);
++                    return null; // Removes from chunksBeingWorkedOn
++                }
++                return newReferences - 1;
++            });
++            // ShreddedPaper end - thread-safe chunksBeingWorkedOn
+         }, world.getChunkSource().chunkMap.mainThreadExecutor).whenComplete((final Void ignore, final Throwable thr) -> {
+             if (thr != null) {
+                 LOGGER.error("Failed to remove ticket level for post chunk task " + new ChunkPos(chunkX, chunkZ), thr);

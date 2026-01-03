@@ -48,6 +48,14 @@
                  )
                  .thenCompose(future -> (CompletionStage<ChunkResult<ChunkAccess>>)future);
          }
+@@ -426,6 +_,7 @@
+     }
+ 
+     public boolean pollTask() {
++        if (ShreddedPaperTickThread.isShreddedPaperTickThread()) return false; // ShreddedPaper - don't run main thread tasks on worker threads
+         return this.mainThreadProcessor.pollTask();
+     }
+ 
 @@ -474,7 +_,8 @@
      // CraftBukkit end
  

@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Fri, 19 Sep 2025 08:05:06 +0900
+Subject: [PATCH] Optimization: Write player saves async
+
+
+diff --git a/src/main/java/net/minecraft/world/level/storage/PlayerDataStorage.java b/src/main/java/net/minecraft/world/level/storage/PlayerDataStorage.java
+index 8ab7ca373a885fbe658013c9c6a2e38d32d77bb2..f6d88899f97d46584aabdb2b4719b714bd2d9662 100644
+--- a/src/main/java/net/minecraft/world/level/storage/PlayerDataStorage.java
++++ b/src/main/java/net/minecraft/world/level/storage/PlayerDataStorage.java
+@@ -3,6 +3,7 @@ package net.minecraft.world.level.storage;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
+ import java.io.File;
++import java.io.IOException;
+ import java.nio.file.Files;
+ import java.nio.file.LinkOption;
+ import java.nio.file.Path;
+@@ -10,6 +11,10 @@ import java.nio.file.StandardCopyOption;
+ import java.time.LocalDateTime;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Optional;
++import java.util.concurrent.Executor;
++
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
++import io.papermc.paper.util.TickThread;
+ import net.minecraft.Util;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.NbtAccounter;
+@@ -28,6 +33,8 @@ public class PlayerDataStorage {
+     protected final DataFixer fixerUpper;
+     private static final DateTimeFormatter FORMATTER = FileNameDateFormatter.create();
+ 
++    private static final Executor IO_WORKER = Util.ioPool(); // ShreddedPaper
++
+     public PlayerDataStorage(LevelStorageSource.LevelStorageAccess session, DataFixer dataFixer) {
+         this.fixerUpper = dataFixer;
+         this.playerDir = session.getLevelPath(LevelResource.PLAYER_DATA_DIR).toFile();
+@@ -38,6 +45,7 @@ public class PlayerDataStorage {
+         if (org.spigotmc.SpigotConfig.disablePlayerDataSaving) return; // Spigot
+         try {
+             CompoundTag nbttagcompound = player.saveWithoutId(new CompoundTag());
++            Runnable r = () -> { try { // ShreddedPaper - write async
+             Path path = this.playerDir.toPath();
+             Path path1 = Files.createTempFile(path, player.getStringUUID() + "-", ".dat");
+ 
+@@ -46,6 +54,8 @@ public class PlayerDataStorage {
+             Path path3 = path.resolve(player.getStringUUID() + ".dat_old");
+ 
+             Util.safeReplaceFile(path2, path1, path3);
++            } catch (IOException e) { throw new RuntimeException(e); }}; // ShreddedPaper - write async
++            if (ShreddedPaperConfiguration.get().optimizations.writePlayerSavesAsync && !TickThread.isShutdownThread()) IO_WORKER.execute(r); else r.run(); // ShreddedPaper - write async
+         } catch (Exception exception) {
+             PlayerDataStorage.LOGGER.warn("Failed to save player data for {}", player.getScoreboardName(), exception); // Paper - Print exception
+         }
