@@ -55,6 +55,7 @@ public class ShreddedPaperChunkTicker {
         return future;
     }
 
+    /** processTrackQueue has been renamed to newTrackerTick */
     private CompletableFuture<Void> processTrackQueueInParallel(ServerLevel level) {
         level.getChunkSource().mainThreadProcessor.managedBlock(() -> level.chunkScheduler.getRegionLocker().globalLock().tryWriteLock() != 0);
         CompletableFuture<Void> allFuture = CompletableFuture.completedFuture(null);
@@ -116,7 +117,7 @@ public class ShreddedPaperChunkTicker {
 
             while (region.getInternalTaskQueue().executeTask()) ;
 
-            level.chunkTaskScheduler.chunkHolderManager.processUnloads(region);
+            level.moonrise$getChunkTaskScheduler().chunkHolderManager.processUnloads(region);
 
             region.forEachTickingEntity(entity -> {
                 CraftEntity bukkitEntity = entity.getBukkitEntityRaw();

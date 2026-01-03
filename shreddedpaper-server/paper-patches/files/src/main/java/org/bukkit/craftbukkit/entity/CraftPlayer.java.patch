@@ -16,6 +16,24 @@
      }
  
      @Override
+@@ -1963,7 +_,7 @@
+     private void unregisterEntity(Entity other) {
+         // Paper end
+         ChunkMap tracker = ((ServerLevel) this.getHandle().level()).getChunkSource().chunkMap;
+-        ChunkMap.TrackedEntity entry = tracker.entityMap.get(other.getId());
++        ChunkMap.TrackedEntity entry = other.moonrise$getTrackedEntity(); // tracker.entityMap.get(other.getId()); // ShreddedPaper - don't use map
+         if (entry != null) {
+             entry.removePlayer(this.getHandle());
+         }
+@@ -2052,7 +_,7 @@
+             if (original != null) otherPlayer.setUUID(original); // Paper - uuid override
+         }
+ 
+-        ChunkMap.TrackedEntity entry = tracker.entityMap.get(other.getId());
++        ChunkMap.TrackedEntity entry = other.moonrise$getTrackedEntity(); // tracker.entityMap.get(other.getId()); // ShreddedPaper - don't use map
+         if (entry != null && !entry.seenBy.contains(this.getHandle().connection)) {
+             entry.updatePlayer(this.getHandle());
+         }
 @@ -3136,8 +_,9 @@
          @Override
          public void respawn() {

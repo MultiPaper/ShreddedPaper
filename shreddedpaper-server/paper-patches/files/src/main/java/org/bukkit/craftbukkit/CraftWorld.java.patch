@@ -46,3 +46,21 @@
          }
          ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
          if (chunk != null) {
+@@ -1603,7 +_,7 @@
+         if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
+ 
+         ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(CraftSound.bukkitToMinecraftHolder(sound), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
+-        ChunkMap.TrackedEntity entityTracker = this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId());
++        ChunkMap.TrackedEntity entityTracker = ((CraftEntity) entity).getHandle().moonrise$getTrackedEntity(); // this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId()); // ShreddedPaper - don't use map
+         if (entityTracker != null) {
+             entityTracker.sendToTrackingPlayersAndSelf(packet);
+         }
+@@ -1624,7 +_,7 @@
+         if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
+ 
+         ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(Holder.direct(SoundEvent.createVariableRangeEvent(Identifier.parse(sound))), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
+-        ChunkMap.TrackedEntity entityTracker = this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId());
++        ChunkMap.TrackedEntity entityTracker = ((CraftEntity) entity).getHandle().moonrise$getTrackedEntity(); // this.getHandle().getChunkSource().chunkMap.entityMap.get(entity.getEntityId()); // ShreddedPaper - don't use map
+         if (entityTracker != null) {
+             entityTracker.sendToTrackingPlayersAndSelf(packet);
+         }
