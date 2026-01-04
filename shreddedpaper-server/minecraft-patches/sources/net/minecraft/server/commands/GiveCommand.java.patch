@@ -1,0 +1,30 @@
+--- a/net/minecraft/server/commands/GiveCommand.java
++++ b/net/minecraft/server/commands/GiveCommand.java
+@@ -4,6 +_,8 @@
+ import com.mojang.brigadier.arguments.IntegerArgumentType;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import java.util.Collection;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.commands.CommandBuildContext;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.Commands;
+@@ -67,8 +_,9 @@
+                     int min = Math.min(maxStackSize, i1);
+                     i1 -= min;
+                     ItemStack itemStack1 = item.createItemStack(min, false);
++                    ShreddedPaper.ensureSync(serverPlayer, () -> { // ShreddedPaper - run on player's thread
+                     boolean flag = serverPlayer.getInventory().add(itemStack1);
+-                    if (org.purpurmc.purpur.PurpurConfig.disableGiveCommandDrops) continue; // Purpur - add config option for toggling give command dropping
++                    if (org.purpurmc.purpur.PurpurConfig.disableGiveCommandDrops) return; // Purpur - add config option for toggling give command dropping // ShreddedPaper - run on player's thread
+                     if (flag && itemStack1.isEmpty()) {
+                         ItemEntity itemEntity = serverPlayer.drop(itemStack, false, false, false, null); // Paper - do not fire PlayerDropItemEvent for /give command
+                         if (itemEntity != null) {
+@@ -94,6 +_,7 @@
+                             itemEntity.setTarget(serverPlayer.getUUID());
+                         }
+                     }
++                    }); // ShreddedPaper - run on player's thread
+                 }
+             }
+ 
