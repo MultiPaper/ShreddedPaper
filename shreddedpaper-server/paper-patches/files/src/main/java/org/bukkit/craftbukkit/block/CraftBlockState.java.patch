@@ -1,0 +1,17 @@
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlockState.java
+@@ -1,5 +_,6 @@
+ package org.bukkit.craftbukkit.block;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.base.Preconditions;
+ import java.lang.ref.WeakReference;
+ import java.util.List;
+@@ -216,6 +_,7 @@
+         if (!this.isPlaced()) {
+             return true;
+         }
++        TickThread.ensureTickThread(this.world.getHandle(), this.position, "BlockState update");
+         LevelAccessor access = this.getWorldHandle();
+         CraftBlock block = this.getBlock();
+ 

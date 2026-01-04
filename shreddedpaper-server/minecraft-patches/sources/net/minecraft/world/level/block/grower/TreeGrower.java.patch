@@ -1,0 +1,77 @@
+--- a/net/minecraft/world/level/block/grower/TreeGrower.java
++++ b/net/minecraft/world/level/block/grower/TreeGrower.java
+@@ -202,51 +_,51 @@
+     // CraftBukkit start
+     private void setTreeType(Holder<ConfiguredFeature<?, ?>> feature) {
+         if (feature.is(TreeFeatures.OAK) || feature.is(TreeFeatures.OAK_BEES_005)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.TREE;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.TREE); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.HUGE_RED_MUSHROOM)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.RED_MUSHROOM;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.RED_MUSHROOM); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.HUGE_BROWN_MUSHROOM)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.BROWN_MUSHROOM;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.BROWN_MUSHROOM); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.JUNGLE_TREE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.COCOA_TREE;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.COCOA_TREE); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.JUNGLE_TREE_NO_VINE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.SMALL_JUNGLE;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.SMALL_JUNGLE); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.PINE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.TALL_REDWOOD;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.TALL_REDWOOD); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.SPRUCE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.REDWOOD;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.REDWOOD); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.ACACIA)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.ACACIA;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.ACACIA); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.BIRCH) || feature.is(TreeFeatures.BIRCH_BEES_005)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.BIRCH;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.BIRCH); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.SUPER_BIRCH_BEES_0002)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.TALL_BIRCH;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.TALL_BIRCH); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.SWAMP_OAK)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.SWAMP;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.SWAMP); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.FANCY_OAK) || feature.is(TreeFeatures.FANCY_OAK_BEES_005)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.BIG_TREE;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.BIG_TREE); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.JUNGLE_BUSH)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.JUNGLE_BUSH;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.JUNGLE_BUSH); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.DARK_OAK)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.DARK_OAK;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.DARK_OAK); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.MEGA_SPRUCE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.MEGA_REDWOOD;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.MEGA_REDWOOD); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.MEGA_PINE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.MEGA_PINE;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.MEGA_PINE); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.MEGA_JUNGLE_TREE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.JUNGLE;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.JUNGLE); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.AZALEA_TREE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.AZALEA;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.AZALEA); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.MANGROVE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.MANGROVE;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.MANGROVE); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.TALL_MANGROVE)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.TALL_MANGROVE;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.TALL_MANGROVE); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.CHERRY) || feature.is(TreeFeatures.CHERRY_BEES_005)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.CHERRY;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.CHERRY); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.PALE_OAK) || feature.is(TreeFeatures.PALE_OAK_BONEMEAL)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.PALE_OAK;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.PALE_OAK); // ShreddedPaper - use thread local
+         } else if (feature.is(TreeFeatures.PALE_OAK_CREAKING)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.PALE_OAK_CREAKING;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.PALE_OAK_CREAKING); // ShreddedPaper - use thread local
+         } else {
+             throw new IllegalArgumentException("Unknown tree generator " + feature);
+         }

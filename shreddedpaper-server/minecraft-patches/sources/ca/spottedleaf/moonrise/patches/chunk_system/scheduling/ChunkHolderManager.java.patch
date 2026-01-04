@@ -1,15 +1,24 @@
 --- a/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
 +++ b/ca/spottedleaf/moonrise/patches/chunk_system/scheduling/ChunkHolderManager.java
-@@ -24,6 +_,9 @@
+@@ -24,6 +_,10 @@
  import com.google.gson.JsonArray;
  import com.google.gson.JsonObject;
  import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
 +import io.multipaper.shreddedpaper.region.LevelChunkRegion;
++import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  import it.unimi.dsi.fastutil.longs.Long2ByteLinkedOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ByteMap;
  import it.unimi.dsi.fastutil.longs.Long2IntMap;
+@@ -60,6 +_,7 @@
+ import java.util.concurrent.atomic.AtomicReference;
+ import java.util.concurrent.locks.LockSupport;
+ import java.util.function.Predicate;
++import java.util.function.Supplier;
+ 
+ public final class ChunkHolderManager {
+ 
 @@ -77,7 +_,7 @@
  
      private final ConcurrentLong2ReferenceChainedHashTable<TicketSet> tickets = new ConcurrentLong2ReferenceChainedHashTable<>();
@@ -92,6 +101,31 @@
      }
  
      public void saveAllChunks(final boolean flush, final boolean shutdown, final boolean logProgress,
+@@ -305,7 +_,23 @@
+         for (int i = 0, len = holders.size(); i < len; ++i) {
+             final NewChunkHolder holder = holders.get(i);
+             try {
+-                final NewChunkHolder.SaveStat saveStat = holder.save(shutdown);
++                // ShreddedPaper start - save on chunk's thread
++                CompletableFuture<NewChunkHolder.SaveStat> future;
++                Supplier<NewChunkHolder.SaveStat> supplier = () -> holder.save(shutdown);
++                do {
++                    if (TickThread.isShutdownThread()) {
++                        // We're shutting down, no need to worry about chunk threads
++                        future = CompletableFuture.completedFuture(supplier.get());
++                    } else {
++                        future = CompletableFuture.supplyAsync(supplier, r -> world.chunkScheduler.getRegionLocker().tryReadOnlyLockNow(RegionPos.forChunk(holder.vanillaChunkHolder.getPos()), r));
++                        if (!future.isDone()) {
++                            // Poll task while we wait for region to become unlocked
++                            world.chunkSource.mainThreadProcessor.pollTask();
++                        }
++                    }
++                } while (!future.isDone());
++                final NewChunkHolder.SaveStat saveStat = future.join();
++                // ShreddedPaper end - save on chunk's thread
+                 if (saveStat != null) {
+                     if (saveStat.savedChunk()) {
+                         ++savedChunk;
 @@ -1129,6 +_,16 @@
          if (changedFullStatus.isEmpty()) {
              return;

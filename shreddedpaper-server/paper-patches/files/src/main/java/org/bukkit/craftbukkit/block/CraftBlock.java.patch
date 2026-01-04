@@ -1,0 +1,13 @@
+--- a/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
++++ b/src/main/java/org/bukkit/craftbukkit/block/CraftBlock.java
+@@ -559,8 +_,8 @@
+         world.captureTreeGeneration = false;
+ 
+         if (!world.capturedBlockStates.isEmpty()) {
+-            TreeType treeType = SaplingBlock.treeType;
+-            SaplingBlock.treeType = null;
++            TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - use thread local
++            SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - use thread local
+             List<BlockState> states = new ArrayList<>(world.capturedBlockStates.values());
+             world.capturedBlockStates.clear();
+             StructureGrowEvent structureEvent = null;

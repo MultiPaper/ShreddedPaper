@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/level/block/SaplingBlock.java
++++ b/net/minecraft/world/level/block/SaplingBlock.java
+@@ -16,6 +_,7 @@
+ import net.minecraft.world.level.block.state.properties.IntegerProperty;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
++import org.jspecify.annotations.Nullable;
+ 
+ public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
+     public static final MapCodec<SaplingBlock> CODEC = RecordCodecBuilder.mapCodec(
+@@ -25,7 +_,7 @@
+     public static final IntegerProperty STAGE = BlockStateProperties.STAGE;
+     private static final VoxelShape SHAPE = Block.column(12.0, 0.0, 12.0);
+     protected final TreeGrower treeGrower;
+-    public static @javax.annotation.Nullable org.bukkit.TreeType treeType; // CraftBukkit
++    public static ThreadLocal<org.bukkit.@Nullable TreeType> treeTypeThreadLocal = new ThreadLocal<>(); // CraftBukkit // ShreddedPaper - use thread local
+ 
+     @Override
+     public MapCodec<? extends SaplingBlock> codec() {
+@@ -62,8 +_,8 @@
+                 this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
+                 level.captureTreeGeneration = false;
+                 if (!level.capturedBlockStates.isEmpty()) {
+-                    org.bukkit.TreeType treeType = SaplingBlock.treeType;
+-                    SaplingBlock.treeType = null;
++                    org.bukkit.TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - use thread local
++                    SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - use thread local
+                     org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level);
+                     java.util.List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(level.capturedBlockStates.values());
+                     level.capturedBlockStates.clear();

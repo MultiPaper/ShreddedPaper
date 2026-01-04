@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/item/component/LodestoneTracker.java
++++ b/net/minecraft/world/item/component/LodestoneTracker.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.item.component;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import io.netty.buffer.ByteBuf;
+@@ -29,7 +_,7 @@
+                 return this;
+             } else {
+                 BlockPos blockPos = this.target.get().pos();
+-                return level.isInWorldBounds(blockPos) && (!level.hasChunkAt(blockPos) || level.getPoiManager().existsAtPosition(PoiTypes.LODESTONE, blockPos)) // Paper - Prevent compass from loading chunks
++                return level.isInWorldBounds(blockPos) && (!TickThread.isTickThreadFor(level, blockPos) || !level.hasChunkAt(blockPos) || level.getPoiManager().existsAtPosition(PoiTypes.LODESTONE, blockPos)) // Paper - Prevent compass from loading chunks // ShreddedPaper - Prevent compass from accessing outside our thread
+                     ? this
+                     : new LodestoneTracker(Optional.empty(), true);
+             }

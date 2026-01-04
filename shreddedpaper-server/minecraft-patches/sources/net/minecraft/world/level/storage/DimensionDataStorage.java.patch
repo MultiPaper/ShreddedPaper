@@ -1,0 +1,65 @@
+--- a/net/minecraft/world/level/storage/DimensionDataStorage.java
++++ b/net/minecraft/world/level/storage/DimensionDataStorage.java
+@@ -18,6 +_,8 @@
+ import java.util.Optional;
+ import java.util.Map.Entry;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.ConcurrentHashMap;
++
+ import net.minecraft.SharedConstants;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.nbt.CompoundTag;
+@@ -38,7 +_,7 @@
+ 
+ public class DimensionDataStorage implements AutoCloseable {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    public final Map<SavedDataType<?>, Optional<SavedData>> cache = new HashMap<>();
++    public final Map<SavedDataType<?>, Optional<SavedData>> cache = new ConcurrentHashMap<>(); // ShreddedPaper - thread-safe
+     private final DataFixer fixerUpper;
+     private final HolderLookup.Provider registries;
+     private final Path dataFolder;
+@@ -55,24 +_,29 @@
+     }
+ 
+     public <T extends SavedData> T computeIfAbsent(SavedDataType<T> type) {
+-        T savedData = this.get(type);
+-        if (savedData != null) {
+-            return savedData;
+-        } else {
+-            T savedData1 = (T)type.constructor().get();
+-            this.set(type, savedData1);
+-            return savedData1;
+-        }
++        // ShreddedPaper start - thread-safe
++        return (T) this.cache.compute(type, (key, optional) -> {
++            if (optional == null) {
++                optional = Optional.ofNullable(this.readSavedData(type));
++            }
++            if (optional.isPresent()) {
++                return optional;
++            }
++            T savedData = this.readSavedData(type);
++            if (savedData != null) {
++                return Optional.of(savedData);
++            }
++            return Optional.of(type.constructor().get());
++        }).orElse(null);
++        // ShreddedPaper end - thread-safe
+     }
+ 
+     public <T extends SavedData> @Nullable T get(SavedDataType<T> type) {
+-        Optional<SavedData> optional = this.cache.get(type);
+-        if (optional == null) {
+-            optional = Optional.ofNullable(this.readSavedData(type));
+-            this.cache.put(type, optional);
+-        }
+-
+-        return (T)optional.orElse(null);
++        // ShreddedPaper start - thread-safe
++        return (T) this.cache.computeIfAbsent(type, (key) -> {
++            return Optional.ofNullable(this.readSavedData(type));
++        }).orElse(null);
++        // ShreddedPaper end - thread-safe
+     }
+ 
+     private <T extends SavedData> @Nullable T readSavedData(SavedDataType<T> type) {

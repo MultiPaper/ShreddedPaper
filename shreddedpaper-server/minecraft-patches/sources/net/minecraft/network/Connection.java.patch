@@ -10,14 +10,25 @@
  import io.netty.bootstrap.Bootstrap;
  import io.netty.channel.Channel;
  import io.netty.channel.ChannelException;
-@@ -47,6 +_,7 @@
+@@ -45,8 +_,10 @@
+ import net.minecraft.network.protocol.login.LoginProtocols;
+ import net.minecraft.network.protocol.status.ClientStatusPacketListener;
  import net.minecraft.network.protocol.status.StatusProtocols;
++import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.RunningOnDifferentThreadException;
  import net.minecraft.server.network.EventLoopGroupHolder;
 +import net.minecraft.server.network.ServerGamePacketListenerImpl;
  import net.minecraft.util.Mth;
  import net.minecraft.util.Util;
  import net.minecraft.util.debugchart.LocalSampleLogger;
+@@ -303,6 +_,7 @@
+ 
+     private static void syncAfterConfigurationChange(ChannelFuture future) {
+         try {
++            if (TickThread.isTickThread()) MinecraftServer.getServer().managedBlock(future::isDone); // ShreddedPaper - don't block main thread
+             future.syncUninterruptibly();
+         } catch (Exception var2) {
+             if (var2 instanceof ClosedChannelException) {
 @@ -500,7 +_,7 @@
      }
  

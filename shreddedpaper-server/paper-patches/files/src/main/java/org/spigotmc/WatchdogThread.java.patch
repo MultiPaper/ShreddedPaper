@@ -1,5 +1,26 @@
 --- a/src/main/java/org/spigotmc/WatchdogThread.java
 +++ b/src/main/java/org/spigotmc/WatchdogThread.java
+@@ -1,13 +_,20 @@
+ package org.spigotmc;
+ 
++import ca.spottedleaf.moonrise.common.util.WorldUtil;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import io.papermc.paper.FeatureHooks;
+ import io.papermc.paper.configuration.GlobalConfiguration;
+ import java.lang.management.ManagementFactory;
+ import java.lang.management.MonitorInfo;
+ import java.lang.management.ThreadInfo;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
++import java.util.Map;
+ import java.util.logging.Level;
+ import java.util.logging.Logger;
+ import net.minecraft.server.MinecraftServer;
++import net.minecraft.server.level.ServerLevel;
+ import org.bukkit.Bukkit;
+ import org.bukkit.craftbukkit.CraftServer;
+ 
 @@ -75,14 +_,14 @@
                  this.lastEarlyWarning = currentTime;
                  if (isLongTimeout) {
@@ -18,7 +39,7 @@
  
                      if (net.minecraft.world.level.Level.lastPhysicsProblem != null) {
                          logger.log(Level.SEVERE, "------------------------------");
-@@ -102,12 +_,12 @@
+@@ -102,14 +_,19 @@
                      }
                      // Paper end
                  } else {
@@ -32,7 +53,14 @@
 +                logger.log(Level.SEVERE, "Server thread dump (Look for plugins here before reporting to ShreddedPaper!):"); // Paper // Purpur - Rebrand // ShreddedPaper
                  FeatureHooks.dumpAllChunkLoadInfo(MinecraftServer.getServer(), isLongTimeout); // Paper - log detailed tick information
                  WatchdogThread.dumpThread(ManagementFactory.getThreadMXBean().getThreadInfo(MinecraftServer.getServer().serverThread.threadId(), Integer.MAX_VALUE), logger);
++                // ShreddedPaper start - Dump stuck worker threads
++                for (ThreadInfo worker : getStuckTickWorkerThreads()) {
++                    WatchdogThread.dumpThread( worker, logger );
++                }
++                // ShreddedPaper end - Dump stuck worker threads
                  logger.log(Level.SEVERE, "------------------------------");
+ 
+                 // Paper start - Only print full dump on long timeouts
 @@ -120,7 +_,7 @@
                          WatchdogThread.dumpThread(thread, logger);
                      }
@@ -42,3 +70,45 @@
                  }
  
                  logger.log(Level.SEVERE, "------------------------------");
+@@ -156,6 +_,26 @@
+         }
+     }
+ 
++    // ShreddedPaper start
++    private List<ThreadInfo> getStuckTickWorkerThreads() {
++        ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads( true, true );
++        return Arrays.stream(threads)
++                .filter(thread -> thread.getThreadName().startsWith("ShreddedPaperTickThread"))
++                .filter(thread -> Arrays.stream(thread.getStackTrace()).anyMatch(stack -> !stack.getClassName().startsWith("java") && !stack.getClassName().startsWith("jdk")))
++                .toList();
++    }
++    private static List<String> getCurrentLocksHeld(ThreadInfo thread) {
++        List<String> strings = new ArrayList<>();
++        for (ServerLevel level : MinecraftServer.getServer().getAllLevels()) {
++            List<RegionPos> regions = level.chunkScheduler.getRegionLocker().getAllLockedRegions().stream().filter(entry -> entry.getValue().owner().threadId() == thread.getThreadId()).map(Map.Entry::getKey).toList();
++            if (!regions.isEmpty()) {
++                strings.add(WorldUtil.getWorldName(level) + "=" + regions.stream().map(region -> "[" + region.x + "," + region.z + "]").toList());
++            }
++        }
++        return strings;
++    }
++    // ShreddedPaper end
++
+     private static void dumpThread(ThreadInfo thread, Logger logger) {
+         logger.log(Level.SEVERE, "------------------------------");
+ 
+@@ -164,6 +_,14 @@
+             + " | Suspended: " + thread.isSuspended()
+             + " | Native: " + thread.isInNative()
+             + " | State: " + thread.getThreadState());
++
++        // ShreddedPaper start - Dump region locks held by this thread
++        List<String> locksHeld = getCurrentLocksHeld(thread);
++        if (!locksHeld.isEmpty()) {
++            logger.log( Level.SEVERE, "\tRegion locks held (regionSize=" + RegionPos.REGION_SIZE + " chunks): " + locksHeld);
++        }
++        // ShreddedPaper end - Dump region locks held by this thread
++
+         if (thread.getLockedMonitors().length != 0) {
+             logger.log(Level.SEVERE, "\tThread is waiting on monitor(s):");
+             for (MonitorInfo monitor : thread.getLockedMonitors()) {

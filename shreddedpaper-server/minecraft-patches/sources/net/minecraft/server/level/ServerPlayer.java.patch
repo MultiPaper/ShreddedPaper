@@ -194,3 +194,12 @@
      }
  
      @Override
+@@ -2964,6 +_,8 @@
+             for (MobEffectInstance mobEffectInstance : livingEntity.getActiveEffects()) {
+                 this.connection.send(new ClientboundRemoveMobEffectPacket(vehicle.getId(), mobEffectInstance.getEffect()));
+             }
++
++            if (vehicle.moonrise$getTrackedEntity() != null) vehicle.moonrise$getTrackedEntity().serverEntity.sendChanges(); // ShreddedPaper - send changes now
+         }
+ 
+         if (vehicle != null) {
