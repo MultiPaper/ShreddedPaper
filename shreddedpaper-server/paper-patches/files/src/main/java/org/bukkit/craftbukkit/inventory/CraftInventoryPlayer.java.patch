@@ -1,0 +1,17 @@
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftInventoryPlayer.java
+@@ -1,5 +_,6 @@
+ package org.bukkit.craftbukkit.inventory;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.google.common.base.Preconditions;
+ import java.util.List;
+ import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
+@@ -71,6 +_,7 @@
+ 
+     @Override
+     public void setItem(int index, ItemStack item) {
++        TickThread.ensureTickThread(getInventory().player, "Player inventory modification"); // ShreddedPaper
+         // Paper start - Validate setItem index
+         if (index < 0 || index > 42) {
+             throw new ArrayIndexOutOfBoundsException("Index must be between 0 and 42");

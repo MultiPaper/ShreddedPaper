@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,10 +_,15 @@
+@@ -1,10 +_,16 @@
  package net.minecraft.server.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
@@ -9,6 +9,7 @@
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
 +import io.multipaper.shreddedpaper.region.LevelChunkRegion;
 +import io.multipaper.shreddedpaper.region.LevelTicksRegionProxy;
 +import io.multipaper.shreddedpaper.region.RegionPos;
@@ -371,6 +372,15 @@
      }
  
      @Override
+@@ -958,7 +_,7 @@
+ 
+     private void wakeUpAllPlayers() {
+         this.sleepStatus.removeAllSleepers();
+-        this.players.stream().filter(LivingEntity::isSleeping).collect(Collectors.toList()).forEach(player -> player.stopSleepInBed(false, false));
++        this.players.stream().filter(LivingEntity::isSleeping).collect(Collectors.toList()).forEach(player -> ShreddedPaper.runSync(player, () -> player.stopSleepInBed(false, false))); // ShreddedPaper - run on player's thread
+     }
+ 
+     // Paper start - optimise random ticking
 @@ -1182,7 +_,7 @@
      }
  
@@ -457,6 +467,15 @@
              }
          }
          } // Paper - option to disable pathfinding updates
+@@ -1949,7 +_,7 @@
+     @Override
+     public void updateNeighborsAt(BlockPos pos, Block block) {
+         // CraftBukkit start
+-        if (this.populating) {
++        if (this.populatingThreadLocal.get()) { // ShreddedPaper - thread local for populating
+             return;
+         }
+         // CraftBukkit end
 @@ -2084,14 +_,15 @@
  
      @Override
@@ -492,6 +511,25 @@
      }
  
      private boolean doBlockEvent(BlockEventData event) {
+@@ -2337,7 +_,7 @@
+             final MapItemSavedData mapData = storage.get(MapItemSavedData.type(mapId)); // get populates the cache
+             if (mapData != null) { // map was read, init it and return
+                 mapData.id = mapId;
+-                new org.bukkit.event.server.MapInitializeEvent(mapData.mapView).callEvent();
++                if (mapData.hasCalledMapInitializeEvent.compareAndSet(false, true)) new org.bukkit.event.server.MapInitializeEvent(mapData.mapView).callEvent(); // ShreddedPaper - ensure only called once
+                 return mapData;
+             }
+ 
+@@ -2356,8 +_,7 @@
+     public void setMapData(MapId mapId, MapItemSavedData data) {
+         // CraftBukkit start
+         data.id = mapId;
+-        org.bukkit.event.server.MapInitializeEvent event = new org.bukkit.event.server.MapInitializeEvent(data.mapView);
+-        event.callEvent();
++        if (data.hasCalledMapInitializeEvent.compareAndSet(false, true)) new org.bukkit.event.server.MapInitializeEvent(data.mapView).callEvent(); // ShreddedPaper - ensure only called once
+         // CraftBukkit end
+         this.getServer().overworld().getDataStorage().set(MapItemSavedData.type(mapId), data);
+     }
 @@ -2412,11 +_,11 @@
          Optional<Holder<PoiType>> optional1 = PoiTypes.forState(newState);
          if (!Objects.equals(optional, optional1)) {
@@ -622,6 +660,19 @@
              // Spigot start // TODO I don't think this is needed anymore
              if (entity instanceof Player player) {
                  for (final ServerLevel level : ServerLevel.this.getServer().getAllLevels()) {
+@@ -2931,10 +_,12 @@
+                             continue;
+                         }
+ 
++                        synchronized (map) { // ShreddedPaper - thread-safe
+                         map.carriedByPlayers.remove(player);
+                         if (map.carriedBy.removeIf(holdingPlayer -> holdingPlayer.player == player)) {
+                             map.decorations.remove(player.getName().getString());
+                         }
++                        } // ShreddedPaper - thread-safe
+                     }
+                 }
+             }
 @@ -2953,20 +_,21 @@
              // Spigot end
              ServerLevel.this.getChunkSource().removeEntity(entity);

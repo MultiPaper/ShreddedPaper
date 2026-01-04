@@ -32,6 +32,15 @@
      private boolean tickingBlockEntities;
      public final Thread thread;
      private final boolean isDebug;
+@@ -157,7 +_,7 @@
+     public int wakeupInactiveRemainingMonsters;
+     public int wakeupInactiveRemainingVillagers;
+     // Paper end - EAR 2
+-    public boolean populating;
++    public final ThreadLocal<Boolean> populatingThreadLocal = ThreadLocal.withInitial(() -> false); // ShreddedPaper - thread local for populating
+     public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
+     // Paper start - add paper world config
+     private final io.papermc.paper.configuration.WorldConfiguration paperConfig;
 @@ -168,7 +_,7 @@
  
      public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur - Purpur config files

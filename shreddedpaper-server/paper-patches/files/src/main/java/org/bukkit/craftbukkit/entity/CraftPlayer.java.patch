@@ -1,5 +1,12 @@
 --- a/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
 +++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftPlayer.java
+@@ -1,5 +_,6 @@
+ package org.bukkit.craftbukkit.entity;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.destroystokyo.paper.event.player.PlayerSetSpawnEvent;
+ import com.google.common.base.Preconditions;
+ import com.google.common.collect.ImmutableList;
 @@ -1461,9 +_,12 @@
              return CraftLocation.toBukkit(respawnData.pos(), world, respawnData.yaw(), respawnData.pitch());
          }
@@ -45,3 +52,26 @@
              }
          }
  
+@@ -3267,19 +_,19 @@
+     // Paper start - Add chunk view API
+     @Override
+     public Set<java.lang.Long> getSentChunkKeys() {
+-        org.spigotmc.AsyncCatcher.catchOp("accessing sent chunks");
++        TickThread.ensureTickThread(this.getHandle(), "accessing sent chunks"); // ShreddedPaper
+         return FeatureHooks.getSentChunkKeys(this.getHandle());
+     }
+ 
+     @Override
+     public Set<org.bukkit.Chunk> getSentChunks() {
+-        org.spigotmc.AsyncCatcher.catchOp("accessing sent chunks");
++        TickThread.ensureTickThread(this.getHandle(), "accessing sent chunks"); // ShreddedPaper
+         return FeatureHooks.getSentChunks(this.getHandle());
+     }
+ 
+     @Override
+     public boolean isChunkSent(final long chunkKey) {
+-        org.spigotmc.AsyncCatcher.catchOp("accessing sent chunks");
++        TickThread.ensureTickThread(this.getHandle(), "accessing sent chunks"); // ShreddedPaper
+         return FeatureHooks.isChunkSent(this.getHandle(), chunkKey);
+     }
+     // Paper end

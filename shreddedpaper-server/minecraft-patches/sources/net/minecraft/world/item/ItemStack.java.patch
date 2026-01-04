@@ -1,0 +1,51 @@
+--- a/net/minecraft/world/item/ItemStack.java
++++ b/net/minecraft/world/item/ItemStack.java
+@@ -404,8 +_,8 @@
+             if (interactionResult.consumesAction() && serverLevel.captureTreeGeneration && !serverLevel.capturedBlockStates.isEmpty()) {
+                 serverLevel.captureTreeGeneration = false;
+                 org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(clickedPos, serverLevel);
+-                org.bukkit.TreeType treeType = net.minecraft.world.level.block.SaplingBlock.treeType;
+-                net.minecraft.world.level.block.SaplingBlock.treeType = null;
++                org.bukkit.TreeType treeType = net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - use thread local
++                net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - use thread local
+                 List<org.bukkit.craftbukkit.block.CraftBlockState> blocks = new java.util.ArrayList<>(serverLevel.capturedBlockStates.values());
+                 serverLevel.capturedBlockStates.clear();
+                 org.bukkit.event.world.StructureGrowEvent structureEvent = null;
+@@ -433,7 +_,7 @@
+                     player.awardStat(Stats.ITEM_USED.get(item)); // SPIGOT-7236 - award stat
+                 }
+ 
+-                SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
++                SignItem.openSignThreadLocal.remove(); // SPIGOT-6758 - Reset on early return // ShreddedPaper - thread local for openSign
+                 return interactionResult;
+             }
+             serverLevel.captureTreeGeneration = false;
+@@ -459,7 +_,7 @@
+                         ((org.bukkit.craftbukkit.block.CraftBlock) blockstate.getBlock()).getNMS().getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
+                     }
+ 
+-                    SignItem.openSign = null; // SPIGOT-6758 - Reset on early return
++                    SignItem.openSignThreadLocal.remove(); // SPIGOT-6758 - Reset on early return // ShreddedPaper - thread local for openSign
+                 } else {
+                     // Change the stack to its new contents if it hasn't been tampered with.
+                     if (this.getCount() == oldCount && Objects.equals(this.components.asPatch(), previousPatch)) {
+@@ -503,15 +_,15 @@
+                     }
+ 
+                     // SPIGOT-4678
+-                    if (this.item instanceof SignItem && SignItem.openSign != null) {
++                    if (this.item instanceof SignItem && SignItem.openSignThreadLocal.get() != null) { // ShreddedPaper - thread local for openSign
+                         try {
+-                            if (serverLevel.getBlockEntity(SignItem.openSign) instanceof net.minecraft.world.level.block.entity.SignBlockEntity blockEntity) {
+-                                if (serverLevel.getBlockState(SignItem.openSign).getBlock() instanceof net.minecraft.world.level.block.SignBlock signBlock) {
++                            if (serverLevel.getBlockEntity(SignItem.openSignThreadLocal.get()) instanceof net.minecraft.world.level.block.entity.SignBlockEntity blockEntity) { // ShreddedPaper - thread local for openSign
++                                if (serverLevel.getBlockState(SignItem.openSignThreadLocal.get()).getBlock() instanceof net.minecraft.world.level.block.SignBlock signBlock) { // ShreddedPaper - thread local for openSign
+                                     signBlock.openTextEdit(player, blockEntity, true, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLACE); // CraftBukkit // Paper - Add PlayerOpenSignEvent
+                                 }
+                             }
+                         } finally {
+-                            SignItem.openSign = null;
++                            SignItem.openSignThreadLocal.remove(); // ShreddedPaper - thread local for openSign
+                         }
+                     }
+ 

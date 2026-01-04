@@ -1,5 +1,39 @@
 --- a/net/minecraft/server/level/ChunkHolder.java
 +++ b/net/minecraft/server/level/ChunkHolder.java
+@@ -1,5 +_,9 @@
+ package net.minecraft.server.level;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
++import ca.spottedleaf.moonrise.common.util.WorldUtil;
++import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
+ import it.unimi.dsi.fastutil.shorts.ShortSet;
+ import java.util.BitSet;
+@@ -28,8 +_,12 @@
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.lighting.LevelLightEngine;
+ import org.jspecify.annotations.Nullable;
++import org.slf4j.Logger;
+ 
+ public class ChunkHolder extends GenerationChunkHolder implements ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkSystemChunkHolder { // Paper - rewrite chunk system
++
++    private static Logger LOGGER = LogUtils.getClassLogger();
++
+     public static final ChunkResult<LevelChunk> UNLOADED_LEVEL_CHUNK = ChunkResult.error("Unloaded level chunk");
+     private static final CompletableFuture<ChunkResult<LevelChunk>> UNLOADED_LEVEL_CHUNK_FUTURE = CompletableFuture.completedFuture(UNLOADED_LEVEL_CHUNK);
+     private final LevelHeightAccessor levelHeightAccessor;
+@@ -221,6 +_,10 @@
+     }
+ 
+     public boolean blockChanged(BlockPos pos) {
++        if (!this.getChunkMap().level.getServer().forceTicks && !TickThread.isShutdownThread() && !this.getChunkMap().level.chunkScheduler.getRegionLocker().hasWriteLock(RegionPos.forBlockPos(pos))) { // ShreddedPaper
++            LOGGER.error("Block change is not write locked: world={} pos={} newstate={}", WorldUtil.getWorldName(this.getChunkMap().level), pos, this.getFullChunkNow().getBlockState(pos)); // ShreddedPaper
++            TickThread.ensureTickThread(this.getChunkMap().level, pos, "Block change is not write locked"); // ShreddedPaper
++        } // ShreddedPaper
+         LevelChunk tickingChunk = this.playersSentChunkTo.size() == 0 ? null : this.getChunkToSend(); // Paper - rewrite chunk system
+         if (tickingChunk == null) {
+             return false;
 @@ -274,6 +_,7 @@
  
      public void broadcastChanges(LevelChunk chunk) {

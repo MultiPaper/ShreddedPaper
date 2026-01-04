@@ -28,6 +28,15 @@
                  if (d7 - d6 > Math.max(100.0, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed)) && !this.isSingleplayerOwner()) {
                      // CraftBukkit end
                      LOGGER.warn("{} (vehicle of {}) moved too quickly! {},{},{}", rootVehicle.getPlainTextName(), this.player.getPlainTextName(), d3, d4, d5);
+@@ -1379,7 +_,7 @@
+             Consumer<List<FilteredText>> consumer = optional.isPresent()
+                 ? texts -> this.signBook(texts.get(0), texts.subList(1, texts.size()), slot, hasSignPerm) // Purpur - Allow color codes in books
+                 : list1 -> this.updateBookContents(list1, slot, hasEditPerm); // Purpur - Allow color codes in books
+-            this.filterTextPacket(list).thenAcceptAsync(consumer, this.server);
++            this.filterTextPacket(list).thenAcceptAsync(consumer, r -> ShreddedPaper.ensureSync(this.player, r)); // ShreddedPaper - run on region thread
+         }
+     }
+ 
 @@ -1573,6 +_,12 @@
                                          // Paper end - Add fail move event
                                      }
@@ -105,6 +114,15 @@
                  }
                  break;
              case REQUEST_STATS:
+@@ -3575,7 +_,7 @@
+         }
+         List<String> list = Stream.of(lines).map(ChatFormatting::stripFormatting).collect(Collectors.toList());
+         // Paper end - Limit client sign length
+-        this.filterTextPacket(list).thenAcceptAsync(texts -> this.updateSignText(packet, (List<FilteredText>)texts), this.server);
++        this.filterTextPacket(list).thenAcceptAsync(texts -> this.updateSignText(packet, (List<FilteredText>)texts), r -> ShreddedPaper.ensureSync(this.player, r)); // ShreddedPaper - run on region thread
+     }
+ 
+     private void updateSignText(ServerboundSignUpdatePacket packet, List<FilteredText> filteredText) {
 @@ -3833,7 +_,7 @@
  
      @Override

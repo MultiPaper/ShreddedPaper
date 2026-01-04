@@ -1,0 +1,54 @@
+--- a/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
++++ b/net/minecraft/world/level/saveddata/maps/MapItemSavedData.java
+@@ -14,6 +_,7 @@
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Predicate;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+@@ -74,6 +_,7 @@
+     public byte scale;
+     public byte[] colors = new byte[16384];
+     public boolean locked;
++    public AtomicBoolean hasCalledMapInitializeEvent = new AtomicBoolean(false); // ShreddedPaper
+     private final org.bukkit.craftbukkit.map.RenderData vanillaRender = new org.bukkit.craftbukkit.map.RenderData(); // Paper - Use Vanilla map renderer when possible
+     public final List<MapItemSavedData.HoldingPlayer> carriedBy = Lists.newArrayList();
+     public final Map<Player, MapItemSavedData.HoldingPlayer> carriedByPlayers = Maps.newHashMap();
+@@ -179,7 +_,7 @@
+         return new MapItemSavedData(0, 0, scale, false, false, locked, dimension);
+     }
+ 
+-    public MapItemSavedData locked() {
++    public synchronized MapItemSavedData locked() { // ShreddedPaper - thread-safe
+         MapItemSavedData mapItemSavedData = new MapItemSavedData(
+             this.centerX, this.centerZ, this.scale, this.trackingPosition, this.unlimitedTracking, true, this.dimension
+         );
+@@ -199,7 +_,7 @@
+         return itemStack -> itemStack == stack || itemStack.is(stack.getItem()) && Objects.equals(mapId, itemStack.get(DataComponents.MAP_ID));
+     }
+ 
+-    public void tickCarriedBy(Player player, ItemStack mapStack) {
++    public synchronized void tickCarriedBy(Player player, ItemStack mapStack) { // ShreddedPaper - thread-safe
+         if (!this.carriedByPlayers.containsKey(player)) {
+             MapItemSavedData.HoldingPlayer holdingPlayer = new MapItemSavedData.HoldingPlayer(player);
+             this.carriedByPlayers.put(player, holdingPlayer);
+@@ -381,7 +_,7 @@
+         }
+     }
+ 
+-    public @Nullable Packet<?> getUpdatePacket(MapId mapId, Player player) {
++    public synchronized @Nullable Packet<?> getUpdatePacket(MapId mapId, Player player) { // ShreddedPaper - thread-safe
+         MapItemSavedData.HoldingPlayer holdingPlayer = this.carriedByPlayers.get(player);
+         return holdingPlayer == null ? null : holdingPlayer.nextUpdatePacket(mapId);
+     }
+@@ -495,7 +_,7 @@
+         return false;
+     }
+ 
+-    public void addClientSideDecorations(List<MapDecoration> decorations) {
++    public synchronized void addClientSideDecorations(List<MapDecoration> decorations) { // ShreddedPaper - thread-safe
+         this.decorations.clear();
+         this.trackedDecorationCount = 0;
+ 

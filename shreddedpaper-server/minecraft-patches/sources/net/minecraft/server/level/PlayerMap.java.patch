@@ -1,0 +1,59 @@
+--- a/net/minecraft/server/level/PlayerMap.java
++++ b/net/minecraft/server/level/PlayerMap.java
+@@ -1,37 +_,48 @@
+ package net.minecraft.server.level;
+ 
++import io.multipaper.shreddedpaper.util.SimpleStampedLock;
+ import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+ import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
++
++import java.util.List;
+ import java.util.Set;
++import java.util.concurrent.CopyOnWriteArrayList;
+ 
+ public final class PlayerMap {
+     private final Object2BooleanMap<ServerPlayer> players = new Object2BooleanOpenHashMap<>();
+ 
+-    public Set<ServerPlayer> getAllPlayers() {
+-        return this.players.keySet();
++    private final SimpleStampedLock playersLock = new SimpleStampedLock(); // ShreddedPaper
++    private final CopyOnWriteArrayList<ServerPlayer> playersList = new CopyOnWriteArrayList<>(); // ShreddedPaper
++    public List<ServerPlayer> getAllPlayers() { // ShreddedPaper
++        // ShreddedPaper - change to a CopyOnWriteArrayList cache of the player key set to allow for thread-safe iteration
++        //  - Players aren't added/removed often, so a CopyOnWriteArrayList is sufficient
++        // return this.players.keySet(); // ShreddedPaper
++        return this.playersList; // ShreddedPaper
+     }
+ 
+     public void addPlayer(ServerPlayer player, boolean skipPlayer) {
+-        this.players.put(player, skipPlayer);
++        this.playersLock.write(() -> this.players.put(player, skipPlayer)); // ShreddedPaper
++        this.playersList.add(player); // ShreddedPaper
+     }
+ 
+     public void removePlayer(ServerPlayer player) {
+-        this.players.removeBoolean(player);
++        this.playersLock.write(() -> this.players.removeBoolean(player)); // ShreddedPaper
++        this.playersList.remove(player); // ShreddedPaper
+     }
+ 
+     public void ignorePlayer(ServerPlayer player) {
+-        this.players.replace(player, true);
++        this.playersLock.write(() -> this.players.replace(player, true)); // ShreddedPaper
+     }
+ 
+     public void unIgnorePlayer(ServerPlayer player) {
+-        this.players.replace(player, false);
++        this.playersLock.write(() -> this.players.replace(player, false)); // ShreddedPaper
+     }
+ 
+     public boolean ignoredOrUnknown(ServerPlayer player) {
+-        return this.players.getOrDefault(player, true);
++        return this.playersLock.optimisticRead(() -> this.players.getOrDefault(player, true)); // ShreddedPaper
+     }
+ 
+     public boolean ignored(ServerPlayer player) {
+-        return this.players.getBoolean(player);
++        return this.playersLock.optimisticRead(() -> this.players.getBoolean(player)); // ShreddedPaper
+     }
+ }

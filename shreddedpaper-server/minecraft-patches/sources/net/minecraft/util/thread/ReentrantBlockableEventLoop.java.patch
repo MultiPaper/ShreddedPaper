@@ -1,0 +1,34 @@
+--- a/net/minecraft/util/thread/ReentrantBlockableEventLoop.java
++++ b/net/minecraft/util/thread/ReentrantBlockableEventLoop.java
+@@ -1,7 +_,9 @@
+ package net.minecraft.util.thread;
+ 
++import java.util.concurrent.atomic.AtomicInteger;
++
+ public abstract class ReentrantBlockableEventLoop<R extends Runnable> extends BlockableEventLoop<R> {
+-    private int reentrantCount;
++    private final AtomicInteger reentrantCount = new AtomicInteger(); // ShreddedPaper - use AtomicInteger
+ 
+     public ReentrantBlockableEventLoop(String name) {
+         super(name);
+@@ -13,17 +_,17 @@
+     }
+ 
+     protected boolean runningTask() {
+-        return this.reentrantCount != 0;
++        return this.reentrantCount.get() != 0; // ShreddedPaper - use AtomicInteger
+     }
+ 
+     @Override
+     public void doRunTask(R task) {
+-        this.reentrantCount++;
++        this.reentrantCount.getAndIncrement(); // ShreddedPaper - use AtomicInteger
+ 
+         try {
+             super.doRunTask(task);
+         } finally {
+-            this.reentrantCount--;
++            this.reentrantCount.getAndDecrement(); // ShreddedPaper - use AtomicInteger
+         }
+     }
+ }

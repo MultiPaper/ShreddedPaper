@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/block/FungusBlock.java
++++ b/net/minecraft/world/level/block/FungusBlock.java
+@@ -76,9 +_,9 @@
+             // CraftBukkit start
+             .map((value) -> {
+                 if (this == Blocks.WARPED_FUNGUS) {
+-                    SaplingBlock.treeType = org.bukkit.TreeType.WARPED_FUNGUS;
++                    SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.WARPED_FUNGUS); // ShreddedPaper - use thread local
+                 } else if (this == Blocks.CRIMSON_FUNGUS) {
+-                    SaplingBlock.treeType = org.bukkit.TreeType.CRIMSON_FUNGUS;
++                    SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.CRIMSON_FUNGUS); // ShreddedPaper - use thread local
+                 }
+                 return value;
+             })

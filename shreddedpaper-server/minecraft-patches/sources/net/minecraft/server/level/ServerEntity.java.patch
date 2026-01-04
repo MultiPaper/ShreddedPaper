@@ -1,0 +1,18 @@
+--- a/net/minecraft/server/level/ServerEntity.java
++++ b/net/minecraft/server/level/ServerEntity.java
+@@ -122,6 +_,7 @@
+                 MapId mapId = itemFrame.cachedMapId; // Paper - Perf: Cache map ids on item frames
+                 MapItemSavedData savedData = MapItem.getSavedData(mapId, this.level);
+                 if (savedData != null) {
++                    synchronized (savedData) { // ShreddedPaper - thread-safe
+                     for (final net.minecraft.server.network.ServerPlayerConnection connection : this.trackedPlayers) { // Paper
+                         final ServerPlayer serverPlayer = connection.getPlayer(); // Paper
+                         savedData.tickCarriedBy(serverPlayer, item);
+@@ -130,6 +_,7 @@
+                             serverPlayer.connection.send(updatePacket);
+                         }
+                     }
++                    } // ShreddedPaper - thread-safe
+                 }
+             }
+ 

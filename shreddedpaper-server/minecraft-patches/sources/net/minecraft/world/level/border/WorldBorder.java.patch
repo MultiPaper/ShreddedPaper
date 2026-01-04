@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/level/border/WorldBorder.java
++++ b/net/minecraft/world/level/border/WorldBorder.java
+@@ -56,16 +_,16 @@
+     }
+ 
+     // Paper start - Bound treasure maps to world border
+-    private final BlockPos.MutableBlockPos mutPos = new BlockPos.MutableBlockPos();
++    private final ThreadLocal<BlockPos.MutableBlockPos> mutPosThreadLocal = ThreadLocal.withInitial(() -> new BlockPos.MutableBlockPos()); // ShreddedPaper - thread local for mutPos
+ 
+     public boolean isBlockInBounds(int x, int z) {
+-        this.mutPos.set(x, 64, z);
+-        return this.isWithinBounds(this.mutPos);
++        this.mutPosThreadLocal.get().set(x, 64, z);
++        return this.isWithinBounds(this.mutPosThreadLocal.get());
+     }
+ 
+     public boolean isChunkInBounds(int chunkX, int chunkZ) {
+-        this.mutPos.set(((chunkX << 4) + 15), 64, (chunkZ << 4) + 15);
+-        return this.isWithinBounds(this.mutPos);
++        this.mutPosThreadLocal.get().set(((chunkX << 4) + 15), 64, (chunkZ << 4) + 15);
++        return this.isWithinBounds(this.mutPosThreadLocal.get());
+     }
+     // Paper end - Bound treasure maps to world border
+ 
