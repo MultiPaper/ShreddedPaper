@@ -1,0 +1,11 @@
+--- a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
++++ b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
+@@ -341,7 +_,7 @@
+         }
+     }
+ 
+-    private static List<Definition<? extends Annotation, ?, ? extends FieldProcessor.Factory<?, ?>>> defaultFieldProcessors() {
++    public static List<Definition<? extends Annotation, ?, ? extends FieldProcessor.Factory<?, ?>>> defaultFieldProcessors() { // ShreddedPaper - make public
+         return List.of(
+             MergeMap.DEFINITION
+         );

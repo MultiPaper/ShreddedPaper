@@ -1,12 +1,15 @@
 --- a/net/minecraft/network/Connection.java
 +++ b/net/minecraft/network/Connection.java
-@@ -1,5 +_,6 @@
+@@ -1,7 +_,9 @@
  package net.minecraft.network;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
  import com.google.common.collect.Queues;
  import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
  import io.netty.bootstrap.Bootstrap;
+ import io.netty.channel.Channel;
+ import io.netty.channel.ChannelException;
 @@ -47,6 +_,7 @@
  import net.minecraft.network.protocol.status.StatusProtocols;
  import net.minecraft.server.RunningOnDifferentThreadException;
@@ -15,11 +18,22 @@
  import net.minecraft.util.Mth;
  import net.minecraft.util.Util;
  import net.minecraft.util.debugchart.LocalSampleLogger;
-@@ -556,6 +_,7 @@
+@@ -500,7 +_,7 @@
+     }
+ 
+     // Paper start - Optimize network: Rewrite this to be safer if ran off main thread
+-    private boolean flushQueue() {
++    public boolean flushQueue() { // ShreddedPaper - make public
+         if (!this.isConnected()) {
+             return true;
+         }
+@@ -556,7 +_,8 @@
      private static int currTick; // Paper - Buffer joins to world
      private static int tickSecond; // Purpur - Max joins per second
      public void tick() {
+-        this.flushQueue();
 +        if (this.packetListener instanceof ServerGamePacketListenerImpl serverGamePacketListener && !TickThread.isTickThreadFor(serverGamePacketListener.player)) return; // ShreddedPaper
-         this.flushQueue();
++        if (!ShreddedPaperConfiguration.get().optimizations.flushQueueInParallel) this.flushQueue(); // ShreddedPaper - Add option to flush queue in parallel
          // Paper start - Buffer joins to world
          if (Connection.currTick != net.minecraft.server.MinecraftServer.currentTick) {
+             Connection.currTick = net.minecraft.server.MinecraftServer.currentTick;

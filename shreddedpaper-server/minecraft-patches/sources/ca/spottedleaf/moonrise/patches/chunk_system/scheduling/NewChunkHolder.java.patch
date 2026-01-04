@@ -16,6 +16,30 @@
  import net.minecraft.server.level.ChunkHolder;
  import net.minecraft.server.level.ChunkLevel;
  import net.minecraft.server.level.FullChunkStatus;
+@@ -53,6 +_,7 @@
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Objects;
++import java.util.Optional;
+ import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.function.Consumer;
+ 
+@@ -777,13 +_,13 @@
+             // ensure in unload queue
+             if (!this.inUnloadQueue) {
+                 this.inUnloadQueue = true;
+-                this.scheduler.chunkHolderManager.unloadQueue.addChunk(this.chunkX, this.chunkZ);
++                world.chunkSource.tickingRegions.getOrCreate(RegionPos.forChunk(vanillaChunkHolder.getPos())).unloadQueue.add(vanillaChunkHolder.getPos().toLong()); // this.scheduler.chunkHolderManager.unloadQueue.addChunk(this.chunkX, this.chunkZ); // ShreddedPaper
+             }
+         } else {
+             // ensure not in unload queue
+             if (this.inUnloadQueue) {
+                 this.inUnloadQueue = false;
+-                this.scheduler.chunkHolderManager.unloadQueue.removeChunk(this.chunkX, this.chunkZ);
++                Optional.ofNullable(world.chunkSource.tickingRegions.get(RegionPos.forChunk(vanillaChunkHolder.getPos()))).ifPresent(v -> v.unloadQueue.remove(vanillaChunkHolder.getPos().toLong())); // this.scheduler.chunkHolderManager.unloadQueue.removeChunk(this.chunkX, this.chunkZ); // ShreddedPaper
+             }
+         }
+     }
 @@ -1194,6 +_,22 @@
          this.currentFullChunkStatus = to;
      }

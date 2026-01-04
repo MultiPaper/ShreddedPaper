@@ -1,0 +1,34 @@
+--- a/net/minecraft/server/network/PlayerChunkSender.java
++++ b/net/minecraft/server/network/PlayerChunkSender.java
+@@ -2,8 +_,13 @@
+ 
+ import com.google.common.collect.Comparators;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
+ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+ import it.unimi.dsi.fastutil.longs.LongSet;
++
++import java.lang.ref.Reference;
++import java.lang.ref.SoftReference;
++import java.lang.ref.WeakReference;
+ import java.util.Comparator;
+ import java.util.List;
+ import java.util.Objects;
+@@ -81,7 +_,16 @@
+     public static void sendChunk(ServerGamePacketListenerImpl packetListener, ServerLevel level, LevelChunk chunk) { // Paper - rewrite chunk system - public
+         // Paper start - Anti-Xray
+         final boolean shouldModify = level.chunkPacketBlockController.shouldModify(packetListener.player, chunk);
+-        packetListener.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null, shouldModify));
++        // ShreddedPaper start - Cache chunk packet
++        Reference<ClientboundLevelChunkWithLightPacket> cachedChunkPacket = chunk.cachedChunkPacket;
++        ClientboundLevelChunkWithLightPacket chunkPacket;
++        if (cachedChunkPacket == null || (chunkPacket = chunk.cachedChunkPacket.get()) == null || chunkPacket.modifyBlocks != shouldModify) {
++            chunkPacket = new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null, shouldModify);
++            if (ShreddedPaperConfiguration.get().optimizations.chunkPacketCaching.enabled) chunk.cachedChunkPacket = ShreddedPaperConfiguration.get().optimizations.chunkPacketCaching.useSoftReferences ? new SoftReference<>(chunkPacket) : new WeakReference<>(chunkPacket);
++        }
++        chunk.cachedChunkPacketLastAccessed = level.getGameTime();
++        packetListener.send(chunkPacket);
++        // ShreddedPaper end - Cache chunk packet
+         // Paper end - Anti-Xray
+         // Paper start - PlayerChunkLoadEvent
+         if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {

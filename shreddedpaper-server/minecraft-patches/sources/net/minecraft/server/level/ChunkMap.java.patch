@@ -26,6 +26,15 @@
      private final Long2ByteMap chunkTypeCache = new Long2ByteOpenHashMap();
      // Paper - rewrite chunk system
      public int serverViewDistance;
+@@ -431,7 +_,7 @@
+     }
+ 
+     private void processUnloads(BooleanSupplier hasMoreTime) {
+-        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.processUnloads(); // Paper - rewrite chunk system
++        // ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.processUnloads(); // Paper - rewrite chunk system // ShreddedPaper - we unload chunks on the chunk thread
+         ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.autoSave(); // Paper - rewrite chunk system
+     }
+ 
 @@ -708,7 +_,7 @@
      }
  
@@ -35,6 +44,53 @@
          final ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData chunkData = ((ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkSystemLevelChunk)levelChunk).moonrise$getChunkHolder().holderData;
          final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk nearbyPlayers = chunkData.nearbyPlayers;
          if (nearbyPlayers == null) {
+@@ -744,25 +_,27 @@
+     }
+     // Paper end - optimise chunk tick iteration
+ 
+-    void collectSpawningChunks(List<LevelChunk> output) {
+-        // Paper start - optimise chunk tick iteration
+-        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks();
+-
+-        final LevelChunk[] raw = tickingChunks.getRawDataUnchecked();
+-        final int size = tickingChunks.size();
+-
+-        Objects.checkFromToIndex(0, size, raw.length);
+-        for (int i = 0; i < size; ++i) {
+-            final LevelChunk levelChunk = raw[i];
+-
+-            if (!this.isChunkNearPlayer((ChunkMap)(Object)this, levelChunk.getPos(), levelChunk)) {
+-                continue;
+-            }
+-
+-            output.add(levelChunk);
+-        }
+-        // Paper end - optimise chunk tick iteration
+-    }
++    // ShreddedPaper start - unused
++//    void collectSpawningChunks(List<LevelChunk> output) {
++//        // Paper start - optimise chunk tick iteration
++//        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> tickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel)this.level).moonrise$getPlayerTickingChunks();
++//
++//        final LevelChunk[] raw = tickingChunks.getRawDataUnchecked();
++//        final int size = tickingChunks.size();
++//
++//        Objects.checkFromToIndex(0, size, raw.length);
++//        for (int i = 0; i < size; ++i) {
++//            final LevelChunk levelChunk = raw[i];
++//
++//            if (!this.isChunkNearPlayer((ChunkMap)(Object)this, levelChunk.getPos(), levelChunk)) {
++//                continue;
++//            }
++//
++//            output.add(levelChunk);
++//        }
++//        // Paper end - optimise chunk tick iteration
++//    }
++    // ShreddedPaper end - unused
+ 
+     void forEachBlockTickingChunk(Consumer<LevelChunk> action) {
+         this.distanceManager.forEachEntityTickingChunk(chunkPos -> {
 @@ -985,9 +_,9 @@
      public void addEntity(Entity entity) {
          org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot

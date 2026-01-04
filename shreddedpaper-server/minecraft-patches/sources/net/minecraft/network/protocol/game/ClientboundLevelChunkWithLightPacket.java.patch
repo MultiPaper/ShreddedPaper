@@ -1,0 +1,18 @@
+--- a/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
+@@ -20,6 +_,7 @@
+     private final ClientboundLightUpdatePacketData lightData;
+     // Paper start - Async-Anti-Xray - Ready flag for the connection, add chunk packet info
+     private volatile boolean ready;
++    public boolean modifyBlocks; // ShreddedPaper
+ 
+     @Override
+     public boolean isReady() {
+@@ -39,6 +_,7 @@
+         ChunkPos pos = chunk.getPos();
+         this.x = pos.x;
+         this.z = pos.z;
++        this.modifyBlocks = modifyBlocks; // ShreddedPaper
+         io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo = modifyBlocks ? chunk.getLevel().chunkPacketBlockController.getChunkPacketInfo(this, chunk) : null; // Paper - Ant-Xray
+         this.chunkData = new ClientboundLevelChunkPacketData(chunk, chunkPacketInfo); // Paper - Anti-Xray
+         this.lightData = new ClientboundLightUpdatePacketData(pos, lightEngine, skyLight, blockLight);

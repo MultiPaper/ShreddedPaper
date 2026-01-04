@@ -1,7 +1,7 @@
 package io.multipaper.shreddedpaper.threading;
 
+import ca.spottedleaf.moonrise.common.util.TickThread;
 import com.mojang.logging.LogUtils;
-import io.papermc.paper.util.TickThread;
 import org.bukkit.plugin.Plugin;
 import org.slf4j.Logger;
 import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
