@@ -182,3 +182,11 @@
          profilerFiller.popPush("players");
          this.playerList.tick();
          profilerFiller.popPush("debugSubscribers");
+@@ -1889,6 +_,7 @@
+ 
+         for (ServerPlayer serverPlayer : this.playerList.getPlayers()) {
+             serverPlayer.connection.chunkSender.sendNextChunks(serverPlayer);
++            serverPlayer.connection.keepConnectionAlive(); // ShreddedPaper - send the ping packet right before flushing
+             serverPlayer.connection.resumeFlushing();
+         }
+ 

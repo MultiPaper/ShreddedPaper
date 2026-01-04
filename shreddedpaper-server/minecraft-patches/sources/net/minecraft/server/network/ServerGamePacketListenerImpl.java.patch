@@ -15,6 +15,15 @@
  import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
  import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+@@ -368,7 +_,7 @@
+         }
+ 
+         if (this.server.isPaused() || !this.tickPlayer()) {
+-            this.keepConnectionAlive();
++            // this.keepConnectionAlive(); // ShreddedPaper - called elsewhere
+             this.chatSpamThrottler.tick();
+             this.dropSpamThrottler.tick();
+             this.tabSpamThrottler.tick(); // Paper - configurable tab spam limits
 @@ -626,6 +_,12 @@
                      return;
                  }
