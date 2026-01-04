@@ -1,0 +1,22 @@
+--- a/net/minecraft/world/entity/PortalProcessor.java
++++ b/net/minecraft/world/entity/PortalProcessor.java
+@@ -6,6 +_,8 @@
+ import net.minecraft.world.level.portal.TeleportTransition;
+ import org.jspecify.annotations.Nullable;
+ 
++import java.util.concurrent.CompletableFuture;
++
+ public class PortalProcessor {
+     private final Portal portal;
+     private BlockPos entryPosition;
+@@ -28,8 +_,8 @@
+         }
+     }
+ 
+-    public @Nullable TeleportTransition getPortalDestination(ServerLevel level, Entity entity) {
+-        return this.portal.getPortalDestination(level, entity, this.entryPosition);
++    public CompletableFuture<@Nullable TeleportTransition> getPortalDestinationAsync(ServerLevel level, Entity entity) { // ShreddedPaper - async teleportation
++        return this.portal.getPortalDestinationAsync(level, entity, this.entryPosition); // ShreddedPaper - async teleportation
+     }
+ 
+     public Portal.Transition getPortalLocalTransition() {

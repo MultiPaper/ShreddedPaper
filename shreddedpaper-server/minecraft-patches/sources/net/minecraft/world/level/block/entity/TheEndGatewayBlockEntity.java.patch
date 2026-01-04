@@ -1,0 +1,132 @@
+--- a/net/minecraft/world/level/block/entity/TheEndGatewayBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/TheEndGatewayBlockEntity.java
+@@ -1,6 +_,9 @@
+ package net.minecraft.world.level.block.entity;
+ 
++import ca.spottedleaf.concurrentutil.util.Priority;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.util.ObjectHolder;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.HolderLookup;
+@@ -26,6 +_,8 @@
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
++import java.util.concurrent.CompletableFuture;
++
+ public class TheEndGatewayBlockEntity extends TheEndPortalBlockEntity {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final int SPAWN_TIME = 200;
+@@ -128,21 +_,25 @@
+         }
+     }
+ 
+-    public @Nullable Vec3 getPortalPosition(ServerLevel level, BlockPos pos) {
++    public CompletableFuture<@Nullable Vec3> getPortalPositionAsync(ServerLevel level, BlockPos pos) { // ShreddedPaper - async teleportation
++        CompletableFuture<Void> future = CompletableFuture.completedFuture(null); // ShreddedPaper - async teleportation
+         if (this.exitPortal == null && level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.END) { // CraftBukkit - work in alternate worlds
+-            BlockPos blockPos = findOrCreateValidTeleportPos(level, pos);
++            future = findOrCreateValidTeleportPosAsync(level, pos).thenAccept(blockPos -> { // ShreddedPaper - async teleportation
+             blockPos = blockPos.above(10);
+             LOGGER.debug("Creating portal at {}", blockPos);
+             spawnGatewayPortal(level, blockPos, EndGatewayConfiguration.knownExit(pos, false));
+             this.setExitPosition(blockPos, this.exactTeleport);
++            }); // ShreddedPaper - async teleportation
+         }
+ 
++        return future.thenCompose(v -> CompletableFuture.supplyAsync(() -> { // ShreddedPaper - async teleportation
+         if (this.exitPortal != null) {
+             BlockPos blockPos = this.exactTeleport ? this.exitPortal : findExitPosition(level, this.exitPortal);
+             return blockPos.getBottomCenter();
+         } else {
+             return null;
+         }
++        }, r -> ShreddedPaper.ensureSync(level, this.exitPortal, r))); // ShreddedPaper - async teleportation
+     }
+ 
+     private static BlockPos findExitPosition(Level level, BlockPos pos) {
+@@ -151,8 +_,9 @@
+         return blockPos.above();
+     }
+ 
+-    private static BlockPos findOrCreateValidTeleportPos(ServerLevel level, BlockPos pos) {
+-        Vec3 vec3 = findExitPortalXZPosTentative(level, pos);
++    private static CompletableFuture<BlockPos> findOrCreateValidTeleportPosAsync(ServerLevel level, BlockPos pos) { // ShreddedPaper - async teleportation
++        return findExitPortalXZPosTentativeAsync(level, pos).thenCompose(vec3 -> { // ShreddedPaper - async teleportation
++        return CompletableFuture.supplyAsync(() -> { // ShreddedPaper - async teleportation
+         LevelChunk chunk = getChunk(level, vec3);
+         BlockPos blockPos = findValidSpawnInChunk(chunk);
+         if (blockPos == null) {
+@@ -170,27 +_,53 @@
+         }
+ 
+         return findTallestBlock(level, blockPos, 16, true);
++        }, r -> ShreddedPaper.ensureSync(level, BlockPos.containing(vec3), r)); // ShreddedPaper - async teleportation
++        }); // ShreddedPaper - async teleportation
+     }
+ 
+-    private static Vec3 findExitPortalXZPosTentative(ServerLevel level, BlockPos pos) {
++    // ShreddedPaper start - async teleportation
++    private static CompletableFuture<Vec3> findExitPortalXZPosTentativeAsync(ServerLevel level, BlockPos pos) {
+         Vec3 vec3 = new Vec3(pos.getX(), 0.0, pos.getZ()).normalize();
+         int i = 1024;
+-        Vec3 vec31 = vec3.scale(1024.0);
+-
+-        for (int i1 = 16; !isChunkEmpty(level, vec31) && i1-- > 0; vec31 = vec31.add(vec3.scale(-16.0))) {
+-            LOGGER.debug("Skipping backwards past nonempty chunk at {}", vec31);
+-        }
+-
+-        for (int var6 = 16; isChunkEmpty(level, vec31) && var6-- > 0; vec31 = vec31.add(vec3.scale(16.0))) {
+-            LOGGER.debug("Skipping forward past empty chunk at {}", vec31);
+-        }
+-
+-        LOGGER.debug("Found chunk at {}", vec31);
+-        return vec31;
+-    }
+-
+-    private static boolean isChunkEmpty(ServerLevel level, Vec3 pos) {
+-        return getChunk(level, pos).getHighestFilledSectionIndex() == -1;
++        final ObjectHolder<Vec3> vec31 = new ObjectHolder<>(vec3.scale(1024.0));
++        return skipBackwardsPastNonemptyChunks(level, vec3, vec31, new ObjectHolder<>(16));
++    }
++    private static CompletableFuture<Vec3> skipBackwardsPastNonemptyChunks(final ServerLevel level, final Vec3 vec3, final ObjectHolder<Vec3> vec31, final ObjectHolder<Integer> i1) {
++        if (i1.map(v -> v - 1) <= 0) {
++            return skipForwardPastEmptyChunks(level, vec3, vec31, new ObjectHolder<>(16));
++        }
++
++        return isChunkEmptyAsync(level, vec31.get()).thenCompose(empty -> {
++            if (!empty) {
++                LOGGER.debug("Skipping backwards past nonempty chunk at {}", vec31.get());
++                vec31.map(v -> v.add(vec3.scale(-16.0)));
++                return skipBackwardsPastNonemptyChunks(level, vec3, vec31, i1);
++            }
++            return skipForwardPastEmptyChunks(level, vec3, vec31, new ObjectHolder<>(16));
++        });
++    }
++    private static CompletableFuture<Vec3> skipForwardPastEmptyChunks(final ServerLevel level, final Vec3 vec3, final ObjectHolder<Vec3> vec31, final ObjectHolder<Integer> var6) {
++        if (var6.map(v -> v - 1) <= 0) {
++            LOGGER.debug("Found chunk at {}", vec31.get());
++            return CompletableFuture.completedFuture(vec31.get());
++        }
++
++        return isChunkEmptyAsync(level, vec31.get()).thenCompose(empty -> {
++            if (!empty) {
++                LOGGER.debug("Skipping forward past empty chunk at {}", vec31.get());
++                vec31.map(v -> v.add(vec3.scale(16.0)));
++                return skipForwardPastEmptyChunks(level, vec3, vec31, var6);
++            }
++            LOGGER.debug("Found chunk at {}", vec31.get());
++            return CompletableFuture.completedFuture(vec31.get());
++        });
++    }
++    // ShreddedPaper end - async teleportation
++
++    private static CompletableFuture<Boolean> isChunkEmptyAsync(ServerLevel level, Vec3 pos) { // ShreddedPaper - async teleportation
++        BlockPos blockPos = BlockPos.containing(pos); // ShreddedPaper - async teleportation
++        if (!ShreddedPaper.isSync(level, new ChunkPos(blockPos))) level.moonrise$loadChunksAsync(blockPos, 0, Priority.HIGHER, v -> {});// ShreddedPaper - async teleportation - begin loading the chunk now so it's already loaded when we get to it
++        return CompletableFuture.supplyAsync(() -> getChunk(level, pos).getHighestFilledSectionIndex() == -1, r -> ShreddedPaper.ensureSync(level, blockPos, r)); // ShreddedPaper - async teleportation
+     }
+ 
+     private static BlockPos findTallestBlock(BlockGetter level, BlockPos pos, int radius, boolean allowBedrock) {
