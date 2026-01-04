@@ -16,11 +16,10 @@
      private static final int HASH_A = 1664525;
      private static final int HASH_C = 1013904223;
      private static final int HASH_Z_XOR = -559038737;
-@@ -69,6 +_,16 @@
-         this.z = (int)(packedPos >> 32);
+@@ -70,6 +_,16 @@
          this.longKey = asLong(this.x, this.z); // Paper
      }
-+
+ 
 +    // ShreddedPaper start
 +    public RegionPos getRegionPos() {
 +        if (this.regionPos == null) {
@@ -30,6 +29,20 @@
 +        return this.regionPos;
 +    }
 +    // ShreddedPaper end
- 
++
      public static ChunkPos minFromRegion(int chunkX, int chunkZ) {
          return new ChunkPos(chunkX << 5, chunkZ << 5);
+     }
+@@ -212,6 +_,12 @@
+         int i1 = z - this.z;
+         return i * i + i1 * i1;
+     }
++
++    // ShreddedPaper start
++    public static ChunkPos of(BlockPos blockPos) {
++        return new ChunkPos(blockPos);
++    }
++    // ShreddedPaper end
+ 
+     public static Stream<ChunkPos> rangeClosed(ChunkPos center, int radius) {
+         return rangeClosed(new ChunkPos(center.x - radius, center.z - radius), new ChunkPos(center.x + radius, center.z + radius));
