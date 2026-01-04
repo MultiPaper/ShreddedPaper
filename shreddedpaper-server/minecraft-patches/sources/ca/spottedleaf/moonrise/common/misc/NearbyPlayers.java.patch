@@ -1,5 +1,15 @@
 --- a/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
 +++ b/ca/spottedleaf/moonrise/common/misc/NearbyPlayers.java
+@@ -7,7 +_,8 @@
+ import ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel;
+ import ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData;
+ import ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickConstants;
+-import ca.spottedleaf.moonrise.patches.chunk_tick_iteration.ChunkTickServerLevel;
++import io.multipaper.shreddedpaper.util.BuckettedSynchronizedLock;
++import io.multipaper.shreddedpaper.util.SimpleStampedLock;
+ import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
+ import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
+ import net.minecraft.core.BlockPos;
 @@ -28,12 +_,14 @@
          SPAWN_RANGE {
              @Override
@@ -17,3 +27,173 @@
              }
          };
          // Moonrise end - chunk tick iteration
+@@ -60,11 +_,16 @@
+ 
+     private final ServerLevel world;
+     private final Reference2ReferenceOpenHashMap<ServerPlayer, TrackedPlayer[]> players = new Reference2ReferenceOpenHashMap<>();
++    private final SimpleStampedLock playersLock = new SimpleStampedLock(); // ShreddedPaper
+     private final Long2ReferenceOpenHashMap<TrackedChunk> byChunk = new Long2ReferenceOpenHashMap<>();
++    private final SimpleStampedLock byChunkLock = new SimpleStampedLock(); // ShreddedPaper
+     private final Long2ReferenceOpenHashMap<ReferenceList<ServerPlayer>>[] directByChunk = new Long2ReferenceOpenHashMap[TOTAL_MAP_TYPES];
++    private final SimpleStampedLock[] directByChunkLock = new SimpleStampedLock[TOTAL_MAP_TYPES]; // ShreddedPaper
++    private final BuckettedSynchronizedLock<Long> chunkModificationLock = new BuckettedSynchronizedLock<>(32);
+     {
+         for (int i = 0; i < this.directByChunk.length; ++i) {
+             this.directByChunk[i] = new Long2ReferenceOpenHashMap<>();
++            this.directByChunkLock[i] = new SimpleStampedLock(); // ShreddedPaper
+         }
+     }
+ 
+@@ -74,9 +_,11 @@
+ 
+     public void addPlayer(final ServerPlayer player) {
+         final TrackedPlayer[] newTrackers = new TrackedPlayer[TOTAL_MAP_TYPES];
++        this.playersLock.write(() -> { // ShreddedPaper
+         if (this.players.putIfAbsent(player, newTrackers) != null) {
+             throw new IllegalStateException("Already have player " + player);
+         }
++        }); // ShreddedPaper
+ 
+         final ChunkPos chunk = player.chunkPosition();
+ 
+@@ -90,7 +_,7 @@
+     }
+ 
+     public void removePlayer(final ServerPlayer player) {
+-        final TrackedPlayer[] players = this.players.remove(player);
++        final TrackedPlayer[] players = this.playersLock.write(() -> this.players.remove(player)); // ShreddedPaper
+         if (players == null) {
+             return; // May be called during teleportation before the player is actually placed
+         }
+@@ -111,7 +_,7 @@
+     }
+ 
+     public void tickPlayer(final ServerPlayer player) {
+-        final TrackedPlayer[] players = this.players.get(player);
++        final TrackedPlayer[] players = this.playersLock.optimisticRead(() -> this.players.get(player)); // ShreddedPaper
+         if (players == null) {
+             throw new IllegalStateException("Don't have player " + player);
+         }
+@@ -127,31 +_,31 @@
+     }
+ 
+     public TrackedChunk getChunk(final ChunkPos pos) {
+-        return this.byChunk.get(CoordinateUtils.getChunkKey(pos));
++        return this.byChunkLock.optimisticRead(() -> this.byChunk.get(CoordinateUtils.getChunkKey(pos))); // ShreddedPaper
+     }
+ 
+     public TrackedChunk getChunk(final BlockPos pos) {
+-        return this.byChunk.get(CoordinateUtils.getChunkKey(pos));
++        return this.byChunkLock.optimisticRead(() -> this.byChunk.get(CoordinateUtils.getChunkKey(pos))); // ShreddedPaper
+     }
+ 
+     public TrackedChunk getChunk(final int chunkX, final int chunkZ) {
+-        return this.byChunk.get(CoordinateUtils.getChunkKey(chunkX, chunkZ));
++        return this.byChunkLock.optimisticRead(() -> this.byChunk.get(CoordinateUtils.getChunkKey(chunkX, chunkZ))); // ShreddedPaper
+     }
+ 
+     public ReferenceList<ServerPlayer> getPlayers(final BlockPos pos, final NearbyMapType type) {
+-        return this.directByChunk[type.ordinal()].get(CoordinateUtils.getChunkKey(pos));
++        return this.directByChunkLock[type.ordinal()].optimisticRead(() -> this.directByChunk[type.ordinal()].get(CoordinateUtils.getChunkKey(pos))); // ShreddedPaper
+     }
+ 
+     public ReferenceList<ServerPlayer> getPlayers(final ChunkPos pos, final NearbyMapType type) {
+-        return this.directByChunk[type.ordinal()].get(CoordinateUtils.getChunkKey(pos));
++        return this.directByChunkLock[type.ordinal()].optimisticRead(() -> this.directByChunk[type.ordinal()].get(CoordinateUtils.getChunkKey(pos))); // ShreddedPaper
+     }
+ 
+     public ReferenceList<ServerPlayer> getPlayersByChunk(final int chunkX, final int chunkZ, final NearbyMapType type) {
+-        return this.directByChunk[type.ordinal()].get(CoordinateUtils.getChunkKey(chunkX, chunkZ));
++        return this.directByChunkLock[type.ordinal()].optimisticRead(() -> this.directByChunk[type.ordinal()].get(CoordinateUtils.getChunkKey(chunkX, chunkZ))); // ShreddedPaper
+     }
+ 
+     public ReferenceList<ServerPlayer> getPlayersByBlock(final int blockX, final int blockZ, final NearbyMapType type) {
+-        return this.directByChunk[type.ordinal()].get(CoordinateUtils.getChunkKey(blockX >> 4, blockZ >> 4));
++        return this.directByChunkLock[type.ordinal()].optimisticRead(() -> this.directByChunk[type.ordinal()].get(CoordinateUtils.getChunkKey(blockX >> 4, blockZ >> 4))); // ShreddedPaper
+     }
+ 
+     public static final class TrackedChunk {
+@@ -181,7 +_,7 @@
+             return this.players[type.ordinal()];
+         }
+ 
+-        public void addPlayer(final ServerPlayer player, final NearbyMapType type) {
++        public void addPlayer(final ServerPlayer player, final NearbyMapType type) { // ShreddedPaper
+             ++this.updateCount;
+ 
+             final int idx = type.ordinal();
+@@ -189,7 +_,7 @@
+             if (list == null) {
+                 ++this.nonEmptyLists;
+                 final ReferenceList<ServerPlayer> players = (this.players[idx] = new ReferenceList<>(EMPTY_PLAYERS_ARRAY));
+-                this.nearbyPlayers.directByChunk[idx].put(this.chunkKey, players);
++                this.nearbyPlayers.directByChunkLock[idx].write(() -> this.nearbyPlayers.directByChunk[idx].put(this.chunkKey, players)); // ShreddedPaper
+                 players.add(player);
+                 return;
+             }
+@@ -199,7 +_,7 @@
+             }
+         }
+ 
+-        public void removePlayer(final ServerPlayer player, final NearbyMapType type) {
++        public void removePlayer(final ServerPlayer player, final NearbyMapType type) { // ShreddedPaper
+             ++this.updateCount;
+ 
+             final int idx = type.ordinal();
+@@ -214,7 +_,7 @@
+ 
+             if (list.size() == 0) {
+                 this.players[idx] = null;
+-                this.nearbyPlayers.directByChunk[idx].remove(this.chunkKey);
++                this.nearbyPlayers.directByChunkLock[idx].write(() -> this.nearbyPlayers.directByChunk[idx].remove(this.chunkKey)); // ShreddedPaper
+                 --this.nonEmptyLists;
+             }
+         }
+@@ -233,26 +_,29 @@
+         protected void addCallback(final ServerPlayer parameter, final int chunkX, final int chunkZ) {
+             final long chunkKey = CoordinateUtils.getChunkKey(chunkX, chunkZ);
+ 
+-            final TrackedChunk chunk = NearbyPlayers.this.byChunk.get(chunkKey);
++            NearbyPlayers.this.chunkModificationLock.write(chunkKey, () -> { // ShreddedPaper
++            TrackedChunk chunk = NearbyPlayers.this.byChunkLock.optimisticRead(() -> NearbyPlayers.this.byChunk.get(chunkKey)); // ShreddedPaper
+             final NearbyMapType type = this.type;
+             if (chunk != null) {
+                 chunk.addPlayer(parameter, type);
+                 type.addTo(parameter, NearbyPlayers.this.world, chunkX, chunkZ);
+             } else {
+                 final TrackedChunk created = new TrackedChunk(chunkKey, NearbyPlayers.this);
+-                NearbyPlayers.this.byChunk.put(chunkKey, created);
++                NearbyPlayers.this.byChunkLock.write(() -> NearbyPlayers.this.byChunk.put(chunkKey, created)); // ShreddedPaper
+                 created.addPlayer(parameter, type);
+                 type.addTo(parameter, NearbyPlayers.this.world, chunkX, chunkZ);
+ 
+                 ((ChunkSystemLevel)NearbyPlayers.this.world).moonrise$requestChunkData(chunkKey).nearbyPlayers = created;
+             }
++            }); // ShreddedPaper
+         }
+ 
+         @Override
+         protected void removeCallback(final ServerPlayer parameter, final int chunkX, final int chunkZ) {
+             final long chunkKey = CoordinateUtils.getChunkKey(chunkX, chunkZ);
+ 
+-            final TrackedChunk chunk = NearbyPlayers.this.byChunk.get(chunkKey);
++            NearbyPlayers.this.chunkModificationLock.write(chunkKey, () -> { // ShreddedPaper
++            final TrackedChunk chunk = NearbyPlayers.this.byChunkLock.optimisticRead(() -> NearbyPlayers.this.byChunk.get(chunkKey)); // ShreddedPaper
+             if (chunk == null) {
+                 throw new IllegalStateException("Chunk should exist at " + new ChunkPos(chunkKey));
+             }
+@@ -262,12 +_,13 @@
+             type.removeFrom(parameter, NearbyPlayers.this.world, chunkX, chunkZ);
+ 
+             if (chunk.isEmpty()) {
+-                NearbyPlayers.this.byChunk.remove(chunkKey);
++                NearbyPlayers.this.byChunkLock.write(() -> NearbyPlayers.this.byChunk.remove(chunkKey)); // ShreddedPaper
+                 final ChunkData chunkData = ((ChunkSystemLevel)NearbyPlayers.this.world).moonrise$releaseChunkData(chunkKey);
+                 if (chunkData != null) {
+                     chunkData.nearbyPlayers = null;
+                 }
+             }
++            }); // ShreddedPaper
+         }
+     }
+ }

@@ -1,0 +1,12 @@
+--- a/net/minecraft/world/level/NaturalSpawner.java
++++ b/net/minecraft/world/level/NaturalSpawner.java
+@@ -177,7 +_,9 @@
+                 if (inRange != null) {
+                     final net.minecraft.server.level.ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
+                     for (int k = 0, len = inRange.size(); k < len; k++) {
++                        try { // ShreddedPaper - concurrent modification
+                         minDiff = Math.min(limit - level.getChunkSource().chunkMap.getMobCountNear(backingSet[k], mobCategory), minDiff);
++                        } catch (IndexOutOfBoundsException | NullPointerException ignored) {} // ShreddedPaper - concurrent modification
+                     }
+                 }
+ 
