@@ -26,6 +26,26 @@
      private final Long2ByteMap chunkTypeCache = new Long2ByteOpenHashMap();
      // Paper - rewrite chunk system
      public int serverViewDistance;
+@@ -262,7 +_,9 @@
+ 
+         final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
+         for (int i = 0, len = inRange.size(); i < len; i++) {
++            try { // ShreddedPaper - concurrent modification
+             ++(backingSet[i].mobCounts[index]);
++            } catch (IndexOutOfBoundsException | NullPointerException ignored) {} // ShreddedPaper - concurrent modification
+         }
+     }
+ 
+@@ -279,7 +_,9 @@
+         }
+         final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
+         for (int i = 0, len = inRange.size(); i < len; i++) {
++            try { // ShreddedPaper - concurrent modification
+             ++(backingSet[i].mobBackoffCounts[idx]);
++            } catch (IndexOutOfBoundsException | NullPointerException ignored) {} // ShreddedPaper - concurrent modification
+         }
+     }
+     // Paper end - per player mob count backoff
 @@ -431,7 +_,7 @@
      }
  
@@ -44,7 +64,22 @@
          final ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData chunkData = ((ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkSystemLevelChunk)levelChunk).moonrise$getChunkHolder().holderData;
          final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk nearbyPlayers = chunkData.nearbyPlayers;
          if (nearbyPlayers == null) {
-@@ -744,25 +_,27 @@
+@@ -728,6 +_,7 @@
+ 
+         Objects.checkFromIndexSize(0, len, raw.length);
+         for (int i = 0; i < len; ++i) {
++            try { // ShreddedPaper - concurrent modification
+             // Paper start - PlayerNaturallySpawnCreaturesEvent
+             com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent event = raw[i].playerNaturallySpawnedEvent;
+             if (event == null || event.isCancelled()) {
+@@ -738,31 +_,34 @@
+                 // Paper end - PlayerNaturallySpawnCreaturesEvent
+                 return true;
+             }
++            } catch (IndexOutOfBoundsException | NullPointerException ignored) {} // ShreddedPaper - concurrent modification
+         }
+ 
+         return false;
      }
      // Paper end - optimise chunk tick iteration
  
@@ -91,6 +126,42 @@
  
      void forEachBlockTickingChunk(Consumer<LevelChunk> action) {
          this.distanceManager.forEachEntityTickingChunk(chunkPos -> {
+@@ -820,7 +_,9 @@
+ 
+         Objects.checkFromIndexSize(0, len, raw.length);
+         for (int i = 0; i < len; ++i) {
++            try { // ShreddedPaper - concurrent modification
+             final ServerPlayer serverPlayer = raw[i];
++            if (serverPlayer == null) continue; // ShreddedPaper - concurrent modification
+             // Paper start - PlayerNaturallySpawnCreaturesEvent
+             com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent event;
+             blockRange = 16384.0D;
+@@ -833,6 +_,7 @@
+                 // Paper end - PlayerNaturallySpawnCreaturesEvent
+                 return true;
+             }
++            } catch (IndexOutOfBoundsException ignored) {} // ShreddedPaper - concurrent modification
+         }
+ 
+         return false;
+@@ -855,7 +_,9 @@
+ 
+         Objects.checkFromIndexSize(0, len, raw.length);
+         for (int i = 0; i < len; ++i) {
++            try { // ShreddedPaper - concurrent modification
+             final ServerPlayer player = raw[i];
++            if (player == null) continue; // ShreddedPaper - concurrent modification
+             if (this.playerIsCloseEnoughForSpawning(player, chunkPos, 16384.0D)) { // Spigot
+                 if (ret == null) {
+                     ret = new ArrayList<>(len - i);
+@@ -864,6 +_,7 @@
+                     ret.add(player);
+                 }
+             }
++            } catch (IndexOutOfBoundsException ignored) {} // ShreddedPaper - concurrent modification
+         }
+ 
+         return ret == null ? new ArrayList<>() : ret;
 @@ -985,9 +_,9 @@
      public void addEntity(Entity entity) {
          org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot
@@ -208,3 +279,14 @@
              if (trackedEntity.seenBy.contains(player.connection)) {
                  action.accept(trackedEntity.entity);
              }
+@@ -1241,8 +_,10 @@
+             final ServerPlayer[] playersRaw = players.getRawDataUnchecked();
+ 
+             for (int i = 0, len = players.size(); i < len; ++i) {
++                try { // ShreddedPaper - concurrent modification
+                 final ServerPlayer player = playersRaw[i];
+                 this.updatePlayer(player);
++                } catch (IndexOutOfBoundsException | NullPointerException ignored) {} // ShreddedPaper - concurrent modification
+             }
+ 
+             if (lastChunkUpdate != currChunkUpdate || lastTrackedChunk != chunk) {
