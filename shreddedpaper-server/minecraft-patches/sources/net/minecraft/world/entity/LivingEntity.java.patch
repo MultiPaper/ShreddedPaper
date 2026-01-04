@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/LivingEntity.java
++++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -454,7 +_,7 @@
+                     if (damagePerBlock > 0.0) {
+                         // Purpur start - Add option to teleport to spawn if outside world border
+                         if (this.level().purpurConfig.teleportIfOutsideBorder && this instanceof ServerPlayer serverPlayer) {
+-                            serverPlayer.teleport(org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.level().levelData.getRespawnData().pos(), this.level()));
++                            serverPlayer.getBukkitEntity().teleportAsync(org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.level().levelData.getRespawnData().pos(), this.level())); // ShreddedPaper - use teleportAsync
+                             return;
+                         }
+                         // Purpur end - Add option to teleport to spawn if outside world border
