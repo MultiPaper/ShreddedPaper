@@ -11,6 +11,15 @@
  import io.netty.channel.ChannelFutureListener;
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
+@@ -283,7 +_,7 @@
+         this.disconnect(DISCONNECT_UNEXPECTED_QUERY, io.papermc.paper.connection.DisconnectionReason.INVALID_COOKIE); // Paper - kick event cause
+     }
+ 
+-    protected void keepConnectionAlive() {
++    public void keepConnectionAlive() { // ShreddedPaper - make public
+         Profiler.get().push("keepAlive");
+         long millis = Util.getMillis();
+         // Paper start - improve keepalives
 @@ -391,7 +_,7 @@
          if (this.processedDisconnect) {
              return;
