@@ -1,5 +1,21 @@
 --- a/ca/spottedleaf/moonrise/paper/util/BaseChunkSystemHooks.java
 +++ b/ca/spottedleaf/moonrise/paper/util/BaseChunkSystemHooks.java
+@@ -91,13 +_,13 @@
+ 
+     @Override
+     public void onChunkBorder(final LevelChunk chunk, final ChunkHolder holder) {
+-        ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getLoadedChunks().add(chunk);
++        // ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getLoadedChunks().add(chunk); // ShreddedPaper - loadedChunks is unused, remove
+         chunk.loadCallback();
+     }
+ 
+     @Override
+     public void onChunkNotBorder(final LevelChunk chunk, final ChunkHolder holder) {
+-        ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getLoadedChunks().remove(chunk);
++        // ((ChunkSystemServerLevel)((ServerLevel)chunk.getLevel())).moonrise$getLoadedChunks().remove(chunk); // ShreddedPaper - loadedChunks is unused, remove
+         chunk.unloadCallback();
+     }
+ 
 @@ -109,28 +_,30 @@
  
      @Override

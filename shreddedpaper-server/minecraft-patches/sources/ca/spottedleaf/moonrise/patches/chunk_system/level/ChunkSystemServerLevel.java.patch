@@ -1,0 +1,11 @@
+--- a/ca/spottedleaf/moonrise/patches/chunk_system/level/ChunkSystemServerLevel.java
++++ b/ca/spottedleaf/moonrise/patches/chunk_system/level/ChunkSystemServerLevel.java
+@@ -60,7 +_,7 @@
+ 
+     public NearbyPlayers moonrise$getNearbyPlayers();
+ 
+-    public ReferenceList<LevelChunk> moonrise$getLoadedChunks();
++    // public ReferenceList<LevelChunk> moonrise$getLoadedChunks(); // ShreddedPaper - loadedChunks is unused, remove
+ 
+     public ReferenceList<LevelChunk> moonrise$getTickingChunks();
+ 
