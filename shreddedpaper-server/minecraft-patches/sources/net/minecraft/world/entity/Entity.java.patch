@@ -30,13 +30,12 @@
  import org.jetbrains.annotations.Contract;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
-@@ -283,6 +_,9 @@
+@@ -283,6 +_,8 @@
      public double xOld;
      public double yOld;
      public double zOld;
 +    public @Nullable ChunkPos previousTickingChunkPosRegion; // ShreddedPaper
 +    public @Nullable ChunkPos previousTrackedChunkPosRegion; // ShreddedPaper
-+    public @Nullable Throwable addedStackTrace; // ShreddedPaper - add addedStackTrace
      public float maxUpStep; // Purpur - Add option to set armorstand step height
      public boolean noPhysics;
      public final RandomSource random; // Paper - Share random for entities to make them more random // Add toggle for RNG manipulation

@@ -1,0 +1,11 @@
+--- a/net/minecraft/util/Mth.java
++++ b/net/minecraft/util/Mth.java
+@@ -324,7 +_,7 @@
+         return l >> 16;
+     }
+ 
+-    public static UUID createInsecureUUID(RandomSource random) {
++    public static synchronized UUID createInsecureUUID(RandomSource random) { // ShreddedPaper - Random source is not thread safe, and this is the one place it has to be thread safe
+         long l = random.nextLong() & -61441L | 16384L;
+         long l1 = random.nextLong() & 4611686018427387903L | Long.MIN_VALUE;
+         return new UUID(l, l1);
