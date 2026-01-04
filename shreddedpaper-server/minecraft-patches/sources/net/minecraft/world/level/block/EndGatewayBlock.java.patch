@@ -9,12 +9,26 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.particles.ParticleTypes;
  import net.minecraft.server.level.ServerLevel;
-@@ -104,7 +_,7 @@
+@@ -104,9 +_,9 @@
      }
  
      @Override
 -    public @Nullable TeleportTransition getPortalDestination(ServerLevel level, Entity entity, BlockPos pos) {
 +    public CompletableFuture<@Nullable TeleportTransition> getPortalDestinationAsync(ServerLevel level, Entity entity, BlockPos pos) { // ShreddedPaper - async teleportation
          if (level.getBlockEntity(pos) instanceof TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
-             Vec3 portalPosition = theEndGatewayBlockEntity.getPortalPosition(level, pos);
+-            Vec3 portalPosition = theEndGatewayBlockEntity.getPortalPosition(level, pos);
++            return theEndGatewayBlockEntity.getPortalPositionAsync(level, pos).thenApply(portalPosition -> { // ShreddedPaper - async teleportation
              if (portalPosition == null) {
+                 return null;
+             } else {
+@@ -116,8 +_,9 @@
+                         level, portalPosition, Vec3.ZERO, 0.0F, 0.0F, Relative.union(Relative.DELTA, Relative.ROTATION), TeleportTransition.PLACE_PORTAL_TICKET, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_GATEWAY // CraftBukkit
+                     );
+             }
++            }); // ShreddedPaper - async teleportation
+         } else {
+-            return null;
++            return CompletableFuture.completedFuture(null); // ShreddedPaper - async teleportation
+         }
+     }
+ 

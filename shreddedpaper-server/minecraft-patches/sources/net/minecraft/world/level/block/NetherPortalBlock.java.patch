@@ -1,0 +1,68 @@
+--- a/net/minecraft/world/level/block/NetherPortalBlock.java
++++ b/net/minecraft/world/level/block/NetherPortalBlock.java
+@@ -4,6 +_,9 @@
+ import com.mojang.serialization.MapCodec;
+ import java.util.Map;
+ import java.util.Optional;
++import java.util.concurrent.CompletableFuture;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.particles.ParticleTypes;
+@@ -135,7 +_,7 @@
+     }
+ 
+     @Override
+-    public @Nullable TeleportTransition getPortalDestination(ServerLevel level, Entity entity, BlockPos pos) {
++    public CompletableFuture<@Nullable TeleportTransition> getPortalDestinationAsync(ServerLevel level, Entity entity, BlockPos pos) { // ShreddedPaper - async teleportation
+         // CraftBukkit start
+         ResourceKey<Level> resourceKey = level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER ? Level.OVERWORLD : Level.NETHER;
+         ServerLevel level1 = level.getServer().getLevel(resourceKey);
+@@ -143,12 +_,12 @@
+         io.papermc.paper.event.entity.EntityPortalReadyEvent portalReadyEvent = new io.papermc.paper.event.entity.EntityPortalReadyEvent(entity.getBukkitEntity(), level1 == null ? null : level1.getWorld(), org.bukkit.PortalType.NETHER);
+         if (!portalReadyEvent.callEvent()) {
+             entity.portalProcess = null;
+-            return null;
++            return CompletableFuture.completedFuture(null); // ShreddedPaper - async teleportation
+         }
+         level1 = portalReadyEvent.getTargetWorld() == null ? null : ((org.bukkit.craftbukkit.CraftWorld) portalReadyEvent.getTargetWorld()).getHandle();
+         // Paper end - Add EntityPortalReadyEvent
+         if (level1 == null) {
+-            return null;
++            return CompletableFuture.completedFuture(null); // ShreddedPaper - async teleportation
+         } else {
+             boolean flag = level1.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER; // CraftBukkit
+             WorldBorder worldBorder = level1.getWorldBorder();
+@@ -163,19 +_,20 @@
+             // CraftBukkit start
+             org.bukkit.craftbukkit.event.PortalEventResult result = org.bukkit.craftbukkit.event.CraftEventFactory.handlePortalEvents(entity, org.bukkit.craftbukkit.util.CraftLocation.toBukkit(blockPos, level1), org.bukkit.PortalType.NETHER, portalSearchRadius, level1.paperConfig().environment.portalCreateRadius); // Paper - use custom portal search radius
+             if (result == null) {
+-                return null;
++                return CompletableFuture.completedFuture(null); // ShreddedPaper - async teleportation
+             }
+             level1 = ((org.bukkit.craftbukkit.CraftWorld) result.to().getWorld()).getHandle();
+             worldBorder = level1.getWorldBorder();
+             blockPos = worldBorder.clampToBounds(result.to().getX(), result.to().getY(), result.to().getZ());
+-            return this.getExitPortal(level1, entity, pos, blockPos, worldBorder, result);
++            return this.getExitPortalAsync(level1, entity, pos, blockPos, worldBorder, result);
+             // CraftBukkit end
+         }
+     }
+ 
+-    private @Nullable TeleportTransition getExitPortal(
++    private CompletableFuture<@Nullable TeleportTransition> getExitPortalAsync( // ShreddedPaper - async teleportation
+         ServerLevel level, Entity entity, BlockPos pos, BlockPos exitPos, WorldBorder worldBorder, org.bukkit.craftbukkit.event.PortalEventResult result // CraftBukkit
+     ) {
++        return CompletableFuture.supplyAsync(() -> { // ShreddedPaper - async teleportation
+         Optional<BlockPos> optional = level.getPortalForcer().findClosestPortalPosition(exitPos, worldBorder, result.searchRadius()); // CraftBukkit
+         BlockUtil.FoundRectangle largestRectangleAround;
+         TeleportTransition.PostTeleportTransition postTeleportTransition;
+@@ -209,6 +_,7 @@
+         // CraftBukkit end
+ 
+         return getDimensionTransitionFromExit(entity, pos, largestRectangleAround, level, postTeleportTransition);
++        }, r -> ShreddedPaper.ensureSync(level, exitPos, r)); // ShreddedPaper - async teleportation
+     }
+ 
+     private static TeleportTransition getDimensionTransitionFromExit(

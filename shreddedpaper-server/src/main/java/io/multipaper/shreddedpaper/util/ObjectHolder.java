@@ -1,29 +1,46 @@
 package io.multipaper.shreddedpaper.util;
 
-import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.function.Function;
 
 public class ObjectHolder <T> {
 
-    @Nullable T value;
+    T value;
 
     public ObjectHolder() {
         this(null);
     }
 
-    public ObjectHolder(@Nullable T object) {
+    public ObjectHolder(T object) {
         this.value = object;
     }
 
-    public @Nullable T get() {
+    public T get() {
         return value;
     }
 
-    public void set(@Nullable T value) {
-        this.value = value;
+    public T set(T value) {
+        return this.value = value;
     }
 
-    public void map(Function<T, T> mapper) {
-        this.set(mapper.apply(this.get()));
+    public T map(Function<T, T> mapper) {
+        return this.set(mapper.apply(this.get()));
     }
+
+    @Override
+    public String toString() {
+        return "ObjectHolder{value=%s}".formatted(this.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.value == null ? 0 : this.value.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return this == obj || (obj instanceof ObjectHolder<?> that && Objects.equals(this.value, that.value));
+    }
+
+
 }
