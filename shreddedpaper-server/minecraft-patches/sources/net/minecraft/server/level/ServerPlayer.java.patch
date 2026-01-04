@@ -96,11 +96,13 @@
              teleportTransition.missingRespawnBlock(),
              respawnReason
          );
-@@ -1412,7 +_,7 @@
+@@ -1411,8 +_,8 @@
+         // Spigot end
  
          // Paper start - consume anchor charge if location hasn't changed
-         if (location.equals(respawnEvent.getRespawnLocation()) && consumeAnchorCharge != null) {
+-        if (location.equals(respawnEvent.getRespawnLocation()) && consumeAnchorCharge != null) {
 -            consumeAnchorCharge.run();
++        if (location.equals(respawnEvent.getRespawnLocation()) && consumeAnchorCharge.get() != null) {
 +            consumeAnchorCharge.get().run(); // ShreddedPaper - respawn async
          }
          // Paper end - consume anchor charge if location hasn't changed
