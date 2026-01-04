@@ -19,7 +19,7 @@
  public class TheEndGatewayBlockEntity extends TheEndPortalBlockEntity {
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final int SPAWN_TIME = 200;
-@@ -128,21 +_,25 @@
+@@ -128,21 +_,29 @@
          }
      }
  
@@ -28,11 +28,15 @@
 +        CompletableFuture<Void> future = CompletableFuture.completedFuture(null); // ShreddedPaper - async teleportation
          if (this.exitPortal == null && level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.END) { // CraftBukkit - work in alternate worlds
 -            BlockPos blockPos = findOrCreateValidTeleportPos(level, pos);
-+            future = findOrCreateValidTeleportPosAsync(level, pos).thenAccept(blockPos -> { // ShreddedPaper - async teleportation
++            future = findOrCreateValidTeleportPosAsync(level, pos).thenApply(blockPos -> { // ShreddedPaper - async teleportation
              blockPos = blockPos.above(10);
              LOGGER.debug("Creating portal at {}", blockPos);
              spawnGatewayPortal(level, blockPos, EndGatewayConfiguration.knownExit(pos, false));
++            return blockPos; // ShreddedPaper - async teleportation
++            }).thenCompose(blockPos -> { // ShreddedPaper - async teleportation
++            return CompletableFuture.runAsync(() -> { // ShreddedPaper - async teleportation
              this.setExitPosition(blockPos, this.exactTeleport);
++            }, r -> ShreddedPaper.ensureSync((ServerLevel) this.level, this.getBlockPos(), r)); // ShreddedPaper - async teleportation
 +            }); // ShreddedPaper - async teleportation
          }
  
@@ -43,7 +47,7 @@
          } else {
              return null;
          }
-+        }, r -> ShreddedPaper.ensureSync(level, this.exitPortal, r))); // ShreddedPaper - async teleportation
++        }, r -> ShreddedPaper.ensureSync(level, this.exitPortal == null ? this.getBlockPos() : this.exitPortal, r))); // ShreddedPaper - async teleportation
      }
  
      private static BlockPos findExitPosition(Level level, BlockPos pos) {
