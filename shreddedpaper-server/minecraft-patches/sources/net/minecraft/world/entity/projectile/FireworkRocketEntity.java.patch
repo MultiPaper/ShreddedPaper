@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
++++ b/net/minecraft/world/entity/projectile/FireworkRocketEntity.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.projectile;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
+ import java.util.List;
+ import java.util.OptionalInt;
+@@ -137,6 +_,13 @@
+             }
+ 
+             if (this.attachedToEntity != null) {
++                // ShreddedPaper start - remove firework rocket if entity teleported away
++                if (!TickThread.isTickThreadFor(this.attachedToEntity)) {
++                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD); // ShreddedPaper - add Bukkit remove cause
++                    return;
++                }
++                // ShreddedPaper end - remove firework rocket if entity teleported away
++
+                 Vec3 handHoldingItemAngle;
+                 if (this.attachedToEntity.isFallFlying()) {
+                     Vec3 lookAngle = this.attachedToEntity.getLookAngle();
