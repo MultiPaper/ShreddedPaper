@@ -1,12 +1,16 @@
 package io.multipaper.shreddedpaper.threading;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.server.level.ServerLevel;
 import io.multipaper.shreddedpaper.region.RegionPos;
+import org.slf4j.Logger;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 public class ShreddedPaperRegionScheduler {
+
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     private final ShreddedPaperRegionLocker locker = new ShreddedPaperRegionLocker();
 

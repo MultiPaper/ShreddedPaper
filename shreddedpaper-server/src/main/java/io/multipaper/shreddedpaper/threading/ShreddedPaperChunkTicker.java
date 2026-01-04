@@ -6,7 +6,6 @@ import com.mojang.logging.LogUtils;
 import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
 import io.multipaper.shreddedpaper.region.RegionPos;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,12 +16,15 @@ import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.chunk.LevelChunk;
 import io.multipaper.shreddedpaper.region.LevelChunkRegion;
 import org.bukkit.craftbukkit.entity.CraftEntity;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class ShreddedPaperChunkTicker {
+
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     private static final ThreadLocal<LevelChunkRegion> currentlyTickingRegion = new ThreadLocal<>();
 
@@ -180,7 +182,7 @@ public class ShreddedPaperChunkTicker {
     }
 
     private void _tickSpawningChunk(final ServerLevel world, final LevelChunk levelChunk, final long timeInhabited, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
-        if (!world.chunkSource.chunkMap.isChunkNearPlayer((ChunkMap)(Object)this, levelChunk.getPos(), levelChunk)) {
+        if (!world.chunkSource.chunkMap.isChunkNearPlayer(world.chunkSource.chunkMap, levelChunk.getPos(), levelChunk)) {
             return;
         }
 

@@ -248,7 +248,7 @@
      }
  
 -    public void tick(BooleanSupplier hasTimeLeft) {
-+    public CompletableFuture<Void> tick(BooleanSupplier hasTimeLeft) { // ShreddedPaper - run async
++    public CompletableFuture<Void> tickAsync(BooleanSupplier hasTimeLeft) { // ShreddedPaper - run async
          ProfilerFiller profilerFiller = Profiler.get();
 -        this.handlingTick = true;
 +        this.handlingTickThreadLocal.set(true); // ShreddedPaper
