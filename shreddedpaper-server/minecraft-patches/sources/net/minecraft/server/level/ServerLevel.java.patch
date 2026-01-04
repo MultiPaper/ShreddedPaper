@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,10 +_,14 @@
+@@ -1,10 +_,15 @@
  package net.minecraft.server.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
@@ -9,6 +9,7 @@
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.region.LevelChunkRegion;
 +import io.multipaper.shreddedpaper.region.LevelTicksRegionProxy;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
@@ -38,7 +39,7 @@
      private final ServerWaypointManager waypointManager;
      private final EnvironmentAttributeSystem environmentAttributes;
      // Paper - rewrite chunk system
-@@ -203,11 +_,11 @@
+@@ -203,15 +_,15 @@
      private final SleepStatus sleepStatus;
      private int emptyTime;
      private final PortalForcer portalForcer;
@@ -52,8 +53,15 @@
 +    // final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>(); // ShreddedPaper - handled ourselves
 +    final ThreadLocal<Boolean> isUpdatingNavigations = ThreadLocal.withInitial(() -> false); // ShreddedPaper - make thread local
      protected final Raids raids;
-     private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
-     private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
+-    private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();
+-    private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);
+-    private boolean handlingTick;
++    // private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>(); // ShreddedPaper - moved into each region
++    private final ThreadLocal<List<BlockEventData>> blockEventsToRescheduleThreadLocal = ThreadLocal.withInitial(() -> new ArrayList<>(64)); // ShreddedPaper
++    public ThreadLocal<Boolean> handlingTickThreadLocal = ThreadLocal.withInitial(() -> false); // ShreddedPaper
+     private final List<CustomSpawner> customSpawners;
+     private @Nullable EndDragonFight dragonFight;
+     final Int2ObjectMap<EnderDragonPart> dragonParts = new Int2ObjectOpenHashMap<>();
 @@ -221,6 +_,7 @@
      private double preciseTime; // Purpur - Configurable daylight cycle
      private boolean forceTime; // Purpur - Configurable daylight cycle
@@ -235,16 +243,19 @@
      // Paper end - chunk tick iteration
  
      public ServerLevel(
-@@ -767,7 +_,7 @@
+@@ -767,9 +_,9 @@
          return this.environmentAttributes;
      }
  
 -    public void tick(BooleanSupplier hasTimeLeft) {
 +    public CompletableFuture<Void> tick(BooleanSupplier hasTimeLeft) { // ShreddedPaper - run async
          ProfilerFiller profilerFiller = Profiler.get();
-         this.handlingTick = true;
+-        this.handlingTick = true;
++        this.handlingTickThreadLocal.set(true); // ShreddedPaper
          TickRateManager tickRateManager = this.tickRateManager();
-@@ -827,7 +_,7 @@
+         boolean runsNormally = tickRateManager.runsNormally();
+         if (runsNormally) {
+@@ -827,13 +_,13 @@
          }
  
          profilerFiller.popPush("chunkSource");
@@ -252,7 +263,15 @@
 +        return this.getChunkSource().tick(hasTimeLeft, true).thenRun(() -> { // ShreddedPaper - run async
          profilerFiller.popPush("blockEvents");
          if (runsNormally) {
-             this.runBlockEvents();
+-            this.runBlockEvents();
++            // this.runBlockEvents(); // ShreddedPaper - moved into each region
+         }
+ 
+-        this.handlingTick = false;
++        this.handlingTickThreadLocal.set(false); // ShreddedPaper
+         profilerFiller.pop();
+         boolean hasActiveTickets = !paperConfig().unsupportedSettings.disableWorldTickingWhenEmpty || this.chunkSource.hasActiveTickets(); // CraftBukkit - this prevents entity cleanup, other issues on servers with no players // Paper - restore this
+         if (hasActiveTickets) {
 @@ -853,34 +_,36 @@
              }
  
@@ -337,6 +356,15 @@
      }
  
      @Override
+@@ -1182,7 +_,7 @@
+     }
+ 
+     public boolean isHandlingTick() {
+-        return this.handlingTick;
++        return this.handlingTickThreadLocal.get();
+     }
+ 
+     public boolean canSleepThroughNights() {
 @@ -1392,27 +_,29 @@
          this.emptyTime = 0;
      }
@@ -414,6 +442,41 @@
              }
          }
          } // Paper - option to disable pathfinding updates
+@@ -2084,14 +_,15 @@
+ 
+     @Override
+     public void blockEvent(BlockPos pos, Block block, int eventId, int eventParam) {
+-        this.blockEvents.add(new BlockEventData(pos, block, eventId, eventParam));
++        this.chunkSource.tickingRegions.addBlockEvent(new BlockEventData(pos, block, eventId, eventParam)); // ShreddedPaper
+     }
+ 
+-    private void runBlockEvents() {
+-        this.blockEventsToReschedule.clear();
++    public void runBlockEvents(LevelChunkRegion region) { // ShreddedPaper
++        List<BlockEventData> blockEventsToReschedule = blockEventsToRescheduleThreadLocal.get(); // ShreddedPaper
++        blockEventsToReschedule.clear(); // ShreddedPaper
+ 
+-        while (!this.blockEvents.isEmpty()) {
+-            BlockEventData blockEventData = this.blockEvents.removeFirst();
++        while (region.hasBlockEvents()) { // ShreddedPaper
++            BlockEventData blockEventData = (BlockEventData) region.removeFirstBlockEvent(); // ShreddedPaper
+             if (this.shouldTickBlocksAt(blockEventData.pos())) {
+                 if (this.doBlockEvent(blockEventData)) {
+                     this.server
+@@ -2107,11 +_,11 @@
+                         );
+                 }
+             } else {
+-                this.blockEventsToReschedule.add(blockEventData);
++                blockEventsToReschedule.add(blockEventData); // ShreddedPaper
+             }
+         }
+ 
+-        this.blockEvents.addAll(this.blockEventsToReschedule);
++        region.addAllBlockEvents(blockEventsToReschedule); // ShreddedPaper
+     }
+ 
+     private boolean doBlockEvent(BlockEventData event) {
 @@ -2412,11 +_,11 @@
          Optional<Holder<PoiType>> optional1 = PoiTypes.forState(newState);
          if (!Objects.equals(optional, optional1)) {
@@ -437,7 +500,7 @@
              bufferedWriter.write(String.format(Locale.ROOT, "block_ticks: %d\n", this.getBlockTicks().count()));
              bufferedWriter.write(String.format(Locale.ROOT, "fluid_ticks: %d\n", this.getFluidTicks().count()));
              bufferedWriter.write("distance_manager: " + chunkMap.getDistanceManager().getDebugStatus() + "\n");
-@@ -2547,12 +_,14 @@
+@@ -2547,17 +_,25 @@
      }
  
      private void dumpBlockEntityTickers(Writer output) throws IOException {
@@ -458,6 +521,18 @@
      }
  
      @VisibleForTesting
+     public void clearBlockEvents(BoundingBox boundingBox) {
+-        this.blockEvents.removeIf(blockEventData -> boundingBox.isInside(blockEventData.pos()));
++        // ShreddedPaper start - moved blockEvents into regions
++        this.getLevel().getChunkSource().tickingRegions.forEachRegionInBoundingBox(boundingBox, region -> {
++            region.removeBlockEventsIf((blockactiondata) -> {
++                return boundingBox.isInside(blockactiondata.pos());
++            });
++        });
++        // ShreddedPaper end - moved blockEvents into regions
+     }
+ 
+     @Override
 @@ -2600,8 +_,8 @@
              this.players.size(),
              this.moonrise$getEntityLookup().getDebugInfo(), // Paper - rewrite chunk system

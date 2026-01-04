@@ -1,5 +1,22 @@
 --- a/net/minecraft/world/level/chunk/LevelChunk.java
 +++ b/net/minecraft/world/level/chunk/LevelChunk.java
+@@ -6,6 +_,8 @@
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.shorts.ShortList;
++
++import java.lang.ref.Reference;
+ import java.util.ArrayList;
+ import java.util.Collections;
+ import java.util.List;
+@@ -22,6 +_,7 @@
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;
++import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
+ import net.minecraft.server.level.FullChunkStatus;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.ProblemReporter;
 @@ -85,7 +_,7 @@
              return "<null>";
          }
@@ -9,3 +26,12 @@
      public boolean loaded;
      public final ServerLevel level; // CraftBukkit - type
      private @Nullable Supplier<FullChunkStatus> fullStatus;
+@@ -93,6 +_,8 @@
+     private final Int2ObjectMap<GameEventListenerRegistry> gameEventListenerRegistrySections;
+     private final LevelChunkTicks<Block> blockTicks;
+     private final LevelChunkTicks<Fluid> fluidTicks;
++    public @Nullable Reference<ClientboundLevelChunkWithLightPacket> cachedChunkPacket; // ShreddedPaper
++    public long cachedChunkPacketLastAccessed; // ShreddedPaper
+     private LevelChunk.UnsavedListener unsavedListener = chunkPos -> {};
+     // CraftBukkit start
+     public boolean mustNotSave;

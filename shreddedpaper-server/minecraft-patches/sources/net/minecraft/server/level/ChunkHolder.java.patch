@@ -1,0 +1,10 @@
+--- a/net/minecraft/server/level/ChunkHolder.java
++++ b/net/minecraft/server/level/ChunkHolder.java
+@@ -274,6 +_,7 @@
+ 
+     public void broadcastChanges(LevelChunk chunk) {
+         if (this.hasChangesToBroadcast()) {
++            if (chunk.cachedChunkPacket != null) chunk.cachedChunkPacket = null; // ShreddedPaper
+             Level level = chunk.getLevel();
+             if (!this.skyChangedLightSectionFilter.isEmpty() || !this.blockChangedLightSectionFilter.isEmpty()) {
+                 List<ServerPlayer> players = this.moonrise$getPlayers(true); // Paper - rewrite chunk system

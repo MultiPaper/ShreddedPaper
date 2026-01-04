@@ -2,6 +2,7 @@ package io.multipaper.shreddedpaper.config;
 
 import io.papermc.paper.configuration.ConfigurationLoaders;
 import io.papermc.paper.configuration.ConfigurationPart;
+import io.papermc.paper.configuration.PaperConfigurations;
 import io.papermc.paper.configuration.constraint.Constraint;
 import io.papermc.paper.configuration.constraint.Constraints;
 import io.papermc.paper.configuration.mapping.InnerClassFieldDiscoverer;
@@ -80,7 +81,7 @@ public class ShreddedPaperConfigurationLoader {
         return ObjectMapper.factoryBuilder()
                 .addConstraint(Constraint.class, new Constraint.Factory())
                 .addConstraint(Constraints.Min.class, Number.class, new Constraints.Min.Factory())
-                .addDiscoverer(InnerClassFieldDiscoverer.globalConfig());
+                .addDiscoverer(InnerClassFieldDiscoverer.globalConfig(PaperConfigurations.defaultFieldProcessors()));
     }
 
     private static UnaryOperator<ConfigurationOptions> applyObjectMapperFactory(final ObjectMapper.Factory factory) {

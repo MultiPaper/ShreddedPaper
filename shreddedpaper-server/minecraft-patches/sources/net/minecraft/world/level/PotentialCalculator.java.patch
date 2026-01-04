@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/level/PotentialCalculator.java
++++ b/net/minecraft/world/level/PotentialCalculator.java
+@@ -9,7 +_,7 @@
+ 
+     public void addCharge(BlockPos pos, double charge) {
+         if (charge != 0.0) {
+-            this.charges.add(new PotentialCalculator.PointCharge(pos, charge));
++            this.charges.add(new PotentialCalculator.PointCharge(pos, charge)); // ShreddedPaper - doesn't need a lock, if a value isn't added it's not a big deal
+         }
+     }
+ 
+@@ -19,7 +_,8 @@
+         } else {
+             double d = 0.0;
+ 
+-            for (PotentialCalculator.PointCharge pointCharge : this.charges) {
++            for (int i = 0; i < this.charges.size(); i++) { // ShreddedPaper - prevent CME - list is only ever added to
++                PotentialCalculator.PointCharge pointCharge = this.charges.get(i); // ShreddedPaper - prevent CME - list is only ever added to
+                 d += pointCharge.getPotentialChange(pos);
+             }
+ 

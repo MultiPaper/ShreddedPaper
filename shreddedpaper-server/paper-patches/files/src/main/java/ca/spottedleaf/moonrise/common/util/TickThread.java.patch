@@ -85,7 +85,7 @@
  
      public static boolean isTickThreadFor(final Level world, final BlockPos pos) {
 -        return isTickThread();
-+        return isTickThreadFor(world, new ChunkPos(pos)); // ShreddedPaper
++        return isTickThreadFor(world, ChunkPos.of(pos)); // ShreddedPaper
      }
  
      public static boolean isTickThreadFor(final Level world, final BlockPos pos, final int blockRadius) {

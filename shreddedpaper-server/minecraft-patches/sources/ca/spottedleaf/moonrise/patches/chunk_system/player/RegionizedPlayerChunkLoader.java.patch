@@ -26,6 +26,15 @@
          private final LongHeapPriorityQueue sendQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);
          private final LongHeapPriorityQueue tickingQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);
          private final LongHeapPriorityQueue generatingQueue = new LongHeapPriorityQueue(CLOSEST_MANHATTAN_DIST);
+@@ -641,7 +_,7 @@
+             return true;
+         }
+ 
+-        void updateQueues(final long time) {
++        public void updateQueues(final long time) { // ShreddedPaper - make public
+             TickThread.ensureTickThread(this.player, "Cannot tick player chunk loader async");
+             if (this.removed) {
+                 throw new IllegalStateException("Ticking removed player chunk loader");
 @@ -821,17 +_,31 @@
              final long maxSends = Math.max(0L, Math.min(MAX_RATE, Integer.MAX_VALUE)); // note: no logic to track concurrent sends
              final int maxSendsThisTick = Math.min((int)this.chunkSendLimiter.takeAllocation(time, sendRate, maxSends), this.sendQueue.size());
