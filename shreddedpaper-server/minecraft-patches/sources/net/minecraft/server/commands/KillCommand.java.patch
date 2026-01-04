@@ -1,0 +1,20 @@
+--- a/net/minecraft/server/commands/KillCommand.java
++++ b/net/minecraft/server/commands/KillCommand.java
+@@ -3,6 +_,8 @@
+ import com.google.common.collect.ImmutableList;
+ import com.mojang.brigadier.CommandDispatcher;
+ import java.util.Collection;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.Commands;
+ import net.minecraft.commands.arguments.EntityArgument;
+@@ -24,7 +_,7 @@
+ 
+     private static int kill(CommandSourceStack source, Collection<? extends Entity> targets) {
+         for (Entity entity : targets) {
+-            entity.kill(source.getLevel());
++            ShreddedPaper.ensureSync(entity, () -> entity.kill(source.getLevel())); // ShreddedPaper - run on entity's thread
+         }
+ 
+         if (targets.size() == 1) {
