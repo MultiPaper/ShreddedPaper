@@ -48,6 +48,21 @@
              if (tracker == null) {
                  return;
              }
+@@ -829,6 +_,14 @@
+     }
+ 
+     public void setPos(double x, double y, double z) {
++        // ShreddedPaper start
++        Vec3 vec3 = new Vec3(x, y, z);
++        if (!this.position().equals(Vec3.ZERO) && !this.position.equals(vec3) && (!TickThread.isTickThreadFor(level, vec3) || !TickThread.isTickThreadFor(this))) {
++            LOGGER.error("Trying to async move {} to {} {} {}", this, x, y, z);
++            TickThread.ensureTickThread(this, "Cannot async move entity");
++            TickThread.ensureTickThread(level, BlockPos.containing(vec3), "Cannot move entity to async destination");
++        }
++        // ShreddedPaper end
+         this.setPosRaw(x, y, z, true); // Paper - Block invalid positions and bounding box; force update
+         // this.setBoundingBox(this.makeBoundingBox()); // Paper - Block invalid positions and bounding box; move into setPosRaw
+     }
 @@ -1147,7 +_,7 @@
      public void move(MoverType type, Vec3 movement) {
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
@@ -100,27 +115,3 @@
              // Paper start - gateway-specific teleport event
              final org.bukkit.event.entity.EntityTeleportEvent teleEvent;
              if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) Blocks.END_GATEWAY)) && this.level.getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
-@@ -5085,6 +_,14 @@
-     }
- 
-     public final void setPosRaw(double x, double y, double z, boolean forceBoundingBoxUpdate) {
-+        // ShreddedPaper start
-+        Vec3 vec3 = new Vec3(x, y, z);
-+        if (!TickThread.isTickThreadFor(level, vec3) || !TickThread.isTickThreadFor(this)) {
-+            LOGGER.error("Trying to async move {} to {} {} {}", this, x, y, z);
-+            TickThread.ensureTickThread(this, "Cannot async move entity");
-+            TickThread.ensureTickThread(level, BlockPos.containing(vec3), "Cannot move entity to async destination");
-+        }
-+        // ShreddedPaper end
-         // Paper start - rewrite chunk system
-         if (this.updatingSectionStatus) {
-             LOGGER.error(
-@@ -5100,7 +_,7 @@
-         // Paper end - Block invalid positions and bounding box
-         if (this.position.x != x || this.position.y != y || this.position.z != z) {
-             synchronized (this.posLock) { // Paper - detailed watchdog information
--            this.position = new Vec3(x, y, z);
-+            this.position = vec3; // ShreddedPaper - already creating vec3 above, so reuse it
-             } // Paper - detailed watchdog information
-             int floor = Mth.floor(x);
-             int floor1 = Mth.floor(y);

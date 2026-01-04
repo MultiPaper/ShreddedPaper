@@ -1,5 +1,6 @@
 package io.multipaper.shreddedpaper.region;
 
+import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.server.level.ServerLevel;
@@ -12,6 +13,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionLocker;
 import io.multipaper.shreddedpaper.util.SimpleStampedLock;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,8 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 public class LevelChunkRegionMap {
+
+    private static final Logger LOGGER = LogUtils.getClassLogger();
 
     private final ServerLevel level;
     private final SimpleStampedLock regionsLock = new SimpleStampedLock();

@@ -61,13 +61,11 @@ public class LevelChunkRegion {
         }
     }
 
-    public void addPlayerTickingRequest(final ChunkPos chunkPos) {
-        TickThread.ensureTickThread(this.level, chunkPos, "Cannot add player ticking request async");
+    public synchronized void addPlayerTickingRequest(final ChunkPos chunkPos) {
         this.playerTickingChunkRequests.add(chunkPos.toLong());
     }
 
-    public void removePlayerTickingRequest(final ChunkPos chunkPos) {
-        TickThread.ensureTickThread(this.level, chunkPos, "Cannot remove player ticking request async");
+    public synchronized void removePlayerTickingRequest(final ChunkPos chunkPos) {
         this.playerTickingChunkRequests.remove(chunkPos.toLong());
     }
 

@@ -1,0 +1,43 @@
+--- a/net/minecraft/server/network/config/PrepareSpawnTask.java
++++ b/net/minecraft/server/network/config/PrepareSpawnTask.java
+@@ -4,6 +_,8 @@
+ import java.util.Optional;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.function.Consumer;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.network.Connection;
+ import net.minecraft.network.protocol.Packet;
+@@ -133,9 +_,9 @@
+         };
+     }
+ 
+-    public ServerPlayer spawnPlayer(Connection connection, CommonListenerCookie cookie) {
++    public void spawnPlayer(Connection connection, CommonListenerCookie cookie) { // ShreddedPaper - return void
+         if (this.state instanceof PrepareSpawnTask.Ready ready) {
+-            return ready.spawn(connection, cookie);
++            ready.spawn(connection, cookie); // ShreddedPaper - return void
+         } else {
+             throw new IllegalStateException("Player spawn was not ready");
+         }
+@@ -261,7 +_,8 @@
+             this.spawnLevel.getChunkSource().addTicketWithRadius(TicketType.PLAYER_SPAWN, new ChunkPos(BlockPos.containing(this.spawnPosition)), 3);
+         }
+ 
+-        public ServerPlayer spawn(Connection connection, CommonListenerCookie cookie) {
++        public void spawn(Connection connection, CommonListenerCookie cookie) { // ShreddedPaper - return void
++            ShreddedPaper.ensureSync(this.spawnLevel, BlockPos.containing(this.spawnPosition), () -> { // ShreddedPaper - spawn on spawn positions' thread
+             ChunkPos chunkPos = new ChunkPos(BlockPos.containing(this.spawnPosition));
+             this.spawnLevel.waitForEntities(chunkPos, 3);
+             // Paper start - configuration api - possibly use legacy saved server player instance
+@@ -315,7 +_,8 @@
+                 var7 = serverPlayer;
+             }
+ 
+-            return var7;
++            // return var7; // ShreddedPaper - return void
++            }); // ShreddedPaper - spawn on spawn positions' thread
+         }
+     }
+ 

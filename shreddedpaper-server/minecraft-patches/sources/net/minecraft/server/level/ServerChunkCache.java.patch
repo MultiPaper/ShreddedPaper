@@ -23,6 +23,15 @@
      @VisibleForDebug
      private NaturalSpawner.@Nullable SpawnState lastSpawnState;
      // Paper start
+@@ -115,7 +_,7 @@
+             );
+         }
+ 
+-        if (ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(this.level, chunkX, chunkZ)) {
++        if (ca.spottedleaf.moonrise.common.util.TickThread.isTickThread()) { // ShreddedPaper - use managedBlock if this is any tick thread
+             ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.pushChunkWait(this.level, chunkX, chunkZ);
+             this.mainThreadProcessor.managedBlock(completable::isDone);
+             ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.popChunkWait();
 @@ -198,6 +_,7 @@
          Supplier<DimensionDataStorage> overworldDataStorage
      ) {
