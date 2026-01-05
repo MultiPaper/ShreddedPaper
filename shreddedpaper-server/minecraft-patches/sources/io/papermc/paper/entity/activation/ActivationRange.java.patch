@@ -1,0 +1,36 @@
+--- a/io/papermc/paper/entity/activation/ActivationRange.java
++++ b/io/papermc/paper/entity/activation/ActivationRange.java
+@@ -1,5 +_,6 @@
+ package io.papermc.paper.entity.activation;
+ 
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.world.entity.Entity;
+@@ -142,7 +_,8 @@
+         maxRange = Math.min((world.spigotConfig.simulationDistance << 4) - 8, maxRange);
+ 
+         for (final Player player : world.players()) {
+-            player.activatedTick = MinecraftServer.currentTick;
++            if (ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency > 1 && (player.getId() + MinecraftServer.currentTick) % ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency != 0) continue; // ShreddedPaper - Configurable entity activation check frequency
++            player.activatedTick = MinecraftServer.currentTick + Math.max(0, ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency); // ShreddedPaper - Configurable entity activation check frequency
+             if (world.spigotConfig.ignoreSpectatorActivation && player.isSpectator()) {
+                 continue;
+             }
+@@ -177,13 +_,13 @@
+      * @param entity
+      */
+     private static void activateEntity(final Entity entity) {
+-        if (MinecraftServer.currentTick > entity.activatedTick) {
++        if (MinecraftServer.currentTick + Math.max(0, ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency) > entity.activatedTick) { // ShreddedPaper - Configurable entity activation check frequency
+             if (entity.defaultActivationState) {
+-                entity.activatedTick = MinecraftServer.currentTick;
++                entity.activatedTick = MinecraftServer.currentTick + Math.max(0, ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency); // ShreddedPaper - Configurable entity activation check frequency
+                 return;
+             }
+             if (entity.activationType.boundingBox.intersects(entity.getBoundingBox())) {
+-                entity.activatedTick = MinecraftServer.currentTick;
++                entity.activatedTick = MinecraftServer.currentTick + Math.max(0, ShreddedPaperConfiguration.get().optimizations.entityActivationCheckFrequency); // ShreddedPaper - Configurable entity activation check frequency
+             }
+         }
+     }
