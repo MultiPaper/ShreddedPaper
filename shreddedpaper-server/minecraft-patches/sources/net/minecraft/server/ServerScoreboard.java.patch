@@ -1,0 +1,19 @@
+--- a/net/minecraft/server/ServerScoreboard.java
++++ b/net/minecraft/server/ServerScoreboard.java
+@@ -6,6 +_,7 @@
+ import java.util.Objects;
+ import java.util.Optional;
+ import java.util.Set;
++import java.util.concurrent.ConcurrentHashMap;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.game.ClientboundResetScorePacket;
+ import net.minecraft.network.protocol.game.ClientboundSetDisplayObjectivePacket;
+@@ -26,7 +_,7 @@
+ 
+ public class ServerScoreboard extends Scoreboard {
+     private final MinecraftServer server;
+-    private final Set<Objective> trackedObjectives = Sets.newHashSet();
++    private final Set<Objective> trackedObjectives = ConcurrentHashMap.newKeySet(); // ShreddedPaper - concurrent
+     private boolean dirty;
+ 
+     public ServerScoreboard(MinecraftServer server) {
