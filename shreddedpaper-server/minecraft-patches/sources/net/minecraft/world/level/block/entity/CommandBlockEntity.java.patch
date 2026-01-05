@@ -1,0 +1,14 @@
+--- a/net/minecraft/world/level/block/entity/CommandBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/CommandBlockEntity.java
+@@ -40,6 +_,11 @@
+         // CraftBukkit end
+ 
+         @Override
++        public BlockPos getBlockPos() {
++            return CommandBlockEntity.this.worldPosition;
++        } // ShreddedPaper
++
++        @Override
+         public void setCommand(String command) {
+             super.setCommand(command);
+             CommandBlockEntity.this.setChanged();

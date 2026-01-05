@@ -1,0 +1,37 @@
+--- a/net/minecraft/world/level/BaseCommandBlock.java
++++ b/net/minecraft/world/level/BaseCommandBlock.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level;
+ 
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import java.time.ZonedDateTime;
+ import java.time.format.DateTimeFormatter;
+ import java.util.Locale;
+@@ -9,6 +_,7 @@
+ import net.minecraft.ReportedException;
+ import net.minecraft.commands.CommandSource;
+ import net.minecraft.commands.CommandSourceStack;
++import net.minecraft.core.BlockPos;
+ import net.minecraft.network.chat.CommonComponents;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.chat.ComponentSerialization;
+@@ -34,6 +_,7 @@
+     protected abstract org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper);
+     public abstract ServerLevel getLevel();
+     // CraftBukkit end
++    public abstract BlockPos getBlockPos(); // ShreddedPaper
+ 
+     public int getSuccessCount() {
+         return this.successCount;
+@@ -206,9 +_,11 @@
+         @Override
+         public void sendSystemMessage(Component message) {
+             if (this.trackOutput && !this.closed) { // Paper - add back source when output disabled
++                ShreddedPaper.ensureSync(this.level, BaseCommandBlock.this.getBlockPos(), () -> { // ShreddedPaper - run sync
+                 org.spigotmc.AsyncCatcher.catchOp("sendSystemMessage to a command block"); // Paper - Don't broadcast messages to command blocks
+                 BaseCommandBlock.this.lastOutput = Component.literal("[" + TIME_FORMAT.format(ZonedDateTime.now()) + "] ").append(message);
+                 BaseCommandBlock.this.onUpdated(this.level);
++                }); // ShreddedPaper - run sync
+             }
+         }
+ 
