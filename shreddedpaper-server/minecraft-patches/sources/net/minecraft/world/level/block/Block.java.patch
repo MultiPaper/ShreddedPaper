@@ -6,8 +6,8 @@
              // CraftBukkit start
 -            if (level.captureDrops != null) {
 -                level.captureDrops.add(itemEntity);
-+            if (level.captureDropsThreadLocal.get() != null) { // ShreddedPaper - use thread local
-+                level.captureDropsThreadLocal.get().add(itemEntity); // ShreddedPaper - use thread local
++            if (level.captureDrops.get() != null) { // ShreddedPaper - thread local
++                level.captureDrops.get().add(itemEntity); // ShreddedPaper - thread local
              } else {
                  level.addFreshEntity(itemEntity);
              }

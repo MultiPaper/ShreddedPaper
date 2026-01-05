@@ -7,17 +7,16 @@
  import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
  import java.util.List;
  import java.util.OptionalInt;
-@@ -137,6 +_,13 @@
-             }
+@@ -156,6 +_,12 @@
+                     handHoldingItemAngle = Vec3.ZERO;
+                 }
  
-             if (this.attachedToEntity != null) {
 +                // ShreddedPaper start - remove firework rocket if entity teleported away
-+                if (!TickThread.isTickThreadFor(this.attachedToEntity)) {
++                if (!TickThread.isTickThreadFor((ServerLevel) this.level(), new Vec3(this.attachedToEntity.getX() + handHoldingItemAngle.x, this.attachedToEntity.getY() + handHoldingItemAngle.y, this.attachedToEntity.getZ() + handHoldingItemAngle.z))) {
 +                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD); // ShreddedPaper - add Bukkit remove cause
 +                    return;
 +                }
 +                // ShreddedPaper end - remove firework rocket if entity teleported away
-+
-                 Vec3 handHoldingItemAngle;
-                 if (this.attachedToEntity.isFallFlying()) {
-                     Vec3 lookAngle = this.attachedToEntity.getLookAngle();
+                 this.setPos(
+                     this.attachedToEntity.getX() + handHoldingItemAngle.x,
+                     this.attachedToEntity.getY() + handHoldingItemAngle.y,

@@ -40,7 +40,7 @@
                      return null;
                  } else {
 -                    if (!this.level.isClientSide() && (flags & Block.UPDATE_SKIP_ON_PLACE) == 0 && (!this.level.captureBlockStates || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled.
-+                    if (!this.level.isClientSide() && (flags & Block.UPDATE_SKIP_ON_PLACE) == 0 && (!this.level.captureBlockStatesThreadLocal.get() || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled. // ShreddedPaper - use thread local
++                    if (!this.level.isClientSide() && (flags & Block.UPDATE_SKIP_ON_PLACE) == 0 && (!this.level.captureBlockStates.get() || block instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // CraftBukkit - Don't place while processing the BlockPlaceEvent, unless it's a BlockContainer. Prevents blocks such as TNT from activating when cancelled. // ShreddedPaper - thread local
                          state.onPlace(this.level, pos, blockState, flag1);
                      }
  
@@ -49,7 +49,7 @@
      public @Nullable BlockEntity getBlockEntity(BlockPos pos, LevelChunk.EntityCreationType creationType) {
          // CraftBukkit start
 -        BlockEntity blockEntity = this.level.capturedTileEntities.get(pos);
-+        BlockEntity blockEntity = this.level.capturedTileEntitiesThreadLocal.get().get(pos); // ShreddedPaper - use thread local
++        BlockEntity blockEntity = this.level.capturedTileEntities.get().get(pos); // ShreddedPaper - thread local
          if (blockEntity == null) {
              blockEntity = this.blockEntities.get(pos);
          }

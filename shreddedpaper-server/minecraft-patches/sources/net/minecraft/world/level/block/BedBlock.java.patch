@@ -5,7 +5,7 @@
              level.setBlock(blockPos, state.setValue(PART, BedPart.HEAD), Block.UPDATE_ALL);
              // CraftBukkit start - SPIGOT-7315: Don't updated if we capture block states
 -            if (level.captureBlockStates) {
-+            if (level.captureBlockStatesThreadLocal.get()) { // ShreddedPaper - use thread local
++            if (level.captureBlockStates.get()) { // ShreddedPaper - thread local
                  return;
              }
              // CraftBukkit end
