@@ -8,6 +8,15 @@
  import org.bukkit.Server;
  import org.bukkit.Warning;
  import org.bukkit.event.Event;
+@@ -38,7 +_,7 @@
+     public void callEvent(@NotNull Event event) {
+         if (event.isAsynchronous() && this.server.isPrimaryThread()) {
+             throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
+-        } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
++        } else if (!event.isAsynchronous() && this.server != null && !this.server.isPrimaryThread() && !this.server.isStopping()) {
+             throw new IllegalStateException(event.getEventName() + " may only be triggered synchronously.");
+         }
+ 
 @@ -51,7 +_,15 @@
              }
  
