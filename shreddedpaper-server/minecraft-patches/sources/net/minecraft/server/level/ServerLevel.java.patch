@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,10 +_,16 @@
+@@ -1,10 +_,18 @@
  package net.minecraft.server.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
@@ -10,10 +10,12 @@
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
 +import io.multipaper.shreddedpaper.region.LevelChunkRegion;
 +import io.multipaper.shreddedpaper.region.LevelTicksRegionProxy;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
++import io.multipaper.shreddedpaper.util.NoOpServerWaypointManager;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.longs.LongSet;
@@ -259,6 +261,15 @@
      // Paper end - chunk tick iteration
  
      public ServerLevel(
+@@ -711,7 +_,7 @@
+         this.sleepStatus = new SleepStatus();
+         this.gameEventDispatcher = new GameEventDispatcher(this);
+         this.randomSequences = Objects.requireNonNullElseGet(randomSequences, () -> this.getDataStorage().computeIfAbsent(RandomSequences.TYPE));
+-        this.waypointManager = new ServerWaypointManager();
++        this.waypointManager = ShreddedPaperConfiguration.get().optimizations.disableLocatorBar ? new NoOpServerWaypointManager() : new ServerWaypointManager(); // ShreddedPaper - Optimise ServerWaypointManager
+         this.environmentAttributes = EnvironmentAttributeSystem.builder().addDefaultLayers(this).build();
+         this.updateSkyBrightness();
+         // Paper start - rewrite chunk system
 @@ -767,9 +_,9 @@
          return this.environmentAttributes;
      }

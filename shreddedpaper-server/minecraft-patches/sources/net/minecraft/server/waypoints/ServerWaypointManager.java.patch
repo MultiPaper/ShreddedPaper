@@ -1,0 +1,78 @@
+--- a/net/minecraft/server/waypoints/ServerWaypointManager.java
++++ b/net/minecraft/server/waypoints/ServerWaypointManager.java
+@@ -21,7 +_,7 @@
+     private final Table<ServerPlayer, WaypointTransmitter, WaypointTransmitter.Connection> connections = HashBasedTable.create();
+ 
+     @Override
+-    public void trackWaypoint(WaypointTransmitter waypoint) {
++    public synchronized void trackWaypoint(WaypointTransmitter waypoint) { // ShreddedPaper - synchronized
+         this.waypoints.add(waypoint);
+ 
+         for (ServerPlayer serverPlayer : this.players) {
+@@ -30,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void updateWaypoint(WaypointTransmitter waypoint) {
++    public synchronized void updateWaypoint(WaypointTransmitter waypoint) { // ShreddedPaper - synchronized
+         if (this.waypoints.contains(waypoint)) {
+             Map<ServerPlayer, WaypointTransmitter.Connection> map = Tables.transpose(this.connections).row(waypoint);
+             SetView<ServerPlayer> set = Sets.difference(this.players, map.keySet());
+@@ -46,13 +_,13 @@
+     }
+ 
+     @Override
+-    public void untrackWaypoint(WaypointTransmitter waypoint) {
++    public synchronized void untrackWaypoint(WaypointTransmitter waypoint) { // ShreddedPaper - synchronized
+         this.connections.column(waypoint).forEach((serverPlayer, connection) -> connection.disconnect());
+         Tables.transpose(this.connections).row(waypoint).clear();
+         this.waypoints.remove(waypoint);
+     }
+ 
+-    public void addPlayer(ServerPlayer player) {
++    public synchronized void addPlayer(ServerPlayer player) { // ShreddedPaper - synchronized
+         this.players.add(player);
+ 
+         for (WaypointTransmitter waypointTransmitter : this.waypoints) {
+@@ -64,7 +_,7 @@
+         }
+     }
+ 
+-    public void updatePlayer(ServerPlayer player) {
++    public synchronized void updatePlayer(ServerPlayer player) { // ShreddedPaper - synchronized
+         Map<WaypointTransmitter, WaypointTransmitter.Connection> map = this.connections.row(player);
+         SetView<WaypointTransmitter> set = Sets.difference(this.waypoints, map.keySet());
+ 
+@@ -77,7 +_,7 @@
+         }
+     }
+ 
+-    public void removePlayer(ServerPlayer player) {
++    public synchronized void removePlayer(ServerPlayer player) { // ShreddedPaper - synchronized
+         this.connections.row(player).values().removeIf(connection -> {
+             connection.disconnect();
+             return true;
+@@ -86,19 +_,19 @@
+         this.players.remove(player);
+     }
+ 
+-    public void breakAllConnections() {
++    public synchronized void breakAllConnections() { // ShreddedPaper - synchronized
+         this.connections.values().forEach(WaypointTransmitter.Connection::disconnect);
+         this.connections.clear();
+     }
+ 
+-    public void remakeConnections(WaypointTransmitter waypoint) {
++    public synchronized void remakeConnections(WaypointTransmitter waypoint) { // ShreddedPaper - synchronized
+         for (ServerPlayer serverPlayer : this.players) {
+             this.createConnection(serverPlayer, waypoint);
+         }
+     }
+ 
+-    public Set<WaypointTransmitter> transmitters() {
+-        return this.waypoints;
++    public synchronized Set<WaypointTransmitter> transmitters() { // ShreddedPaper - synchronized
++        return Set.copyOf(this.waypoints); // ShreddedPaper - synchronized - make a copy
+     }
+ 
+     private static boolean isLocatorBarEnabledFor(ServerPlayer player) {
