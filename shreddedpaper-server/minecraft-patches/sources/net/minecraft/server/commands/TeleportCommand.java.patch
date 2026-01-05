@@ -21,7 +21,7 @@
              float f1 = relatives.contains(Relative.X_ROT) ? xRot - target.getXRot() : xRot;
              float f2 = Mth.wrapDegrees(f);
              float f3 = Mth.wrapDegrees(f1);
-+            ShreddedPaper.ensureSync(target, level, new ChunkPos(new BlockPos((int) d, (int) d1, (int) d2)), () -> { // ShreddedPaper - run on correct thread
++            ShreddedPaper.ensureSync(target, level, new ChunkPos(new BlockPos((int) x, (int) y, (int) z)), () -> { // ShreddedPaper - run on correct thread
              if (target.teleportTo(level, d, d1, d2, relatives, f2, f3, true, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.COMMAND)) { // Paper - teleport cause
                  if (lookAt != null) {
                      lookAt.perform(source, target);
