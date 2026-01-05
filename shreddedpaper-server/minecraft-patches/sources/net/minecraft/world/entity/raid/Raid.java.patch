@@ -1,0 +1,27 @@
+--- a/net/minecraft/world/entity/raid/Raid.java
++++ b/net/minecraft/world/entity/raid/Raid.java
+@@ -15,6 +_,7 @@
+ import java.util.UUID;
+ import java.util.function.Predicate;
+ import java.util.stream.Stream;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+@@ -418,12 +_,15 @@
+                         for (UUID uuid : this.heroesOfTheVillage) {
+                             Entity entity = level.getEntity(uuid);
+                             if (entity instanceof LivingEntity livingEntity && !entity.isSpectator()) {
++                                ShreddedPaper.ensureSync(livingEntity, () -> { // ShreddedPaper - run on right thread
+                                 livingEntity.addEffect(new MobEffectInstance(MobEffects.HERO_OF_THE_VILLAGE, 48000, this.raidOmenLevel - 1, false, false, true));
+                                 if (livingEntity instanceof ServerPlayer serverPlayer) {
+                                     serverPlayer.awardStat(Stats.RAID_WIN);
+                                     CriteriaTriggers.RAID_WIN.trigger(serverPlayer);
+-                                    winners.add(serverPlayer.getBukkitEntity()); // CraftBukkit
++                                    // winners.add(serverPlayer.getBukkitEntity()); // CraftBukkit // ShreddedPaper - don't run on right thread
+                                 }
++                                }); // ShreddedPaper - run on right thread
++                                if (livingEntity instanceof ServerPlayer serverPlayer) winners.add(serverPlayer.getBukkitEntity()); // ShreddedPaper - this doesn't need to be run on right thread
+                             }
+                         }
+                         org.bukkit.craftbukkit.event.CraftEventFactory.callRaidFinishEvent(level, this, winners); // CraftBukkit

@@ -1,0 +1,30 @@
+--- a/net/minecraft/world/entity/raid/Raids.java
++++ b/net/minecraft/world/entity/raid/Raids.java
+@@ -2,6 +_,7 @@
+ 
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
+@@ -98,16 +_,18 @@
+ 
+         while (iterator.hasNext()) {
+             Raid raid = iterator.next();
++            ShreddedPaper.runSync(level, raid.getCenter(), () -> { // ShreddedPaper - run on right thread
+             if (!level.getGameRules().get(GameRules.RAIDS)) {
+                 raid.stop();
+             }
+ 
+             if (raid.isStopped()) {
+-                iterator.remove();
++                this.raidMap.remove(raid.idOrNegativeOne, raid); // iterator.remove(); // ShreddedPaper - run on right thread
+                 this.setDirty();
+             } else {
+                 raid.tick(level);
+             }
++            }); // ShreddedPaper - run on right thread
+         }
+ 
+         if (this.tick % 200 == 0) {
