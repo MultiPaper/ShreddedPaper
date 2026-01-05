@@ -44,6 +44,13 @@ optimizations:
   # will break plugins using this api.
   disable-vanish-api: false
   
+  # Disable the locator bar and Minecraft's waypoint system. This is horribly
+  # inefficient at large player counts, set to 'true' to increase performance.
+  # Warning: Doing `/gamerule locator_bar false` does NOT increase performance.
+  # The locator bar must be disabled internally in this config to have an
+  # impact on performance.
+  disable-locator-bar: true
+  
   # Don't wake up the event loop thread when not flushing packets. Set to
   # 'true' to increase performance. 
   use-lazy-execute-when-not-flushing: true
