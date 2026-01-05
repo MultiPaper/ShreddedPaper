@@ -1,0 +1,53 @@
+--- a/net/minecraft/world/level/storage/PlayerDataStorage.java
++++ b/net/minecraft/world/level/storage/PlayerDataStorage.java
+@@ -2,12 +_,16 @@
+ 
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
++import ca.spottedleaf.moonrise.common.util.TickThread;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
+ import java.io.File;
++import java.io.IOException;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+ import java.nio.file.StandardCopyOption;
+ import java.time.ZonedDateTime;
+ import java.util.Optional;
++import java.util.concurrent.Executor;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.NbtAccounter;
+ import net.minecraft.nbt.NbtIo;
+@@ -23,6 +_,7 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final File playerDir;
+     protected final DataFixer fixerUpper;
++    private static final Executor IO_WORKER = Util.ioPool(); // ShreddedPaper
+ 
+     public PlayerDataStorage(LevelStorageSource.LevelStorageAccess levelStorageAccess, DataFixer fixerUpper) {
+         this.fixerUpper = fixerUpper;
+@@ -35,13 +_,19 @@
+         try (ProblemReporter.ScopedCollector scopedCollector = new ProblemReporter.ScopedCollector(player.problemPath(), LOGGER)) {
+             TagValueOutput tagValueOutput = TagValueOutput.createWithContext(scopedCollector, player.registryAccess());
+             player.saveWithoutId(tagValueOutput);
+-            Path path = this.playerDir.toPath();
+-            Path path1 = Files.createTempFile(path, player.getStringUUID() + "-", ".dat");
+             CompoundTag compoundTag = tagValueOutput.buildResult();
+-            NbtIo.writeCompressed(compoundTag, path1);
+-            Path path2 = path.resolve(player.getStringUUID() + ".dat");
+-            Path path3 = path.resolve(player.getStringUUID() + ".dat_old");
+-            Util.safeReplaceFile(path2, path1, path3);
++            // ShreddedPaper start - write async
++            Path path = this.playerDir.toPath();
++            String playerUUID = player.getStringUUID();
++            Runnable r = () -> { try {
++                Path path1 = Files.createTempFile(path, playerUUID + "-", ".dat");
++                NbtIo.writeCompressed(compoundTag, path1);
++                Path path2 = path.resolve(playerUUID + ".dat");
++                Path path3 = path.resolve(playerUUID + ".dat_old");
++                Util.safeReplaceFile(path2, path1, path3);
++            } catch (IOException e) { throw new RuntimeException(e); }};
++            if (ShreddedPaperConfiguration.get().optimizations.writePlayerSavesAsync && !TickThread.isShutdownThread()) IO_WORKER.execute(r); else r.run();
++            // ShreddedPaper end - write async
+         } catch (Exception var11) {
+             LOGGER.warn("Failed to save player data for {}", player.getPlainTextName(), var11); // Paper - Print exception
+         }
