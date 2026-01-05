@@ -66,3 +66,11 @@
      }
  
      public void sendActivePlayerEffects(ServerPlayer player) {
+@@ -961,6 +_,7 @@
+     }
+ 
+     public void broadcast(@Nullable Player except, double x, double y, double z, double radius, ResourceKey<Level> dimension, Packet<?> packet) {
++        if (except != null) new io.multipaper.shreddedpaper.event.BroadcastPacketEvent(this.getServer().getLevel(dimension).getWorld(), packet, except.getBukkitEntity()).callEvent(); // ShreddedPaper - BroadcastPacketEvent
+         for (int i = 0; i < this.players.size(); i++) {
+             ServerPlayer serverPlayer = this.players.get(i);
+             // CraftBukkit start - Test if player receiving packet can see the source of the packet

@@ -475,7 +475,7 @@
          @Override
          public boolean equals(Object other) {
              return other instanceof ChunkMap.TrackedEntity && ((ChunkMap.TrackedEntity)other).entity.getId() == this.entity.getId();
-@@ -1316,9 +_,14 @@
+@@ -1316,9 +_,16 @@
  
          @Override
          public void sendToTrackingPlayers(Packet<? super ClientGamePacketListener> packet) {
@@ -487,6 +487,8 @@
              }
 +            } finally { this.seenByLock.unlock(); }
 +            // ShreddedPaper end - thread safety for seenBy
++
++            new io.multipaper.shreddedpaper.event.BroadcastPacketEvent(ChunkMap.this.level.getWorld(), packet, this.entity.getBukkitEntity()).callEvent(); // ShreddedPaper - BroadcastPacketEvent
          }
  
          @Override

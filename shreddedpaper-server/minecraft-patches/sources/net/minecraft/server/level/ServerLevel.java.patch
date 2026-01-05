@@ -453,6 +453,26 @@
                  return true;
              }
              // Paper end - capture all item additions to the world
+@@ -1797,7 +_,9 @@
+                 .callEvent();
+         }
+         // Paper end - Add BlockBreakProgressUpdateEvent
+-        for (ServerPlayer serverPlayer : this.server.getPlayerList().getPlayers()) {
++        ClientboundBlockDestructionPacket packet = new ClientboundBlockDestructionPacket(breakerId, pos, progress); // ShreddedPaper - BroadcastPacketEvent - move packet creation out of loop
++        new io.multipaper.shreddedpaper.event.BroadcastPacketEvent(this.getWorld(), packet, entity == null ? null : entity.getBukkitEntity()).callEvent(); // ShreddedPaper - BroadcastPacketEvent
++        for (ServerPlayer serverPlayer : this.players) { // ShreddedPaper - BroadcastPacketEvent - optimization: use the level's players instead of all players
+             if (serverPlayer.level() == this && serverPlayer.getId() != breakerId) {
+                 double d = pos.getX() - serverPlayer.getX();
+                 double d1 = pos.getY() - serverPlayer.getY();
+@@ -1808,7 +_,7 @@
+                 }
+                 // CraftBukkit end
+                 if (d * d + d1 * d1 + d2 * d2 < 1024.0) {
+-                    serverPlayer.connection.send(new ClientboundBlockDestructionPacket(breakerId, pos, progress));
++                    serverPlayer.connection.send(packet); // ShreddedPaper - BroadcastPacketEvent - move packet creation out of loop
+                 }
+             }
+         }
 @@ -1903,7 +_,7 @@
  
      @Override
