@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,10 +_,18 @@
+@@ -1,10 +_,16 @@
  package net.minecraft.server.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
@@ -10,12 +10,10 @@
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
-+import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
 +import io.multipaper.shreddedpaper.region.LevelChunkRegion;
 +import io.multipaper.shreddedpaper.region.LevelTicksRegionProxy;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
-+import io.multipaper.shreddedpaper.util.NoOpServerWaypointManager;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.longs.LongSet;
@@ -73,6 +71,15 @@
      final LevelDebugSynchronizers debugSynchronizers = new LevelDebugSynchronizers(this);
  
      // CraftBukkit start
+@@ -229,7 +_,7 @@
+     public final net.minecraft.server.level.progress.LevelLoadListener levelLoadListener;
+     public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
+     public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
+-    private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
++    private final ThreadLocal<alternate.current.wire.WireHandler> wireHandler = ThreadLocal.withInitial(() -> new alternate.current.wire.WireHandler(this)); // Paper - optimize redstone (Alternate Current) // ShreddedPaper - ThreadLocal
+     public boolean hasRidableMoveEvent = false; // Purpur - Ridables
+ 
+     @Override
 @@ -316,9 +_,9 @@
      private long tickedBlocksOrFluids;
      private final ca.spottedleaf.moonrise.common.misc.NearbyPlayers nearbyPlayers = new ca.spottedleaf.moonrise.common.misc.NearbyPlayers((ServerLevel)(Object)this);
@@ -261,15 +268,6 @@
      // Paper end - chunk tick iteration
  
      public ServerLevel(
-@@ -711,7 +_,7 @@
-         this.sleepStatus = new SleepStatus();
-         this.gameEventDispatcher = new GameEventDispatcher(this);
-         this.randomSequences = Objects.requireNonNullElseGet(randomSequences, () -> this.getDataStorage().computeIfAbsent(RandomSequences.TYPE));
--        this.waypointManager = new ServerWaypointManager();
-+        this.waypointManager = ShreddedPaperConfiguration.get().optimizations.disableLocatorBar ? new NoOpServerWaypointManager() : new ServerWaypointManager(); // ShreddedPaper - Optimise ServerWaypointManager
-         this.environmentAttributes = EnvironmentAttributeSystem.builder().addDefaultLayers(this).build();
-         this.updateSkyBrightness();
-         // Paper start - rewrite chunk system
 @@ -767,9 +_,9 @@
          return this.environmentAttributes;
      }
@@ -450,8 +448,8 @@
              // Paper start - capture all item additions to the world
 -            if (captureDrops != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) {
 -                captureDrops.add((net.minecraft.world.entity.item.ItemEntity) entity);
-+            if (captureDropsThreadLocal.get() != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) { // ShreddedPaper - use thread local
-+                captureDropsThreadLocal.get().add((net.minecraft.world.entity.item.ItemEntity) entity); // ShreddedPaper - use thread local
++            if (captureDrops.get() != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) { // ShreddedPaper - thread local
++                captureDrops.get().add((net.minecraft.world.entity.item.ItemEntity) entity); // ShreddedPaper - thread local
                  return true;
              }
              // Paper end - capture all item additions to the world
@@ -499,14 +497,14 @@
          }
          // CraftBukkit end
 -        if (captureBlockStates) { return; } // Paper - Cancel all physics during placement
-+        if (captureBlockStatesThreadLocal.get()) { return; } // Paper - Cancel all physics during placement // ShreddedPaper - use thread local
++        if (captureBlockStates.get()) { return; } // Paper - Cancel all physics during placement // ShreddedPaper - thread local
          this.updateNeighborsAt(pos, block, ExperimentalRedstoneUtils.initialOrientation(this, null, null));
      }
  
      @Override
      public void updateNeighborsAt(BlockPos pos, Block block, @Nullable Orientation orientation) {
 -        if (captureBlockStates) { return; } // Paper - Cancel all physics during placement
-+        if (captureBlockStatesThreadLocal.get()) { return; } // Paper - Cancel all physics during placement // ShreddedPaper - use thread local
++        if (captureBlockStates.get()) { return; } // Paper - Cancel all physics during placement // ShreddedPaper - thread local
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, block, null, orientation);
      }
  
@@ -639,6 +637,15 @@
 +        // org.spigotmc.AsyncCatcher.catchOp("Chunk getEntities call"); // Spigot // ShreddedPaper - thread safe now
          return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
      }
+ 
+@@ -2816,7 +_,7 @@
+     // Paper start - optimize redstone (Alternate Current)
+     @Override
+     public alternate.current.wire.WireHandler getWireHandler() {
+-        return wireHandler;
++        return wireHandler.get(); // ShreddedPaper - ThreadLocal
+     }
+     // Paper end - optimize redstone (Alternate Current)
  
 @@ -2857,12 +_,12 @@
          @Override

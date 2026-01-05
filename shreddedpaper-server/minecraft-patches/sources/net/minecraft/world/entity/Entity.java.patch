@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1,11 +_,14 @@
+@@ -1,11 +_,13 @@
  package net.minecraft.world.entity;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
@@ -11,7 +11,6 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
-+import io.multipaper.shreddedpaper.region.RegionPos;
  import it.unimi.dsi.fastutil.floats.FloatArraySet;
  import it.unimi.dsi.fastutil.floats.FloatArrays;
  import it.unimi.dsi.fastutil.floats.FloatSet;
@@ -40,14 +39,6 @@
      public float maxUpStep; // Purpur - Add option to set armorstand step height
      public boolean noPhysics;
      public final RandomSource random; // Paper - Share random for entities to make them more random // Add toggle for RNG manipulation
-@@ -376,6 +_,7 @@
-     public boolean isTemporarilyActive;
-     public long activatedImmunityTick = Integer.MIN_VALUE;
-     public @Nullable Boolean immuneToFire = null; // Purpur - Fire immune API
-+    public StringBuilder SHREDDEDPAPER_DEBUG = new StringBuilder(); // ShreddedPaper - TODO REMOVE
- 
-     public void inactiveTick() {
-     }
 @@ -708,7 +_,7 @@
      public void resendPossiblyDesyncedEntityData(net.minecraft.server.level.ServerPlayer player) {
          if (player.getBukkitEntity().canSee(this.getBukkitEntity())) {
@@ -72,14 +63,16 @@
          this.setPosRaw(x, y, z, true); // Paper - Block invalid positions and bounding box; force update
          // this.setBoundingBox(this.makeBoundingBox()); // Paper - Block invalid positions and bounding box; move into setPosRaw
      }
-@@ -1147,7 +_,9 @@
+@@ -1147,7 +_,11 @@
      public void move(MoverType type, Vec3 movement) {
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
 -        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
 +        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot move an entity off-main"); // ShreddedPaper
-+        BlockPos newPos = new BlockPos((int) (this.getX() + movement.x), (int) (this.getY() + movement.y), (int) (this.getZ() + movement.z)); // ShreddedPaper - check destination region
-+        TickThread.ensureTickThread((ServerLevel) this.level, newPos, "Cannot move an entity into off-main"); // ShreddedPaper - check destination region
++        // ShreddedPaper start - check destination region
++        net.minecraft.core.BlockPos newPos = new net.minecraft.core.BlockPos((int) (this.getX() + movement.x), (int) (this.getY() + movement.y), (int) (this.getZ() + movement.z));
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((net.minecraft.server.level.ServerLevel) this.level, newPos, "Cannot move an entity into off-main");
++        // ShreddedPaper end - check destination region
          synchronized (this.posLock) {
              this.moveStartX = this.getX();
              this.moveStartY = this.getY();
@@ -92,6 +85,21 @@
              BlockPos blockPos = this.mainSupportingBlockPos.get();
              if (!(yOffset > 1.0E-5F)) {
                  return blockPos;
+@@ -2376,7 +_,13 @@
+                 }
+                 delta = event.getKnockback();
+             }
+-            this.setDeltaMovement(this.getDeltaMovement().add(delta.getX(), delta.getY(), delta.getZ()));
++            // ShreddedPaper start - limit push velocity
++            Vec3 newDelta = this.getDeltaMovement().add(delta.getX(), delta.getY(), delta.getZ());
++            if (newDelta.lengthSqr() > io.multipaper.shreddedpaper.region.RegionPos.MAX_DISTANCE_SQR) {
++                newDelta = newDelta.normalize().scale(io.multipaper.shreddedpaper.region.RegionPos.REGION_SIZE * 16);
++            }
++            this.setDeltaMovement(newDelta);
++            // ShreddedPaper end - limit push velocity
+             // Paper end - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+             this.needsSync = true;
+         }
 @@ -3546,7 +_,9 @@
          }
      }
@@ -135,16 +143,15 @@
              // Paper start - gateway-specific teleport event
              final org.bukkit.event.entity.EntityTeleportEvent teleEvent;
              if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) Blocks.END_GATEWAY)) && this.level.getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
-@@ -4996,6 +_,12 @@
+@@ -4995,6 +_,11 @@
+     }
  
      public void setDeltaMovement(Vec3 deltaMovement) {
++        // ShreddedPaper start - why is something setting the entity velocity to larger than one region...
++        if (deltaMovement.horizontalDistanceSqr() > io.multipaper.shreddedpaper.region.RegionPos.MAX_DISTANCE_SQR + 1 && deltaMovement.horizontalDistanceSqr() > this.deltaMovement.horizontalDistanceSqr()) {
++            LOGGER.warn("Velocity is being set larger than the ShreddedPaper region size: {} for entity {}", deltaMovement, this, new Exception("Velocity larger than region size"));
++        }
++        // ShreddedPaper end - why is something setting the entity velocity to larger than one region...
          if (deltaMovement.isFinite()) {
-+            // ShreddedPaper start - why is something setting the entity velocity to larger than one region...
-+            if (deltaMovement.horizontalDistanceSqr() > RegionPos.MAX_DISTANCE_SQR + 1 && deltaMovement.horizontalDistanceSqr() > this.deltaMovement.horizontalDistanceSqr()) {
-+                LOGGER.warn("Velocity is being set larger than the ShreddedPaper region size: {} for entity {}", deltaMovement, this, new Exception("Velocity larger than region size, limiting velocity to region size"));
-+                deltaMovement = deltaMovement.normalize().scale(RegionPos.MAX_DISTANCE_SQR);
-+            }
-+            // ShreddedPaper end - why is something setting the entity velocity to larger than one region...
              synchronized (this.posLock) { // Paper - detailed watchdog information
              this.deltaMovement = deltaMovement;
-             } // Paper - detailed watchdog information

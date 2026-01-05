@@ -42,7 +42,6 @@ public class ShreddedPaperConfiguration extends ConfigurationPart {
 
         public int entityActivationCheckFrequency = 20;
         public boolean disableVanishApi = false;
-        public boolean disableLocatorBar = true;
         public boolean useLazyExecuteWhenNotFlushing = true;
         public boolean processTrackQueueInParallel = true;
         public boolean flushQueueInParallel = true;

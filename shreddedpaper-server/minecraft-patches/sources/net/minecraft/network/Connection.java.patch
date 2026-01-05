@@ -10,6 +10,14 @@
  import io.netty.bootstrap.Bootstrap;
  import io.netty.channel.Channel;
  import io.netty.channel.ChannelException;
+@@ -21,6 +_,7 @@
+ import io.netty.channel.local.LocalServerChannel;
+ import io.netty.handler.flow.FlowControlHandler;
+ import io.netty.handler.timeout.ReadTimeoutHandler;
++import io.netty.util.concurrent.AbstractEventExecutor;
+ import io.netty.handler.timeout.TimeoutException;
+ import java.net.InetSocketAddress;
+ import java.net.SocketAddress;
 @@ -45,8 +_,10 @@
  import net.minecraft.network.protocol.login.LoginProtocols;
  import net.minecraft.network.protocol.status.ClientStatusPacketListener;
@@ -38,6 +46,21 @@
          if (!connected && !this.preparing) {
              return;
          }
+@@ -448,6 +_,14 @@
+         if (this.channel.eventLoop().inEventLoop()) {
+             this.doSendPacket(packet, sendListener, flush);
+         } else {
++            // ShreddedPaper start - Use lazyExecute if we aren't flushing
++            if (ShreddedPaperConfiguration.get().optimizations.useLazyExecuteWhenNotFlushing && !flush) {
++                ((AbstractEventExecutor) this.channel.eventLoop()).lazyExecute(() -> {
++                    this.doSendPacket(packet, sendListener, flush);
++                });
++                return;
++            }
++            // ShreddedPaper end - Use lazyExecute if we aren't flushing
+             this.channel.eventLoop().execute(() -> this.doSendPacket(packet, sendListener, flush));
+         }
+     }
 @@ -500,7 +_,7 @@
      }
  
