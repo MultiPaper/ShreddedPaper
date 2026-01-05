@@ -18,6 +18,14 @@
  import net.minecraft.network.protocol.game.ClientboundOpenSignEditorPacket;
  import net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket;
  import net.minecraft.network.protocol.game.ClientboundPlayerCombatEndPacket;
+@@ -247,6 +_,7 @@
+     private @Nullable Entity camera;
+     public boolean isChangingDimension;
+     public boolean seenCredits = false;
++    public boolean hasMaximumTrackerBypassPermission; // ShreddedPaper
+     private final ServerRecipeBook recipeBook;
+     private @Nullable Vec3 levitationStartPos;
+     private int levitationStartTime;
 @@ -259,6 +_,7 @@
      private @Nullable Vec3 enteredLavaOnVehiclePosition;
      private SectionPos lastSectionPos = SectionPos.of(0, 0, 0);
