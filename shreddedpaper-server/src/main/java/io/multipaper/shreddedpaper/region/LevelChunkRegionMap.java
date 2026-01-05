@@ -71,9 +71,7 @@ public class LevelChunkRegionMap {
     }
 
     public void addTickingEntity(Entity entity) {
-        entity.SHREDDEDPAPER_DEBUG.append(System.currentTimeMillis() + ": " + Thread.currentThread().getName() + ": addTickingEntity " + entity + " previousTickingChunkPosRegion=" + entity.previousTickingChunkPosRegion + "\n");
         if (entity.previousTickingChunkPosRegion != null) {
-            LOGGER.error(entity.SHREDDEDPAPER_DEBUG.toString());
             throw new IllegalStateException("Entity has already been added to a ticking list " + entity);
         }
 
@@ -82,9 +80,7 @@ public class LevelChunkRegionMap {
     }
 
     public void removeTickingEntity(Entity entity) {
-        entity.SHREDDEDPAPER_DEBUG.append(System.currentTimeMillis() + ": " + Thread.currentThread().getName() + ": removeTickingEntity " + entity + " previousTickingChunkPosRegion=" + entity.previousTickingChunkPosRegion + "\n");
         if (entity.previousTickingChunkPosRegion == null) {
-            LOGGER.error(entity.SHREDDEDPAPER_DEBUG.toString());
             throw new IllegalStateException("Entity has not been added to a ticking list " + entity);
         }
 
@@ -93,7 +89,6 @@ public class LevelChunkRegionMap {
     }
 
     public void moveTickingEntity(Entity entity) {
-        entity.SHREDDEDPAPER_DEBUG.append(System.currentTimeMillis() + ": " + Thread.currentThread().getName() + ": moveTickingEntity " + entity + " previousTickingChunkPosRegion=" + entity.previousTickingChunkPosRegion + "\n");
         if (entity.previousTickingChunkPosRegion == null) {
             // Not ticking, ignore
             return;
