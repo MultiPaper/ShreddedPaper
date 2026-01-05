@@ -45,6 +45,15 @@
          this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
          this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
  
+@@ -1193,6 +_,8 @@
+         Preconditions.checkState(this.console.getAllLevels().iterator().hasNext(), "Cannot create additional worlds on STARTUP");
+         //Preconditions.checkState(!this.console.isIteratingOverLevels, "Cannot create a world while worlds are being ticked"); // Paper - Cat - Temp disable. We'll see how this goes.
+         Preconditions.checkArgument(creator != null, "WorldCreator cannot be null");
++        if (!ca.spottedleaf.moonrise.common.util.TickThread.isTickThread()) throw new IllegalStateException("Cannot load worlds async!!"); // ShreddedPaper
++        if (ShreddedPaperTickThread.isShreddedPaperTickThread()) throw new IllegalStateException("Must load worlds from the global scheduler!"); // ShreddedPaper
+ 
+         String name = creator.name();
+         ChunkGenerator chunkGenerator = creator.generator();
 @@ -2941,6 +_,7 @@
          if (!io.papermc.paper.configuration.GlobalConfiguration.get().misc.loadPermissionsYmlBeforePlugins) loadCustomPermissions();
          DefaultPermissions.registerCorePermissions();
