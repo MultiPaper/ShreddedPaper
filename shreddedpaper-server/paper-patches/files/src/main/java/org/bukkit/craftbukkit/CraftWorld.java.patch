@@ -47,6 +47,40 @@
          }
          ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
          if (chunk != null) {
+@@ -751,13 +_,15 @@
+ 
+     @Override
+     public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
+-        this.world.captureTreeGeneration = true;
+-        this.world.captureBlockStates = true;
++        this.world.captureTreeGenerationThreadLocal.set(true); // ShreddedPaper - use thread local
++        this.world.captureBlockStatesThreadLocal.set(true); // ShreddedPaper - use thread local
++        this.world.capturedTileEntitiesThreadLocal.get().clear(); // ShreddedPaper - use thread local - clear beforehand
++        this.world.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local - clear beforehand
+         boolean grownTree = this.generateTree(loc, type);
+-        this.world.captureBlockStates = false;
+-        this.world.captureTreeGeneration = false;
++        this.world.captureBlockStatesThreadLocal.set(false); // ShreddedPaper - use thread local
++        this.world.captureTreeGenerationThreadLocal.set(false); // ShreddedPaper - use thread local
+         if (grownTree) { // Copy block data to delegate
+-            for (BlockState blockstate : this.world.capturedBlockStates.values()) {
++            for (BlockState blockstate : this.world.capturedBlockStatesThreadLocal.get().values()) { // ShreddedPaper - use thread local
+                 BlockPos position = ((CraftBlockState) blockstate).getPosition();
+                 net.minecraft.world.level.block.state.BlockState oldBlock = this.world.getBlockState(position);
+                 int flags = ((CraftBlockState) blockstate).getFlags();
+@@ -765,10 +_,10 @@
+                 net.minecraft.world.level.block.state.BlockState newBlock = this.world.getBlockState(position);
+                 this.world.notifyAndUpdatePhysics(position, null, oldBlock, newBlock, newBlock, flags, net.minecraft.world.level.block.Block.UPDATE_LIMIT);
+             }
+-            this.world.capturedBlockStates.clear();
++            this.world.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local
+             return true;
+         } else {
+-            this.world.capturedBlockStates.clear();
++            this.world.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local
+             return false;
+         }
+     }
 @@ -1603,7 +_,7 @@
          if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
  

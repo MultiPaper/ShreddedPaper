@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/level/block/BedBlock.java
++++ b/net/minecraft/world/level/block/BedBlock.java
+@@ -336,7 +_,7 @@
+             BlockPos blockPos = pos.relative(state.getValue(FACING));
+             level.setBlock(blockPos, state.setValue(PART, BedPart.HEAD), Block.UPDATE_ALL);
+             // CraftBukkit start - SPIGOT-7315: Don't updated if we capture block states
+-            if (level.captureBlockStates) {
++            if (level.captureBlockStatesThreadLocal.get()) { // ShreddedPaper - use thread local
+                 return;
+             }
+             // CraftBukkit end
