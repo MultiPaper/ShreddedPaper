@@ -1,0 +1,19 @@
+--- a/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftChunk.java
+@@ -3,6 +_,8 @@
+ import com.google.common.base.Preconditions;
+ import com.google.common.base.Predicates;
+ import com.mojang.serialization.Codec;
++import ca.spottedleaf.moonrise.common.util.TickThread;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
+ import io.papermc.paper.FeatureHooks;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+@@ -74,6 +_,7 @@
+     }
+ 
+     public ChunkAccess getHandle(ChunkStatus chunkStatus) {
++        if (ShreddedPaperTickThread.isShreddedPaperTickThread() && !TickThread.isTickThreadFor(this.level, this.x, this.z)) throw new IllegalStateException("Cannot get chunk from a region that is not ours! world=" + this.level.serverLevelData.getLevelName() + ", chunkpos=[" + this.x + "," + this.z + "]"); // ShreddedPaper - regions
+         // Paper start - chunk system
+         net.minecraft.world.level.chunk.LevelChunk full = this.level.getChunkIfLoaded(this.x, this.z);
+         if (full != null) {
