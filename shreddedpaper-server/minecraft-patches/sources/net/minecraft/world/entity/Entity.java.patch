@@ -39,6 +39,14 @@
      public float maxUpStep; // Purpur - Add option to set armorstand step height
      public boolean noPhysics;
      public final RandomSource random; // Paper - Share random for entities to make them more random // Add toggle for RNG manipulation
+@@ -376,6 +_,7 @@
+     public boolean isTemporarilyActive;
+     public long activatedImmunityTick = Integer.MIN_VALUE;
+     public @Nullable Boolean immuneToFire = null; // Purpur - Fire immune API
++    public StringBuilder SHREDDEDPAPER_DEBUG = new StringBuilder(); // ShreddedPaper - TODO REMOVE
+ 
+     public void inactiveTick() {
+     }
 @@ -708,7 +_,7 @@
      public void resendPossiblyDesyncedEntityData(net.minecraft.server.level.ServerPlayer player) {
          if (player.getBukkitEntity().canSee(this.getBukkitEntity())) {
