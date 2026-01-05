@@ -8,14 +8,16 @@
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.longs.Long2ByteMap;
-@@ -36,6 +_,7 @@
+@@ -36,7 +_,9 @@
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.CompletionException;
  import java.util.concurrent.CompletionStage;
 +import java.util.concurrent.ConcurrentHashMap;
  import java.util.concurrent.Executor;
++import java.util.concurrent.locks.ReentrantLock;
  import java.util.concurrent.atomic.AtomicInteger;
  import java.util.function.BooleanSupplier;
+ import java.util.function.Consumer;
 @@ -139,7 +_,8 @@
      public final ChunkMap.DistanceManager distanceManager;
      private final String storageName;
@@ -311,7 +313,15 @@
              if (trackedEntity.seenBy.contains(player.connection)) {
                  action.accept(trackedEntity.entity);
              }
-@@ -1241,8 +_,10 @@
+@@ -1213,6 +_,7 @@
+         private final int range;
+         SectionPos lastSectionPos;
+         public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
++        public final ReentrantLock seenByLock = new ReentrantLock(); // ShreddedPaper - thread safety for seenBy
+ 
+         // Paper start - optimise entity tracker
+         private long lastChunkUpdate = -1L;
+@@ -1241,18 +_,25 @@
              final ServerPlayer[] playersRaw = players.getRawDataUnchecked();
  
              for (int i = 0, len = players.size(); i < len; ++i) {
@@ -322,3 +332,95 @@
              }
  
              if (lastChunkUpdate != currChunkUpdate || lastTrackedChunk != chunk) {
+                 // need to purge any players possible not in the chunk list
++                // ShreddedPaper start - thread safety for seenBy
++                this.seenByLock.lock();
++                try {
+                 for (final ServerPlayerConnection conn : new java.util.ArrayList<>(this.seenBy)) {
+                     final ServerPlayer player = conn.getPlayer();
+                     if (!players.contains(player)) {
+                         this.removePlayer(player);
+                     }
+                 }
++                } finally { this.seenByLock.unlock(); }
++                // ShreddedPaper end - thread safety for seenBy
+             }
+         }
+ 
+@@ -1316,9 +_,14 @@
+ 
+         @Override
+         public void sendToTrackingPlayers(Packet<? super ClientGamePacketListener> packet) {
++            // ShreddedPaper start - thread safety for seenBy
++            this.seenByLock.lock();
++            try {
+             for (ServerPlayerConnection serverPlayerConnection : this.seenBy) {
+                 serverPlayerConnection.send(packet);
+             }
++            } finally { this.seenByLock.unlock(); }
++            // ShreddedPaper end - thread safety for seenBy
+         }
+ 
+         @Override
+@@ -1331,27 +_,42 @@
+ 
+         @Override
+         public void sendToTrackingPlayersFiltered(Packet<? super ClientGamePacketListener> packet, Predicate<ServerPlayer> filter) {
++            // ShreddedPaper start - thread safety for seenBy
++            this.seenByLock.lock();
++            try {
+             for (ServerPlayerConnection serverPlayerConnection : this.seenBy) {
+                 if (filter.test(serverPlayerConnection.getPlayer())) {
+                     serverPlayerConnection.send(packet);
+                 }
+             }
++            } finally { this.seenByLock.unlock(); }
++            // ShreddedPaper end - thread safety for seenBy
+         }
+ 
+         public void broadcastRemoved() {
++            // ShreddedPaper start - thread safety for seenBy
++            this.seenByLock.lock();
++            try {
+             for (ServerPlayerConnection serverPlayerConnection : this.seenBy) {
+                 this.serverEntity.removePairing(serverPlayerConnection.getPlayer());
+             }
++            } finally { this.seenByLock.unlock(); }
++            // ShreddedPaper end - thread safety for seenBy
+         }
+ 
+         public void removePlayer(ServerPlayer player) {
+             org.spigotmc.AsyncCatcher.catchOp("player tracker clear"); // Spigot
++            // ShreddedPaper start - thread safety for seenBy
++            this.seenByLock.lock();
++            try {
+             if (this.seenBy.remove(player.connection)) {
+                 this.serverEntity.removePairing(player);
+                 if (this.seenBy.isEmpty()) {
+                     ChunkMap.this.level.debugSynchronizers().dropEntity(this.entity);
+                 }
+             }
++            } finally { this.seenByLock.unlock(); }
++            // ShreddedPaper end - thread safety for seenBy
+         }
+ 
+         public void updatePlayer(ServerPlayer player) {
+@@ -1383,6 +_,9 @@
+                 }
+                 // CraftBukkit end
+                 if (flag) {
++                    // ShreddedPaper start - thread safety for seenBy
++                    this.seenByLock.lock();
++                    try {
+                     if (this.seenBy.add(player.connection)) {
+                         // Paper start - entity tracking events
+                         if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(player.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
+@@ -1396,6 +_,8 @@
+                         // Paper end - entity tracking events
+                         this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
+                     }
++                    } finally { this.seenByLock.unlock(); }
++                    // ShreddedPaper end - thread safety for seenBy
+                 } else {
+                     this.removePlayer(player);
+                 }
