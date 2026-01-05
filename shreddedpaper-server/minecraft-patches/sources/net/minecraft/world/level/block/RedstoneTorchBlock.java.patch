@@ -1,0 +1,34 @@
+--- a/net/minecraft/world/level/block/RedstoneTorchBlock.java
++++ b/net/minecraft/world/level/block/RedstoneTorchBlock.java
+@@ -2,6 +_,7 @@
+ 
+ import com.google.common.collect.Lists;
+ import com.mojang.serialization.MapCodec;
++import io.multipaper.shreddedpaper.region.RegionPos;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.WeakHashMap;
+@@ -73,7 +_,7 @@
+     protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+         boolean hasNeighborSignal = this.hasNeighborSignal(level, pos, state);
+         // Paper start - Faster redstone torch rapid clock removal
+-        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> redstoneUpdateInfos = level.redstoneUpdateInfos;
++        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> redstoneUpdateInfos = level.chunkSource.tickingRegions.get(RegionPos.forBlockPos(pos)).redstoneUpdateInfos; // ShreddedPaper - move redstoneUpdateInfos to the region
+         if (redstoneUpdateInfos != null) {
+             RedstoneTorchBlock.Toggle curr;
+             while ((curr = redstoneUpdateInfos.peek()) != null && level.getGameTime() - curr.when > 60L) {
+@@ -154,10 +_,12 @@
+ 
+     private static boolean isToggledTooFrequently(Level level, BlockPos pos, boolean logToggle) {
+         // Paper start - Faster redstone torch rapid clock removal
+-        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> list = level.redstoneUpdateInfos;
++        // ShreddedPaper start - move redstoneUpdateInfos to the region
++        java.util.ArrayDeque<RedstoneTorchBlock.Toggle> list = ((ServerLevel) level).chunkSource.tickingRegions.get(RegionPos.forBlockPos(pos)).redstoneUpdateInfos;
+         if (list == null) {
+-            list = level.redstoneUpdateInfos = new java.util.ArrayDeque<>();
++            list = ((ServerLevel) level).chunkSource.tickingRegions.get(RegionPos.forBlockPos(pos)).redstoneUpdateInfos = new java.util.ArrayDeque<>();
+         }
++        // ShreddedPaper end - move redstoneUpdateInfos to the region
+         // Paper end - Faster redstone torch rapid clock removal
+         if (logToggle) {
+             list.add(new RedstoneTorchBlock.Toggle(pos.immutable(), level.getGameTime()));
