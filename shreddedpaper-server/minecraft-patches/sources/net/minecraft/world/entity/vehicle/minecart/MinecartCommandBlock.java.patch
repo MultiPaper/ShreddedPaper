@@ -1,0 +1,13 @@
+--- a/net/minecraft/world/entity/vehicle/minecart/MinecartCommandBlock.java
++++ b/net/minecraft/world/entity/vehicle/minecart/MinecartCommandBlock.java
+@@ -146,5 +_,10 @@
+             return (net.minecraft.server.level.ServerLevel) MinecartCommandBlock.this.level();
+         }
+         // CraftBukkit end
++
++        @Override
++        public net.minecraft.core.BlockPos getBlockPos() {
++            return MinecartCommandBlock.this.blockPosition();
++        } // ShreddedPaper
+     }
+ }
