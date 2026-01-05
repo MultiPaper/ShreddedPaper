@@ -215,14 +215,46 @@
              trackedEntity1.broadcastRemoved();
          }
          ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$setTrackedEntity(null); // Paper - optimise entity tracker
-@@ -1043,6 +_,7 @@
+@@ -1043,22 +_,25 @@
  
      // Paper start - optimise entity tracker
      private void newTrackerTick() {
 +        if (true) return; // ShreddedPaper - handle ourselves
          final ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup entityLookup = (ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup)((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getEntityLookup();;
  
-         final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = entityLookup.trackerEntities;
+-        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = entityLookup.trackerEntities;
+-        final Entity[] trackerEntitiesRaw = trackerEntities.getRawDataUnchecked();
+-        for (int i = 0, len = trackerEntities.size(); i < len; ++i) {
+-            final Entity entity = trackerEntitiesRaw[i];
+-            final ChunkMap.TrackedEntity tracker = ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$getTrackedEntity();
+-            if (tracker == null) {
+-                continue;
+-            }
+-            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
+-            if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
+-                || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
+-                tracker.serverEntity.sendChanges();
+-            }
+-        }
++        // ShreddedPaper start - remove trackerEntities, handled ourselves
++//        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = entityLookup.trackerEntities;
++//        final Entity[] trackerEntitiesRaw = trackerEntities.getRawDataUnchecked();
++//        for (int i = 0, len = trackerEntities.size(); i < len; ++i) {
++//            final Entity entity = trackerEntitiesRaw[i];
++//            final ChunkMap.TrackedEntity tracker = ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$getTrackedEntity();
++//            if (tracker == null) {
++//                continue;
++//            }
++//            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
++//            if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
++//                || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
++//                tracker.serverEntity.sendChanges();
++//            }
++//        }
++        // ShreddedPaper end - remove trackerEntities, handled ourselves
+     }
+     // Paper end - optimise entity tracker
+ 
 @@ -1074,7 +_,7 @@
          List<ServerPlayer> list = Lists.newArrayList();
          List<ServerPlayer> list1 = this.level.players();
