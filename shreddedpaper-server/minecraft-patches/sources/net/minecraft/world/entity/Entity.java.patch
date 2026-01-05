@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/Entity.java
 +++ b/net/minecraft/world/entity/Entity.java
-@@ -1,11 +_,13 @@
+@@ -1,11 +_,14 @@
  package net.minecraft.world.entity;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
@@ -11,6 +11,7 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.region.RegionPos;
  import it.unimi.dsi.fastutil.floats.FloatArraySet;
  import it.unimi.dsi.fastutil.floats.FloatArrays;
  import it.unimi.dsi.fastutil.floats.FloatSet;
@@ -71,12 +72,14 @@
          this.setPosRaw(x, y, z, true); // Paper - Block invalid positions and bounding box; force update
          // this.setBoundingBox(this.makeBoundingBox()); // Paper - Block invalid positions and bounding box; move into setPosRaw
      }
-@@ -1147,7 +_,7 @@
+@@ -1147,7 +_,9 @@
      public void move(MoverType type, Vec3 movement) {
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
 -        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
 +        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot move an entity off-main"); // ShreddedPaper
++        BlockPos newPos = new BlockPos((int) (this.getX() + movement.x), (int) (this.getY() + movement.y), (int) (this.getZ() + movement.z)); // ShreddedPaper - check destination region
++        TickThread.ensureTickThread((ServerLevel) this.level, newPos, "Cannot move an entity into off-main"); // ShreddedPaper - check destination region
          synchronized (this.posLock) {
              this.moveStartX = this.getX();
              this.moveStartY = this.getY();
@@ -132,3 +135,16 @@
              // Paper start - gateway-specific teleport event
              final org.bukkit.event.entity.EntityTeleportEvent teleEvent;
              if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) Blocks.END_GATEWAY)) && this.level.getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
+@@ -4996,6 +_,12 @@
+ 
+     public void setDeltaMovement(Vec3 deltaMovement) {
+         if (deltaMovement.isFinite()) {
++            // ShreddedPaper start - why is something setting the entity velocity to larger than one region...
++            if (deltaMovement.horizontalDistanceSqr() > RegionPos.MAX_DISTANCE_SQR + 1 && deltaMovement.horizontalDistanceSqr() > this.deltaMovement.horizontalDistanceSqr()) {
++                LOGGER.warn("Velocity is being set larger than the ShreddedPaper region size: {} for entity {}", deltaMovement, this, new Exception("Velocity larger than region size, limiting velocity to region size"));
++                deltaMovement = deltaMovement.normalize().scale(RegionPos.MAX_DISTANCE_SQR);
++            }
++            // ShreddedPaper end - why is something setting the entity velocity to larger than one region...
+             synchronized (this.posLock) { // Paper - detailed watchdog information
+             this.deltaMovement = deltaMovement;
+             } // Paper - detailed watchdog information
