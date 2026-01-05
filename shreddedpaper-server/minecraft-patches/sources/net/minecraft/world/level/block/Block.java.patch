@@ -1,0 +1,13 @@
+--- a/net/minecraft/world/level/block/Block.java
++++ b/net/minecraft/world/level/block/Block.java
+@@ -481,8 +_,8 @@
+             ItemEntity itemEntity = itemEntitySupplier.get();
+             itemEntity.setDefaultPickUpDelay();
+             // CraftBukkit start
+-            if (level.captureDrops != null) {
+-                level.captureDrops.add(itemEntity);
++            if (level.captureDropsThreadLocal.get() != null) { // ShreddedPaper - use thread local
++                level.captureDropsThreadLocal.get().add(itemEntity); // ShreddedPaper - use thread local
+             } else {
+                 level.addFreshEntity(itemEntity);
+             }

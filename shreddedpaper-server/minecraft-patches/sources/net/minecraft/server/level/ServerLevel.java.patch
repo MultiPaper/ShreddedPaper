@@ -433,6 +433,17 @@
              passengerEntity.setOldPosAndRot();
              passengerEntity.tickCount++;
              passengerEntity.totalEntityAge++; // Paper - age-like counter for all entities
+@@ -1710,8 +_,8 @@
+         } else {
+             if (entity instanceof net.minecraft.world.entity.item.ItemEntity itemEntity && itemEntity.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
+             // Paper start - capture all item additions to the world
+-            if (captureDrops != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) {
+-                captureDrops.add((net.minecraft.world.entity.item.ItemEntity) entity);
++            if (captureDropsThreadLocal.get() != null && entity instanceof net.minecraft.world.entity.item.ItemEntity) { // ShreddedPaper - use thread local
++                captureDropsThreadLocal.get().add((net.minecraft.world.entity.item.ItemEntity) entity); // ShreddedPaper - use thread local
+                 return true;
+             }
+             // Paper end - capture all item additions to the world
 @@ -1903,7 +_,7 @@
  
      @Override
@@ -467,7 +478,7 @@
              }
          }
          } // Paper - option to disable pathfinding updates
-@@ -1949,7 +_,7 @@
+@@ -1949,17 +_,17 @@
      @Override
      public void updateNeighborsAt(BlockPos pos, Block block) {
          // CraftBukkit start
@@ -476,6 +487,18 @@
              return;
          }
          // CraftBukkit end
+-        if (captureBlockStates) { return; } // Paper - Cancel all physics during placement
++        if (captureBlockStatesThreadLocal.get()) { return; } // Paper - Cancel all physics during placement // ShreddedPaper - use thread local
+         this.updateNeighborsAt(pos, block, ExperimentalRedstoneUtils.initialOrientation(this, null, null));
+     }
+ 
+     @Override
+     public void updateNeighborsAt(BlockPos pos, Block block, @Nullable Orientation orientation) {
+-        if (captureBlockStates) { return; } // Paper - Cancel all physics during placement
++        if (captureBlockStatesThreadLocal.get()) { return; } // Paper - Cancel all physics during placement // ShreddedPaper - use thread local
+         this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, block, null, orientation);
+     }
+ 
 @@ -2084,14 +_,15 @@
  
      @Override

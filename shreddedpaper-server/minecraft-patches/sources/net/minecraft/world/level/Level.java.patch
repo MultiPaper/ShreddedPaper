@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
+@@ -3,6 +_,7 @@
+ import com.google.common.collect.Lists;
+ import com.mojang.serialization.Codec;
+ import java.io.IOException;
++import java.util.ArrayList;
+ import java.util.Collection;
+ import java.util.Iterator;
+ import java.util.List;
 @@ -10,6 +_,10 @@
  import java.util.function.Consumer;
  import java.util.function.Predicate;
@@ -32,6 +40,24 @@
      private boolean tickingBlockEntities;
      public final Thread thread;
      private final boolean isDebug;
+@@ -144,12 +_,11 @@
+     public net.kyori.adventure.util.TriState pvpMode = net.kyori.adventure.util.TriState.NOT_SET;
+     public org.bukkit.generator.@Nullable ChunkGenerator generator;
+ 
+-    public boolean captureBlockStates = false;
+-    public boolean captureTreeGeneration = false;
+-    public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.LinkedHashMap<>(); // Paper
+-    public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
+-    @Nullable
+-    public List<net.minecraft.world.entity.item.ItemEntity> captureDrops;
++    public ThreadLocal<Boolean> captureBlockStatesThreadLocal = ThreadLocal.withInitial(() -> false); // ShreddedPaper - use thread local
++    public ThreadLocal<Boolean> captureTreeGenerationThreadLocal = ThreadLocal.withInitial(() -> false); // ShreddedPaper - use thread local
++    public ThreadLocal<Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState>> capturedBlockStatesThreadLocal = ThreadLocal.withInitial(() -> new java.util.LinkedHashMap<>()); // Paper // ShreddedPaper - use thread local
++    public ThreadLocal<Map<BlockPos, BlockEntity>> capturedTileEntitiesThreadLocal = ThreadLocal.withInitial(() -> new java.util.LinkedHashMap<>()); // Paper - Retain block place order when capturing blockstates // ShreddedPaper - use thread local
++    public ThreadLocal<@Nullable List<net.minecraft.world.entity.item.ItemEntity>> captureDropsThreadLocal = new ThreadLocal<>(); // ShreddedPaper - use thread local
+     public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
+     // Paper start - EAR 2
+     public int wakeupInactiveRemainingAnimals;
 @@ -157,7 +_,7 @@
      public int wakeupInactiveRemainingMonsters;
      public int wakeupInactiveRemainingVillagers;
@@ -59,6 +85,86 @@
          this.registryAccess = registryAccess;
          this.palettedContainerFactory = PalettedContainerFactory.create(registryAccess);
          this.damageSources = new DamageSources(registryAccess);
+@@ -1026,8 +_,8 @@
+     @Nullable
+     public final BlockState getBlockStateIfLoaded(BlockPos pos) {
+         // CraftBukkit start - tree generation
+-        if (this.captureTreeGeneration) {
+-            CraftBlockState previous = this.capturedBlockStates.get(pos);
++        if (this.captureTreeGenerationThreadLocal.get()) { // ShreddedPaper - use thread local
++            CraftBlockState previous = this.capturedBlockStatesThreadLocal.get().get(pos); // ShreddedPaper - use thread local
+             if (previous != null) {
+                 return previous.getHandle();
+             }
+@@ -1091,15 +_,15 @@
+     @Override
+     public boolean setBlock(BlockPos pos, BlockState state, @Block.UpdateFlags int flags, int recursionLeft) {
+         // CraftBukkit start - tree generation
+-        if (this.captureTreeGeneration) {
++        if (this.captureTreeGenerationThreadLocal.get()) { // ShreddedPaper - use thread local
+             // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
+             BlockState type = getBlockState(pos);
+             if (!type.isDestroyable()) return false;
+             // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
+-            CraftBlockState blockstate = this.capturedBlockStates.get(pos);
++            CraftBlockState blockstate = this.capturedBlockStatesThreadLocal.get().get(pos); // ShreddedPaper - use thread local
+             if (blockstate == null) {
+                 blockstate = org.bukkit.craftbukkit.block.CapturedBlockState.getTreeBlockState(this, pos, flags);
+-                this.capturedBlockStates.put(pos.immutable(), blockstate);
++                this.capturedBlockStatesThreadLocal.get().put(pos.immutable(), blockstate); // ShreddedPaper - use thread local
+             }
+             blockstate.setData(state);
+             blockstate.setFlags(flags);
+@@ -1115,14 +_,14 @@
+             Block block = state.getBlock();
+             // CraftBukkit start - capture blockstates
+             boolean captured = false;
+-            if (this.captureBlockStates) {
++            if (this.captureBlockStatesThreadLocal.get()) { // ShreddedPaper - use thread local
+                 final CraftBlockState snapshot;
+-                if (!this.capturedBlockStates.containsKey(pos)) {
++                if (!this.capturedBlockStatesThreadLocal.get().containsKey(pos)) { // ShreddedPaper - use thread local
+                     snapshot = (CraftBlockState) org.bukkit.craftbukkit.block.CraftBlock.at(this, pos).getState(); // Paper - use CB getState to get a suitable snapshot
+-                    this.capturedBlockStates.put(pos.immutable(), snapshot);
++                    this.capturedBlockStatesThreadLocal.get().put(pos.immutable(), snapshot); // ShreddedPaper - use thread local
+                     captured = true;
+                 } else {
+-                    snapshot = this.capturedBlockStates.get(pos);
++                    snapshot = this.capturedBlockStatesThreadLocal.get().get(pos); // ShreddedPaper - use thread local
+                 }
+                 snapshot.setFlags(flags); // Paper - always set the flag of the most recent call to mitigate issues with multiple update at the same pos with different flags
+             }
+@@ -1131,8 +_,8 @@
+             // CraftBukkit end
+             if (blockState == null) {
+                 // CraftBukkit start - remove blockstate if failed (or the same)
+-                if (this.captureBlockStates && captured) {
+-                    this.capturedBlockStates.remove(pos);
++                if (this.captureBlockStatesThreadLocal.get() && captured) { // ShreddedPaper - use thread local
++                    this.capturedBlockStatesThreadLocal.get().remove(pos); // ShreddedPaper - use thread local
+                 }
+                 // CraftBukkit end
+                 return false;
+@@ -1169,7 +_,7 @@
+                 */
+ 
+                 // CraftBukkit start
+-                if (!this.captureBlockStates) { // Don't notify clients or update physics while capturing blockstates
++                if (!this.captureBlockStatesThreadLocal.get()) { // Don't notify clients or update physics while capturing blockstates // ShreddedPaper - use thread local
+                     // Modularize client and physic updates
+                     // Spigot start
+                     try {
+@@ -1335,8 +_,8 @@
+     @Override
+     public BlockState getBlockState(BlockPos pos) {
+         // CraftBukkit start - tree generation
+-        if (this.captureTreeGeneration) {
+-            CraftBlockState previous = this.capturedBlockStates.get(pos); // Paper
++        if (this.captureTreeGenerationThreadLocal.get()) { // ShreddedPaper - use thread local
++            CraftBlockState previous = this.capturedBlockStatesThreadLocal.get().get(pos); // Paper // ShreddedPaper - use thread local
+             if (previous != null) {
+                 return previous.getHandle();
+             }
 @@ -1434,15 +_,25 @@
      }
  
@@ -119,3 +225,23 @@
      }
  
      // Paper start - Option to prevent armor stands from doing entity lookups
+@@ -1624,7 +_,7 @@
+     public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
+         // Paper start - Perf: Optimize capturedTileEntities lookup
+         net.minecraft.world.level.block.entity.BlockEntity blockEntity;
+-        if (!this.capturedTileEntities.isEmpty() && (blockEntity = this.capturedTileEntities.get(pos)) != null) {
++        if (!this.capturedTileEntitiesThreadLocal.get().isEmpty() && (blockEntity = this.capturedTileEntitiesThreadLocal.get().get(pos)) != null) { // ShreddedPaper - use thread local
+             return blockEntity;
+         }
+         // Paper end - Perf: Optimize capturedTileEntities lookup
+@@ -1641,8 +_,8 @@
+         BlockPos blockPos = blockEntity.getBlockPos();
+         if (this.isInValidBounds(blockPos)) {
+             // CraftBukkit start
+-            if (this.captureBlockStates) {
+-                this.capturedTileEntities.put(blockPos.immutable(), blockEntity);
++            if (this.captureBlockStatesThreadLocal.get()) { // ShreddedPaper - use thread local
++                this.capturedTileEntitiesThreadLocal.get().put(blockPos.immutable(), blockEntity); // ShreddedPaper - use thread local
+                 return;
+             }
+             // CraftBukkit end
