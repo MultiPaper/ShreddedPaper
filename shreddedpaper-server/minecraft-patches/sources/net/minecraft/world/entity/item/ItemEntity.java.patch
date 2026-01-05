@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/entity/item/ItemEntity.java
++++ b/net/minecraft/world/entity/item/ItemEntity.java
+@@ -165,7 +_,7 @@
+             } else if (this.isInLava() && this.getFluidHeight(FluidTags.LAVA) > 0.1F) {
+                 this.setUnderLavaMovement();
+             } else {
+-                this.applyGravity();
++                if (!this.onGround()) this.applyGravity(); // ShreddedPaper - only apply gravity if not on ground
+             }
+ 
+             if (this.level().isClientSide()) {
