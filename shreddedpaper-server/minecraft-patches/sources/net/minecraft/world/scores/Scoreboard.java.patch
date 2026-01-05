@@ -1,0 +1,45 @@
+--- a/net/minecraft/world/scores/Scoreboard.java
++++ b/net/minecraft/world/scores/Scoreboard.java
+@@ -17,6 +_,7 @@
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Objects;
++import java.util.concurrent.ConcurrentHashMap;
+ import java.util.function.Consumer;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.chat.numbers.NumberFormat;
+@@ -30,12 +_,12 @@
+ public class Scoreboard {
+     public static final String HIDDEN_SCORE_PREFIX = "#";
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private final Object2ObjectMap<String, Objective> objectivesByName = new Object2ObjectOpenHashMap<>(16, 0.5F);
+-    private final Reference2ObjectMap<ObjectiveCriteria, List<Objective>> objectivesByCriteria = new Reference2ObjectOpenHashMap<>();
+-    private final Map<String, PlayerScores> playerScores = new Object2ObjectOpenHashMap<>(16, 0.5F);
++    private final Map<String, Objective> objectivesByName = new ConcurrentHashMap<>(); // ShreddedPaper - concurrent
++    private final Map<ObjectiveCriteria, List<Objective>> objectivesByCriteria = new ConcurrentHashMap<>(); // ShreddedPaper - concurrent
++    private final Map<String, PlayerScores> playerScores = new ConcurrentHashMap<>(); // ShreddedPaper - concurrent
+     private final Map<DisplaySlot, Objective> displayObjectives = new EnumMap<>(DisplaySlot.class);
+-    private final Object2ObjectMap<String, PlayerTeam> teamsByName = new Object2ObjectOpenHashMap<>();
+-    private final Object2ObjectMap<String, PlayerTeam> teamsByPlayer = new Object2ObjectOpenHashMap<>();
++    private final Map<String, PlayerTeam> teamsByName = new ConcurrentHashMap<>(); // ShreddedPaper - concurrent
++    private final Map<String, PlayerTeam> teamsByPlayer = new ConcurrentHashMap<>(); // ShreddedPaper - concurrent
+ 
+     public @Nullable Objective getObjective(@Nullable String name) {
+         return this.objectivesByName.get(name);
+@@ -236,7 +_,7 @@
+         this.onObjectiveRemoved(objective);
+     }
+ 
+-    public void setDisplayObjective(DisplaySlot slot, @Nullable Objective objective) {
++    public synchronized void setDisplayObjective(DisplaySlot slot, @Nullable Objective objective) { // ShreddedPaper - synchronized
+         this.displayObjectives.put(slot, objective);
+     }
+ 
+@@ -245,6 +_,7 @@
+     }
+ 
+     public @Nullable PlayerTeam getPlayerTeam(String name) {
++        if (name == null) return null; // ShreddedPaper
+         return this.teamsByName.get(name);
+     }
+ 
