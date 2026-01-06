@@ -1,12 +1,13 @@
 --- a/net/minecraft/server/level/ChunkHolder.java
 +++ b/net/minecraft/server/level/ChunkHolder.java
-@@ -1,5 +_,9 @@
+@@ -1,5 +_,10 @@
  package net.minecraft.server.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
 +import ca.spottedleaf.moonrise.common.util.WorldUtil;
 +import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
  import it.unimi.dsi.fastutil.shorts.ShortSet;
  import java.util.BitSet;
@@ -23,6 +24,60 @@
      public static final ChunkResult<LevelChunk> UNLOADED_LEVEL_CHUNK = ChunkResult.error("Unloaded level chunk");
      private static final CompletableFuture<ChunkResult<LevelChunk>> UNLOADED_LEVEL_CHUNK_FUTURE = CompletableFuture.completedFuture(UNLOADED_LEVEL_CHUNK);
      private final LevelHeightAccessor levelHeightAccessor;
+@@ -48,7 +_,8 @@
+ 
+     private static final ServerPlayer[] EMPTY_PLAYER_ARRAY = new ServerPlayer[0];
+     private final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> playersSentChunkTo = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_PLAYER_ARRAY);
+-
++    private final SimpleStampedLock playersSentChunkToLock = new SimpleStampedLock(); // ShreddedPaper - playersSentChunkTo thread safety
++    
+     private ChunkMap getChunkMap() {
+         return (ChunkMap)this.playerProvider;
+     }
+@@ -65,16 +_,20 @@
+ 
+     @Override
+     public final void moonrise$addReceivedChunk(final ServerPlayer player) {
++        this.playersSentChunkToLock.write(() -> { // ShreddedPaper - playersSentChunkTo thread safety
+         if (!this.playersSentChunkTo.add(player)) {
+             throw new IllegalStateException("Already sent chunk " + this.pos + " in world '" + ca.spottedleaf.moonrise.common.util.WorldUtil.getWorldName(this.getChunkMap().level) + "' to player " + player);
+         }
++        }); // ShreddedPaper - playersSentChunkTo thread safety
+     }
+ 
+     @Override
+     public final void moonrise$removeReceivedChunk(final ServerPlayer player) {
++        this.playersSentChunkToLock.write(() -> { // ShreddedPaper - playersSentChunkTo thread safety
+         if (!this.playersSentChunkTo.remove(player)) {
+             throw new IllegalStateException("Already sent chunk " + this.pos + " in world '" + ca.spottedleaf.moonrise.common.util.WorldUtil.getWorldName(this.getChunkMap().level) + "' to player " + player);
+         }
++        }); // ShreddedPaper - playersSentChunkTo thread safety
+     }
+ 
+     @Override
+@@ -84,11 +_,14 @@
+ 
+     @Override
+     public final boolean moonrise$hasChunkBeenSent(final ServerPlayer to) {
++        return this.playersSentChunkToLock.optimisticRead(() -> { // ShreddedPaper - playersSentChunkTo thread safety
+         return this.playersSentChunkTo.contains(to);
++        }); // ShreddedPaper - playersSentChunkTo thread safety
+     }
+ 
+     @Override
+     public final List<ServerPlayer> moonrise$getPlayers(final boolean onlyOnWatchDistanceEdge) {
++        return this.playersSentChunkToLock.optimisticRead(() -> { // ShreddedPaper - playersSentChunkTo thread safety
+         final List<ServerPlayer> ret = new java.util.ArrayList<>();
+         final ServerPlayer[] raw = this.playersSentChunkTo.getRawDataUnchecked();
+         for (int i = 0, len = this.playersSentChunkTo.size(); i < len; ++i) {
+@@ -100,6 +_,7 @@
+         }
+ 
+         return ret;
++        }); // ShreddedPaper - playersSentChunkTo thread safetys
+     }
+ 
+     @Override
 @@ -221,6 +_,10 @@
      }
  

@@ -20,6 +20,16 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
+@@ -515,8 +_,7 @@
+         // CraftBukkit start
+         // this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID())));
+         ClientboundPlayerInfoRemovePacket packet = new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID()));
+-        for (int i = 0; i < this.players.size(); i++) {
+-            ServerPlayer otherPlayer = this.players.get(i);
++        for (ServerPlayer otherPlayer : this.players) { // ShreddedPaper - Fix concurrent modification
+ 
+             if (otherPlayer.getBukkitEntity().canSee(player.getBukkitEntity())) {
+                 otherPlayer.connection.send(packet);
 @@ -595,12 +_,13 @@
      }
  

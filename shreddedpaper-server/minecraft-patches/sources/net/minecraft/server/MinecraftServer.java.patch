@@ -58,6 +58,15 @@
      }
  
     @Override
+@@ -895,6 +_,8 @@
+ 
+     // CraftBukkit start
+     public void prepareLevel(ServerLevel serverLevel) {
++        if (!TickThread.isTickThread()) throw new IllegalStateException("Cannot load worlds async!!"); // ShreddedPaper
++        if (ShreddedPaperTickThread.isShreddedPaperTickThread()) throw new IllegalStateException("Must load worlds from the global scheduler!"); // ShreddedPaper
+         this.forceTicks = true;
+         // CraftBukkit end
+         ChunkLoadCounter chunkLoadCounter = new ChunkLoadCounter();
 @@ -1020,6 +_,7 @@
  
          LOGGER.info("Stopping server");

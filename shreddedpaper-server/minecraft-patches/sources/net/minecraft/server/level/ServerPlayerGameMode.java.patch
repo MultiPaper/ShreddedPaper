@@ -1,5 +1,30 @@
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.server.level;
+ 
++import ca.spottedleaf.moonrise.common.util.TickThread;
+ import com.mojang.logging.LogUtils;
+ import java.util.List;
+ import java.util.Objects;
+@@ -129,7 +_,7 @@
+         // this.gameTicks = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
+         this.gameTicks = (int) this.level.getLagCompensationTick(); // Paper - lag compensate eating
+         if (this.hasDelayedDestroy) {
+-            BlockState blockState = this.level.getBlockStateIfLoaded(this.delayedDestroyPos); // Paper - Don't allow digging into unloaded chunks
++            BlockState blockState = !TickThread.isTickThreadFor(this.level, this.delayedDestroyPos) ? null : this.level.getBlockStateIfLoaded(this.delayedDestroyPos); // Paper - Don't allow digging into unloaded chunks // ShreddedPaper - Don't allow digging into chunks outside our region
+             if (blockState == null || blockState.isAir()) { // Paper - Don't allow digging into unloaded chunks
+                 this.hasDelayedDestroy = false;
+             } else {
+@@ -141,7 +_,7 @@
+             }
+         } else if (this.isDestroyingBlock) {
+             // Paper start - Don't allow digging into unloaded chunks; don't want to do same logic as above, return instead
+-            BlockState blockState = this.level.getBlockStateIfLoaded(this.destroyPos);
++            BlockState blockState = !TickThread.isTickThreadFor(this.level, this.destroyPos) ? null : this.level.getBlockStateIfLoaded(this.destroyPos); // ShreddedPaper - Don't allow digging into chunks outside our region
+             if (blockState == null) {
+                 this.isDestroyingBlock = false;
+                 return;
 @@ -384,7 +_,7 @@
              } else {
                  // CraftBukkit start
