@@ -1,0 +1,39 @@
+--- a/net/minecraft/server/commands/SetBlockCommand.java
++++ b/net/minecraft/server/commands/SetBlockCommand.java
+@@ -3,6 +_,7 @@
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import java.util.function.Predicate;
+ import net.minecraft.commands.CommandBuildContext;
+ import net.minecraft.commands.CommandSourceStack;
+@@ -106,6 +_,8 @@
+         } else if (filter != null && !filter.test(new BlockInWorld(level, pos, true))) {
+             throw ERROR_FAILED.create();
+         } else {
++            // ShreddedPaper start - run on correct region thread
++            ShreddedPaper.ensureSync(level, pos, () -> {
+             boolean flag;
+             if (mode == SetBlockCommand.Mode.DESTROY) {
+                 level.destroyBlock(pos, true);
+@@ -117,15 +_,17 @@
+             BlockState blockState = level.getBlockState(pos);
+             if (flag
+                 && !block.place(level, pos, Block.UPDATE_CLIENTS | (strict ? Block.UPDATE_SKIP_ALL_SIDEEFFECTS : Block.UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS))) {
+-                throw ERROR_FAILED.create();
++                source.sendFailure(Component.translatable("commands.setblock.failed")); // ShreddedPaper - send failure message instead of throwing
+             } else {
+                 if (!strict) {
+                     level.updateNeighboursOnBlockSet(pos, blockState);
+                 }
+ 
+                 source.sendSuccess(() -> Component.translatable("commands.setblock.success", pos.getX(), pos.getY(), pos.getZ()), true);
+-                return 1;
+             }
++            });
++            return 1;
++            // ShreddedPaper end - run on correct region thread
+         }
+     }
+ 
