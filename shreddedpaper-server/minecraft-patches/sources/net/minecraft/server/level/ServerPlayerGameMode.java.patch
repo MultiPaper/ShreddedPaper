@@ -7,6 +7,14 @@
  import com.mojang.logging.LogUtils;
  import java.util.List;
  import java.util.Objects;
+@@ -25,6 +_,7 @@
+ import net.minecraft.world.level.block.GameMasterBlock;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.phys.shapes.VoxelShape;
 @@ -129,7 +_,7 @@
          // this.gameTicks = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
          this.gameTicks = (int) this.level.getLagCompensationTick(); // Paper - lag compensate eating
@@ -45,3 +53,17 @@
                  if (event.isDropItems()) {
                      org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, state, this.player, itemsToDrop); // Paper - capture all item additions to the world
                  }
+@@ -431,6 +_,13 @@
+                     }
+                 }
+                 // Paper end - Trigger bee_nest_destroyed trigger in the correct place
++
++                // ShreddedPaper start - broadcast block changes immediately if on the wrong thread
++                LevelChunk levelChunk = this.level.getChunkIfLoaded(pos);
++                if (levelChunk != null) {
++                    levelChunk.moonrise$getChunkHolder().vanillaChunkHolder.broadcastChanges(levelChunk);
++                }
++                // ShreddedPaper end - broadcast block changes immediately if on the wrong thread
+ 
+                 return true;
+                 // CraftBukkit end

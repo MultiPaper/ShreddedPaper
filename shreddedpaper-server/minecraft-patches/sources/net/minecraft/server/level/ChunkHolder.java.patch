@@ -1,12 +1,13 @@
 --- a/net/minecraft/server/level/ChunkHolder.java
 +++ b/net/minecraft/server/level/ChunkHolder.java
-@@ -1,5 +_,10 @@
+@@ -1,5 +_,11 @@
  package net.minecraft.server.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
 +import ca.spottedleaf.moonrise.common.util.WorldUtil;
 +import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperChangesBroadcaster;
 +import io.multipaper.shreddedpaper.util.SimpleStampedLock;
  import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
  import it.unimi.dsi.fastutil.shorts.ShortSet;

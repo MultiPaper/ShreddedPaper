@@ -16,19 +16,9 @@
                  int i2 = 0;
  
                  for (BlockPos blockPos : BlockPos.betweenClosed(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ())) {
-@@ -223,13 +_,24 @@
-                     level.updateNeighboursOnBlockSet(updatedPosition.pos, updatedPosition.oldState);
+@@ -224,12 +_,14 @@
                  }
  
-+                // ShreddedPaper start - clear cached chunk packets for affected chunks
-+                for (int chunkX = box.minX() >> 4; chunkX <= box.maxX() >> 4; chunkX++) {
-+                    for (int chunkZ = box.minZ() >> 4; chunkZ <= box.maxZ() >> 4; chunkZ++) {
-+                        net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkIfLoaded(chunkX, chunkZ);
-+                        if (chunk != null) chunk.cachedChunkPacket = null;
-+                    }
-+                }
-+                // ShreddedPaper end - clear cached chunk packets for affected chunks
-+
                  if (i2 == 0) {
 -                    throw ERROR_FAILED.create();
 +                    source.sendFailure(Component.translatable("commands.fill.failed")); // ShreddedPaper - run on correct region thread - send failure message instead of throwing

@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
-@@ -1,8 +_,13 @@
+@@ -1,8 +_,14 @@
  package net.minecraft.server.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
@@ -9,15 +9,18 @@
  import com.mojang.logging.LogUtils;
 +import io.multipaper.shreddedpaper.region.LevelChunkRegionMap;
 +import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperChangesBroadcaster;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperChunkTicker;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
  import it.unimi.dsi.fastutil.longs.LongSet;
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
-@@ -74,6 +_,8 @@
+@@ -73,7 +_,9 @@
+     private final @Nullable ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
      private final @Nullable ChunkAccess[] lastChunk = new ChunkAccess[4];
      private final List<LevelChunk> spawningChunks = new ObjectArrayList<>();
-     private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
+-    private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
++    // private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>(); // ShreddedPaper  - handled by the regions
 +    private final ShreddedPaperChunkTicker shreddedPaperChunkTicker = new ShreddedPaperChunkTicker(this); // ShreddedPaper
 +    public final LevelChunkRegionMap tickingRegions; // ShreddedPaper
      @VisibleForDebug
@@ -101,7 +104,7 @@
          long gameTime = this.level.getGameTime();
          long l = gameTime - this.lastInhabitedUpdate;
          this.lastInhabitedUpdate = gameTime;
-@@ -504,16 +_,19 @@
+@@ -504,30 +_,36 @@
              profilerFiller.push("pollingChunks");
              if (this.level.tickRateManager().runsNormally()) {
                  profilerFiller.push("tickingChunks");
@@ -123,8 +126,24 @@
 +        if (true) throw new UnsupportedOperationException("Disabled by ShreddedPaper"); // ShreddedPaper - handled in the region, ensure it stays that way
          profiler.push("broadcast");
  
-         for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
-@@ -527,7 +_,8 @@
+-        for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
+-            LevelChunk tickingChunk = chunkHolder.getChunkToSend(); // Paper - rewrite chunk system
+-            if (tickingChunk != null) {
+-                chunkHolder.broadcastChanges(tickingChunk);
+-            }
+-        }
+-
+-        this.chunkHoldersToBroadcast.clear();
++        // ShreddedPaper  - handled by the regions
++//        for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
++//            LevelChunk tickingChunk = chunkHolder.getChunkToSend(); // Paper - rewrite chunk system
++//            if (tickingChunk != null) {
++//                chunkHolder.broadcastChanges(tickingChunk);
++//            }
++//        }
++//
++//        this.chunkHoldersToBroadcast.clear();
++        // ShreddedPaper  - handled by the regions
          profiler.pop();
      }
  
@@ -196,7 +215,14 @@
          ChunkPos pos = chunk.getPos();
          chunk.incrementInhabitedTime(timeInhabited);
          if (true) { // Paper - rewrite chunk system
-@@ -662,7 +_,7 @@
+@@ -656,16 +_,16 @@
+         int sectionPosZ = SectionPos.blockToSectionCoord(pos.getZ());
+         ChunkHolder visibleChunkIfPresent = this.getVisibleChunkIfPresent(ChunkPos.asLong(sectionPosX, sectionPosZ));
+         if (visibleChunkIfPresent != null && visibleChunkIfPresent.blockChanged(pos)) {
+-            this.chunkHoldersToBroadcast.add(visibleChunkIfPresent);
++            ShreddedPaperChangesBroadcaster.add(visibleChunkIfPresent); // ShreddedPaper  - handled by the regions
+         }
+     }
  
      @Override
      public void onLightUpdate(LightLayer lightLayer, SectionPos pos) {
@@ -204,7 +230,20 @@
 +        this.level.moonrise$getChunkTaskScheduler().scheduleChunkTask(pos.x(), pos.z(), () -> { // ShreddedPaper - run on chunk thread
              ChunkHolder visibleChunkIfPresent = this.getVisibleChunkIfPresent(pos.chunk().toLong());
              if (visibleChunkIfPresent != null && visibleChunkIfPresent.sectionLightChanged(lightLayer, pos.y())) {
-                 this.chunkHoldersToBroadcast.add(visibleChunkIfPresent);
+-                this.chunkHoldersToBroadcast.add(visibleChunkIfPresent);
++                ShreddedPaperChangesBroadcaster.add(visibleChunkIfPresent); // ShreddedPaper  - handled by the regions
+             }
+         });
+     }
+@@ -781,7 +_,7 @@
+ 
+     public void onChunkReadyToSend(ChunkHolder chunkHolder) {
+         if (chunkHolder.hasChangesToBroadcast()) {
+-            this.chunkHoldersToBroadcast.add(chunkHolder);
++            ShreddedPaperChangesBroadcaster.add(chunkHolder); // ShreddedPaper  - handled by the regions
+         }
+     }
+ 
 @@ -823,12 +_,27 @@
  
          @Override
