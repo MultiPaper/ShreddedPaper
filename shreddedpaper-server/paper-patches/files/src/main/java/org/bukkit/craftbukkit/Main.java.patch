@@ -1,6 +1,6 @@
 --- a/src/main/java/org/bukkit/craftbukkit/Main.java
 +++ b/src/main/java/org/bukkit/craftbukkit/Main.java
-@@ -172,6 +_,14 @@
+@@ -177,6 +_,14 @@
                      .describedAs("Yml file");
                  // Purpur end - Purpur config files
  

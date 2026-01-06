@@ -84,7 +84,7 @@
              }
  
              this.waitUntilNextTick();
-@@ -1624,7 +_,9 @@
+@@ -1629,7 +_,9 @@
                      this.autoSave();
                  }
  
@@ -94,7 +94,7 @@
                  // Paper start - avoid issues with certain tasks not processing during sleep
                  Runnable task;
                  while ((task = this.processQueue.poll()) != null) {
-@@ -1632,7 +_,7 @@
+@@ -1637,7 +_,7 @@
                  }
                  for (final ServerLevel level : this.levels.values()) {
                      // process unloads
@@ -103,7 +103,7 @@
                  }
                  // Paper end - avoid issues with certain tasks not processing during sleep
                  this.server.spark.executeMainThreadTasks(); // Paper - spark
-@@ -1791,16 +_,20 @@
+@@ -1796,16 +_,20 @@
      protected void tickChildren(BooleanSupplier hasTimeLeft) {
          ProfilerFiller profilerFiller = Profiler.get();
          this.getPlayerList().getPlayers().forEach(serverPlayer1 -> serverPlayer1.connection.suspendFlushing());
@@ -132,7 +132,7 @@
          // Paper end - optimise Folia entity scheduler
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.ADVENTURE_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.DIALOG_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
-@@ -1836,7 +_,23 @@
+@@ -1841,7 +_,23 @@
              }
          }
  
@@ -156,7 +156,7 @@
          for (ServerLevel serverLevel : this.getAllLevels()) {
              serverLevel.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
              serverLevel.hasEntityMoveEvent = io.papermc.paper.event.entity.EntityMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - Add EntityMoveEvent
-@@ -1855,7 +_,9 @@
+@@ -1860,7 +_,9 @@
              profilerFiller.push("tick");
  
              try {
@@ -167,7 +167,7 @@
              } catch (Throwable var7) {
                  CrashReport crashReport = CrashReport.forThrowable(var7, "Exception ticking world");
                  serverLevel.fillReportDetails(crashReport);
-@@ -1864,12 +_,20 @@
+@@ -1869,12 +_,20 @@
  
              profilerFiller.pop();
              profilerFiller.pop();
@@ -191,7 +191,7 @@
          profilerFiller.popPush("players");
          this.playerList.tick();
          profilerFiller.popPush("debugSubscribers");
-@@ -1889,6 +_,7 @@
+@@ -1894,6 +_,7 @@
  
          for (ServerPlayer serverPlayer : this.playerList.getPlayers()) {
              serverPlayer.connection.chunkSender.sendNextChunks(serverPlayer);

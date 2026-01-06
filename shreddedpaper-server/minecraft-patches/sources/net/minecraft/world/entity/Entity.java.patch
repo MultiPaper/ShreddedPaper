@@ -40,7 +40,7 @@
      public float maxUpStep; // Purpur - Add option to set armorstand step height
      public boolean noPhysics;
      public final RandomSource random; // Paper - Share random for entities to make them more random // Add toggle for RNG manipulation
-@@ -708,7 +_,7 @@
+@@ -709,7 +_,7 @@
      public void resendPossiblyDesyncedEntityData(net.minecraft.server.level.ServerPlayer player) {
          if (player.getBukkitEntity().canSee(this.getBukkitEntity())) {
              ServerLevel world = (net.minecraft.server.level.ServerLevel)this.level();
@@ -49,7 +49,7 @@
              if (tracker == null) {
                  return;
              }
-@@ -829,6 +_,14 @@
+@@ -830,6 +_,14 @@
      }
  
      public void setPos(double x, double y, double z) {
@@ -64,7 +64,7 @@
          this.setPosRaw(x, y, z, true); // Paper - Block invalid positions and bounding box; force update
          // this.setBoundingBox(this.makeBoundingBox()); // Paper - Block invalid positions and bounding box; move into setPosRaw
      }
-@@ -1147,7 +_,9 @@
+@@ -1148,7 +_,9 @@
      public void move(MoverType type, Vec3 movement) {
          final Vec3 originalMovement = movement; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
@@ -75,7 +75,7 @@
          synchronized (this.posLock) {
              this.moveStartX = this.getX();
              this.moveStartY = this.getY();
-@@ -1475,7 +_,7 @@
+@@ -1476,7 +_,7 @@
      }
  
      protected BlockPos getOnPos(float yOffset) {

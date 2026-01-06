@@ -40,8 +40,8 @@
      private boolean tickingBlockEntities;
      public final Thread thread;
      private final boolean isDebug;
-@@ -144,12 +_,11 @@
-     public net.kyori.adventure.util.TriState pvpMode = net.kyori.adventure.util.TriState.NOT_SET;
+@@ -143,12 +_,11 @@
+     private final CraftWorld world;
      public org.bukkit.generator.@Nullable ChunkGenerator generator;
  
 -    public boolean captureBlockStates = false;
@@ -58,7 +58,7 @@
      public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
      // Paper start - EAR 2
      public int wakeupInactiveRemainingAnimals;
-@@ -157,7 +_,7 @@
+@@ -156,7 +_,7 @@
      public int wakeupInactiveRemainingMonsters;
      public int wakeupInactiveRemainingVillagers;
      // Paper end - EAR 2
@@ -67,7 +67,7 @@
      public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
      // Paper start - add paper world config
      private final io.papermc.paper.configuration.WorldConfiguration paperConfig;
-@@ -168,9 +_,9 @@
+@@ -167,9 +_,9 @@
  
      public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur - Purpur config files
      public static @Nullable BlockPos lastPhysicsProblem; // Spigot
@@ -79,7 +79,7 @@
  
      // Purpur start - Add adjustable breeding cooldown to config
      private com.google.common.cache.Cache<BreedingCooldownPair, Object> playerBreedingCooldowns;
-@@ -908,7 +_,7 @@
+@@ -907,7 +_,7 @@
          this.thread = Thread.currentThread();
          this.biomeManager = new BiomeManager(this, biomeZoomSeed);
          this.isDebug = isDebug;
@@ -88,7 +88,7 @@
          this.registryAccess = registryAccess;
          this.palettedContainerFactory = PalettedContainerFactory.create(registryAccess);
          this.damageSources = new DamageSources(registryAccess);
-@@ -1026,8 +_,8 @@
+@@ -1025,8 +_,8 @@
      @Nullable
      public final BlockState getBlockStateIfLoaded(BlockPos pos) {
          // CraftBukkit start - tree generation
@@ -99,7 +99,7 @@
              if (previous != null) {
                  return previous.getHandle();
              }
-@@ -1091,15 +_,15 @@
+@@ -1090,15 +_,15 @@
      @Override
      public boolean setBlock(BlockPos pos, BlockState state, @Block.UpdateFlags int flags, int recursionLeft) {
          // CraftBukkit start - tree generation
@@ -118,7 +118,7 @@
              }
              blockstate.setData(state);
              blockstate.setFlags(flags);
-@@ -1115,14 +_,14 @@
+@@ -1114,14 +_,14 @@
              Block block = state.getBlock();
              // CraftBukkit start - capture blockstates
              boolean captured = false;
@@ -137,7 +137,7 @@
                  }
                  snapshot.setFlags(flags); // Paper - always set the flag of the most recent call to mitigate issues with multiple update at the same pos with different flags
              }
-@@ -1131,8 +_,8 @@
+@@ -1130,8 +_,8 @@
              // CraftBukkit end
              if (blockState == null) {
                  // CraftBukkit start - remove blockstate if failed (or the same)
@@ -148,7 +148,7 @@
                  }
                  // CraftBukkit end
                  return false;
-@@ -1169,7 +_,7 @@
+@@ -1168,7 +_,7 @@
                  */
  
                  // CraftBukkit start
@@ -157,7 +157,7 @@
                      // Modularize client and physic updates
                      // Spigot start
                      try {
-@@ -1335,8 +_,8 @@
+@@ -1334,8 +_,8 @@
      @Override
      public BlockState getBlockState(BlockPos pos) {
          // CraftBukkit start - tree generation
@@ -168,7 +168,7 @@
              if (previous != null) {
                  return previous.getHandle();
              }
-@@ -1434,15 +_,25 @@
+@@ -1433,15 +_,25 @@
      }
  
      public void addBlockEntityTicker(TickingBlockEntity ticker) {
@@ -199,7 +199,7 @@
  
          // Spigot start
          boolean runsNormally = this.tickRateManager().runsNormally();
-@@ -1450,8 +_,8 @@
+@@ -1449,8 +_,8 @@
          int tickedEntities = 0; // Paper - rewrite chunk system
          var toRemove = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<TickingBlockEntity>(); // Paper - Fix MC-117075; use removeAll
          toRemove.add(null); // Paper - Fix MC-117075
@@ -210,7 +210,7 @@
              // Spigot end
              if (tickingBlockEntity.isRemoved()) {
                  toRemove.add(tickingBlockEntity); // Paper - Fix MC-117075; use removeAll
-@@ -1464,7 +_,7 @@
+@@ -1463,7 +_,7 @@
                  // Paper end - rewrite chunk system
              }
          }
@@ -219,7 +219,7 @@
  
          this.tickingBlockEntities = false;
          this.spigotConfig.currentPrimedTnt = 0; // Spigot
-@@ -1481,7 +_,7 @@
+@@ -1480,7 +_,7 @@
              entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
              // Paper end - Prevent block entity and entity crashes
          }
@@ -228,7 +228,7 @@
      }
  
      // Paper start - Option to prevent armor stands from doing entity lookups
-@@ -1624,7 +_,7 @@
+@@ -1623,7 +_,7 @@
      public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
          // Paper start - Perf: Optimize capturedTileEntities lookup
          net.minecraft.world.level.block.entity.BlockEntity blockEntity;
@@ -237,7 +237,7 @@
              return blockEntity;
          }
          // Paper end - Perf: Optimize capturedTileEntities lookup
-@@ -1641,8 +_,8 @@
+@@ -1640,8 +_,8 @@
          BlockPos blockPos = blockEntity.getBlockPos();
          if (this.isInValidBounds(blockPos)) {
              // CraftBukkit start

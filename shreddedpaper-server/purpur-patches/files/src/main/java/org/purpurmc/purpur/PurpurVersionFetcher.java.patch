@@ -1,0 +1,61 @@
+--- a/src/main/java/org/purpurmc/purpur/PurpurVersionFetcher.java
++++ b/src/main/java/org/purpurmc/purpur/PurpurVersionFetcher.java
+@@ -4,6 +_,8 @@
+ import com.destroystokyo.paper.util.VersionFetcher;
+ import com.google.common.io.Resources;
+ import com.google.gson.Gson;
++import com.google.gson.JsonArray;
++import com.google.gson.JsonElement;
+ import com.google.gson.JsonObject;
+ import com.google.gson.JsonSyntaxException;
+ import com.mojang.logging.LogUtils;
+@@ -16,6 +_,8 @@
+ import java.nio.charset.StandardCharsets;
+ import java.util.Optional;
+ import java.util.OptionalInt;
++import java.util.stream.StreamSupport;
++
+ import net.kyori.adventure.text.Component;
+ import net.kyori.adventure.text.event.ClickEvent;
+ import net.kyori.adventure.text.format.NamedTextColor;
+@@ -36,15 +_,15 @@
+     private static final Logger LOGGER = LogUtils.getClassLogger();
+     private static final int DISTANCE_ERROR = -1;
+     private static final int DISTANCE_UNKNOWN = -2;
+-    private static final String DOWNLOAD_PAGE = "https://purpurmc.org/downloads";
+-    private static final String REPOSITORY = "PurpurMC/Purpur";
++    private static final String DOWNLOAD_PAGE = "https://multipaper.io/shreddedpaper/download.html"; // ShreddedPaper
++    private static final String REPOSITORY = "MultiPaper/ShreddedPaper"; // ShreddedPaper
+     private static final ServerBuildInfo BUILD_INFO;
+     private static final String USER_AGENT;
+     private static final Gson GSON = new Gson();
+ 
+     static {
+         BUILD_INFO = ServerBuildInfo.buildInfo();
+-        USER_AGENT = BUILD_INFO.brandName() + "/" + BUILD_INFO.asString(VERSION_SIMPLE) + " (https://purpurmc.org)";
++        USER_AGENT = BUILD_INFO.brandName() + "/" + BUILD_INFO.asString(VERSION_SIMPLE) + " (https://multipaper.io/shreddedpaper)"; // ShreddedPaper
+     }
+ 
+     private static int distance = DISTANCE_UNKNOWN;
+@@ -98,14 +_,18 @@
+     private static int fetchDistanceFromSiteApi(final int jenkinsBuild) {
+         try {
+             try (final BufferedReader reader = Resources.asCharSource(
+-                URI.create("https://api.purpurmc.org/v2/purpur/" + BUILD_INFO.minecraftVersionId()).toURL(),
++                URI.create("https://api.multipaper.io/v2/projects/shreddedpaper/versions/" + BUILD_INFO.minecraftVersionId()).toURL(), // ShreddedPaper
+                 StandardCharsets.UTF_8
+             ).openBufferedStream()) {
+                 final JsonObject json = new Gson().fromJson(reader, JsonObject.class);
+-                final int latest = json.getAsJsonObject("builds").getAsJsonPrimitive("latest").getAsInt();
++                final JsonArray builds = json.getAsJsonArray("builds"); // Purpur - Rebrand // ShreddedPaper
++                final int latest = StreamSupport.stream(builds.spliterator(), false)
++                        .mapToInt(JsonElement::getAsInt)
++                        .max()
++                        .orElseThrow(); // ShreddedPaper
+                 return latest - jenkinsBuild;
+             } catch (final JsonSyntaxException ex) {
+-                LOGGER.error("Error parsing json from Purpur's downloads API", ex);
++                LOGGER.error("Error parsing json from ShreddedPaper's downloads API", ex); // ShreddedPaper
+                 return DISTANCE_ERROR;
+             }
+         } catch (final IOException e) {
