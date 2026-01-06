@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/entity/TamableAnimal.java
++++ b/net/minecraft/world/entity/TamableAnimal.java
+@@ -1,6 +_,8 @@
+ package net.minecraft.world.entity;
+ 
+ import java.util.Optional;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.advancements.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.particles.ParticleOptions;
+@@ -242,7 +_,9 @@
+     public void tryToTeleportToOwner() {
+         LivingEntity owner = this.getOwner();
+         if (owner != null) {
++            ShreddedPaper.ensureSync(this, owner, () -> { // ShreddedPaper - run on this and owner's thread
+             this.teleportToAroundBlockPos(owner.blockPosition());
++            }); // ShreddedPaper - run on this and owner's thread
+         }
+     }
+ 
