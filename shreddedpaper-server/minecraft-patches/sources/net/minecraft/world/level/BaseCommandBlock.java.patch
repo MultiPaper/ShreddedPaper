@@ -19,7 +19,7 @@
      protected abstract org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack wrapper);
      public abstract ServerLevel getLevel();
      // CraftBukkit end
-+    public abstract BlockPos getBlockPos(); // ShreddedPaper
++    public abstract BlockPos getBlockPos(); // ShreddedPaper - Add getBlockPos() for CloseableCommandBlockSource
  
      public int getSuccessCount() {
          return this.successCount;

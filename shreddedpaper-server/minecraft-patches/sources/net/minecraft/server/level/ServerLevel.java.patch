@@ -76,7 +76,7 @@
      public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
      public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
 -    private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
-+    private final ThreadLocal<alternate.current.wire.WireHandler> wireHandler = ThreadLocal.withInitial(() -> new alternate.current.wire.WireHandler(this)); // Paper - optimize redstone (Alternate Current) // ShreddedPaper - ThreadLocal
++    private final ThreadLocal<alternate.current.wire.WireHandler> wireHandlerThreadLocal = ThreadLocal.withInitial(() -> new alternate.current.wire.WireHandler(this)); // Paper - optimize redstone (Alternate Current) // ShreddedPaper - ThreadLocal
      public boolean hasRidableMoveEvent = false; // Purpur - Ridables
  
      @Override
@@ -663,7 +663,7 @@
      @Override
      public alternate.current.wire.WireHandler getWireHandler() {
 -        return wireHandler;
-+        return wireHandler.get(); // ShreddedPaper - ThreadLocal
++        return wireHandlerThreadLocal.get(); // ShreddedPaper - ThreadLocal
      }
      // Paper end - optimize redstone (Alternate Current)
  

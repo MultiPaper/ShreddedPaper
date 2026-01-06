@@ -8,16 +8,15 @@
  import java.util.function.Predicate;
  import net.minecraft.commands.CommandBuildContext;
  import net.minecraft.commands.CommandSourceStack;
-@@ -106,6 +_,8 @@
+@@ -106,6 +_,7 @@
          } else if (filter != null && !filter.test(new BlockInWorld(level, pos, true))) {
              throw ERROR_FAILED.create();
          } else {
-+            // ShreddedPaper start - run on correct region thread
-+            ShreddedPaper.ensureSync(level, pos, () -> {
++            ShreddedPaper.ensureSync(level, pos, () -> { // ShreddedPaper - run on correct region thread
              boolean flag;
              if (mode == SetBlockCommand.Mode.DESTROY) {
                  level.destroyBlock(pos, true);
-@@ -117,15 +_,22 @@
+@@ -117,15 +_,21 @@
              BlockState blockState = level.getBlockState(pos);
              if (flag
                  && !block.place(level, pos, Block.UPDATE_CLIENTS | (strict ? Block.UPDATE_SKIP_ALL_SIDEEFFECTS : Block.UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS))) {
@@ -36,9 +35,8 @@
                  source.sendSuccess(() -> Component.translatable("commands.setblock.success", pos.getX(), pos.getY(), pos.getZ()), true);
 -                return 1;
              }
-+            });
-+            return 1;
-+            // ShreddedPaper end - run on correct region thread
++            }); // ShreddedPaper - run on correct region thread
++            return 1; // ShreddedPaper - run on correct region thread
          }
      }
  

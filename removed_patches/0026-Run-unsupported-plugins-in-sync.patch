@@ -1,0 +1,434 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Sat, 25 May 2024 19:27:42 +0900
+Subject: [PATCH] Run unsupported plugins in sync
+
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3625ee53f17766aae695c0d9e35d755e331e6c56
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/SynchronousPluginExecution.java
+@@ -0,0 +1,180 @@
++package io.multipaper.shreddedpaper.threading;
++
++import com.mojang.logging.LogUtils;
++import io.papermc.paper.util.TickThread;
++import org.bukkit.plugin.Plugin;
++import org.slf4j.Logger;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
++
++import java.lang.ref.WeakReference;
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.Comparator;
++import java.util.List;
++import java.util.Map;
++import java.util.TreeSet;
++import java.util.concurrent.ConcurrentHashMap;
++import java.util.concurrent.locks.ReentrantLock;
++
++public class SynchronousPluginExecution {
++
++    private static final Logger LOGGER = LogUtils.getClassLogger();
++
++    private static final Map<String, List<String>> cachedDependencyLists = new ConcurrentHashMap<>(); // Does not support dynamic plugin reloading, but oh well
++    private static final Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
++
++    private static final ThreadLocal<WeakReference<Plugin>> currentPlugin = new ThreadLocal<>();
++    private static final ThreadLocal<List<String>> heldPluginLocks = ThreadLocal.withInitial(ArrayList::new); // Use a list as the same plugin may be locked multiple times in a single thread due to recursion
++
++    public static Plugin getCurrentPlugin() {
++        WeakReference<Plugin> pluginRef = currentPlugin.get();
++        return pluginRef == null ? null : pluginRef.get();
++    }
++
++    public static void executeNoException(Plugin plugin, RunnableWithException runnable) {
++        try {
++            execute(plugin, runnable);
++        } catch (RuntimeException e) {
++            throw e; // passthrough, no need to wrap it again
++        } catch (Exception e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public static void execute(Plugin plugin, RunnableWithException runnable) throws Exception {
++        if (plugin == null || !ShreddedPaperConfiguration.get().multithreading.runUnsupportedPluginsInSync || plugin.getDescription().isFoliaSupported() || TickThread.isShutdownThread()) {
++            // Multi-thread safe plugin, run it straight away
++            runnable.run();
++            return;
++        }
++
++        // Lock the plugins in a predictable order to prevent deadlocks
++        List<String> pluginsToLock = cachedDependencyLists.get(plugin.getName());
++
++        if (pluginsToLock == null) {
++            // computeIfAbsent requires an expensive synchronized call even if the value is already present, so check with a get first
++            pluginsToLock = cachedDependencyLists.computeIfAbsent(plugin.getName(), (name) -> {
++                TreeSet<String> dependencyList = new TreeSet<>(Comparator.naturalOrder());
++                fillPluginsToLock(plugin, dependencyList);
++                return new ArrayList<>(dependencyList);
++            });
++        }
++
++        lock(pluginsToLock);
++
++        WeakReference<Plugin> parentPlugin = currentPlugin.get();
++        try {
++            currentPlugin.set(new WeakReference<>(plugin));
++            runnable.run();
++        } finally {
++            currentPlugin.set(parentPlugin);
++            for (String pluginToLock : pluginsToLock) {
++                getLock(pluginToLock).unlock();
++                heldPluginLocks.get().remove(pluginToLock);
++            }
++        }
++    }
++
++    private static ReentrantLock getLock(String plugin) {
++        ReentrantLock lock = locks.get(plugin);
++
++        if (lock == null) {
++            // computeIfAbsent requires an expensive synchronized call even if the value is already present, so check with a get first
++            lock = locks.computeIfAbsent(plugin, (name) -> new ReentrantLock());
++        }
++
++        return lock;
++    }
++
++    private static void lock(List<String> pluginsToLock) {
++        List<String> locksToAcquire = new ArrayList<>(pluginsToLock); // Must be a list as we can hold the same lock multiple times due to recursion
++
++        if (!heldPluginLocks.get().isEmpty()) {
++            // We already have some locks, take care to avoid a deadlock with another thread
++            if (tryLockNow(locksToAcquire)) {
++                heldPluginLocks.get().addAll(locksToAcquire);
++                return;
++            } else {
++                // We failed to instantly acquire the lock, back off from all locks and try again to avoid a deadlock
++                for (String plugin : heldPluginLocks.get()) {
++                    getLock(plugin).unlock();
++                    locksToAcquire.add(plugin);
++                }
++                heldPluginLocks.get().clear();
++                Collections.sort(locksToAcquire); // Ensure we lock in a predictable order to avoid deadlocks
++            }
++        }
++
++        for (String plugin : locksToAcquire) {
++            getLock(plugin).lock();
++            heldPluginLocks.get().add(plugin);
++        }
++    }
++
++    private static boolean tryLockNow(List<String> locksToReacquire) {
++        boolean success = true;
++
++        List<ReentrantLock> locksAquired = new ArrayList<>();
++
++        for (String plugin : locksToReacquire) {
++            ReentrantLock lock = getLock(plugin);
++            if (lock.tryLock()) {
++                locksAquired.add(lock);
++            } else {
++                success = false;
++                break;
++            }
++        }
++
++        if (!success) {
++            for (ReentrantLock lock : locksAquired) {
++                lock.unlock();
++            }
++        }
++
++        return success;
++    }
++
++    private static boolean fillPluginsToLock(Plugin plugin, TreeSet<String> pluginsToLock) {
++        if (pluginsToLock.contains(plugin.getName())) {
++            // Cyclic graphhhh
++            return true;
++        }
++
++        if (plugin.getDescription().isFoliaSupported()) {
++            // Multi-thread safe plugin, we don't need to lock it
++            return false;
++        }
++
++        boolean hasDependency = false;
++
++        for (String depend : plugin.getDescription().getDepend()) {
++            Plugin dependPlugin = plugin.getServer().getPluginManager().getPlugin(depend);
++            if (dependPlugin != null) {
++                hasDependency |= fillPluginsToLock(dependPlugin, pluginsToLock);
++            } else {
++                LOGGER.warn("Could not find dependency " + depend + " for plugin " + plugin.getName() + " even though it is a required dependency - this code shouldn't've been able to be run!");
++            }
++        }
++
++        for (String softDepend : plugin.getDescription().getSoftDepend()) {
++            Plugin softDependPlugin = plugin.getServer().getPluginManager().getPlugin(softDepend);
++            if (softDependPlugin != null) {
++                hasDependency |= fillPluginsToLock(softDependPlugin, pluginsToLock);
++            }
++        }
++
++        if (!hasDependency) {
++            // Only add our own plugin if we have no dependencies to lock
++            // If we have a dependency, there's no point in locking this plugin by itself as we'll always be locking the dependency anyway
++            pluginsToLock.add(plugin.getName());
++        }
++
++        return true;
++    }
++
++    public interface RunnableWithException {
++        void run() throws Exception;
++    }
++
++}
+diff --git a/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java b/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java
+index e94224ed280247ee69dfdff8dc960f2b8729be33..9025b44a3ef50e95dcbb4351763f550c0d49e193 100644
+--- a/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java
++++ b/src/main/java/io/papermc/paper/command/PaperPluginsCommand.java
+@@ -3,6 +3,7 @@ package io.papermc.paper.command;
+ import com.google.common.collect.Lists;
+ import io.leangen.geantyref.GenericTypeReflector;
+ import io.leangen.geantyref.TypeToken;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
+ import io.papermc.paper.plugin.configuration.PluginMeta;
+ import io.papermc.paper.plugin.entrypoint.Entrypoint;
+ import io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler;
+@@ -61,8 +62,18 @@ public class PaperPluginsCommand extends BukkitCommand {
+             performance issues.
+             """));
+ 
++    private static final Component NON_FOLIA_PLUGIN_INFO = Component.text("ℹ What is a non-supported plugin?", INFO_COLOR)
++            .append(asPlainComponents("""
++            A non-supported plugin is a plugin that was not made
++            to run in a multi-threaded environment.
++                        
++            It is encouraged that you replace this plugin,
++            as they might not work correctly and may cause
++            performance issues.
++            """));
++
+     private static final Component LEGACY_PLUGIN_STAR = Component.text('*', TextColor.color(255, 212, 42)).hoverEvent(LEGACY_PLUGIN_INFO);
+-    private static final Component INFO_ICON_START = Component.text("ℹ ", INFO_COLOR);
++    private static final Component NON_FOLIA_PLUGIN_STAR = Component.text('⁺', TextColor.color(255, 212, 42)).hoverEvent(NON_FOLIA_PLUGIN_INFO); // ShreddedPaper
+     private static final Component PAPER_HEADER = Component.text("Paper Plugins:", TextColor.color(2, 136, 209));
+     private static final Component BUKKIT_HEADER = Component.text("Bukkit Plugins:", TextColor.color(237, 129, 6));
+     private static final Component PLUGIN_TICK = Component.text("- ", NamedTextColor.DARK_GRAY);
+@@ -115,6 +126,12 @@ public class PaperPluginsCommand extends BukkitCommand {
+             builder.append(LEGACY_PLUGIN_STAR);
+         }
+ 
++        // ShreddedPaper start
++        if (provider instanceof SpigotPluginProvider spigotPluginProvider && ShreddedPaperConfiguration.get().multithreading.threadCount != 1 && !spigotPluginProvider.getMeta().isFoliaSupported()) {
++            builder.append(NON_FOLIA_PLUGIN_STAR);
++        }
++        // ShreddedPaper end
++
+         String name = provider.getMeta().getName();
+         Component pluginName = Component.text(name, fromStatus(provider))
+         // Purpur start
+diff --git a/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java b/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
+index 24121a43aeb5e9bce013f30c92dddd15f99736c6..c234deec92e155336078cbbce1f726d87c35b753 100644
+--- a/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
++++ b/src/main/java/io/papermc/paper/command/brigadier/bukkit/BukkitCommandNode.java
+@@ -19,6 +19,9 @@ import org.bukkit.Location;
+ import org.bukkit.command.Command;
+ import org.bukkit.command.CommandException;
+ import org.bukkit.command.CommandSender;
++import org.bukkit.command.PluginCommand;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
++import io.multipaper.shreddedpaper.util.ObjectHolder;
+ 
+ import java.util.Arrays;
+ import java.util.List;
+@@ -88,7 +91,14 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
+ 
+             //try (Timing ignored = this.command.timings.startTiming()) { // Purpur
+                 // Note: we don't return the result of target.execute as thats success / failure, we return handled (true) or not handled (false)
+-                this.command.execute(sender, this.literal, Arrays.copyOfRange(args, 1, args.length));
++                // ShreddedPaper start - run unsupported plugins in sync
++                Runnable runnable = () -> this.command.execute(sender, this.literal, Arrays.copyOfRange(args, 1, args.length));
++                if (this.command instanceof PluginCommand pluginCommand) {
++                    SynchronousPluginExecution.executeNoException(pluginCommand.getPlugin(), runnable::run);
++                } else {
++                    runnable.run();
++                }
++                // ShreddedPaper end
+             //} // Purpur
+ 
+             // return true as command was handled
+@@ -112,32 +122,45 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
+             org.bukkit.command.CommandSender sender = context.getSource().getSender();
+             String[] args = builder.getRemaining().split(" ", -1); // We need the command included -- Set limit to -1, allow for trailing spaces
+ 
+-            List<String> results = null;
++            ObjectHolder<List<String>> results = new ObjectHolder<>(); // ShreddedPaper
+             Location pos = context.getSource().getLocation();
+             try {
+-                results = this.command.tabComplete(sender, this.literal, args, pos.clone());
++                // ShreddedPaper start - run unsupported plugins in sync
++                try {
++                    SynchronousPluginExecution.RunnableWithException runnable = () -> results.value(this.command.tabComplete(sender, this.literal, args, pos.clone()));
++                    if (this.command instanceof PluginCommand pluginCommand) {
++                        SynchronousPluginExecution.execute(pluginCommand.getPlugin(), runnable);
++                    } else {
++                        runnable.run();
++                    }
++                } catch (Error | RuntimeException e) {
++                    throw e;
++                } catch (Exception e) {
++                    throw new RuntimeException(e);
++                }
++                // ShreddedPaper end
+             } catch (CommandException ex) {
+                 sender.sendMessage(ChatColor.RED + "An internal error occurred while attempting to tab-complete this command");
+                 Bukkit.getServer().getLogger().log(Level.SEVERE, "Exception when " + sender.getName() + " attempted to tab complete " + builder.getRemaining(), ex);
+             }
+ 
+             if (sender instanceof final Player player) {
+-                TabCompleteEvent tabEvent = new org.bukkit.event.server.TabCompleteEvent(player, builder.getInput(), results != null ? results : new ArrayList<>(), true, pos); // Paper - AsyncTabCompleteEvent
++                TabCompleteEvent tabEvent = new org.bukkit.event.server.TabCompleteEvent(player, builder.getInput(), results.value() != null ? results.value() : new ArrayList<>(), true, pos); // Paper - AsyncTabCompleteEvent // ShreddedPaper
+                 if (!tabEvent.callEvent()) {
+-                    results = null;
++                    results.value(null); // ShreddedPaper
+                 } else {
+-                    results = tabEvent.getCompletions();
++                    results.value(tabEvent.getCompletions()); // ShreddedPaper
+                 }
+             }
+             // Paper end
+-            if (results == null) {
++            if (results.value() == null) { // ShreddedPaper
+                 return builder.buildFuture();
+             }
+ 
+             // Defaults to sub nodes, but we have just one giant args node, so offset accordingly
+             builder = builder.createOffset(builder.getInput().lastIndexOf(' ') + 1);
+ 
+-            for (String s : results) {
++            for (String s : results.value()) { // ShreddedPaper
+                 builder.suggest(s);
+             }
+ 
+diff --git a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+index 2c82a48867ab347f21822576baa0368273242f82..143638f994a842472e827cb9b4efc160a7235aa4 100644
+--- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
++++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
+@@ -19,6 +19,8 @@ import org.bukkit.plugin.IllegalPluginAccessException;
+ import org.bukkit.plugin.Plugin;
+ import org.bukkit.plugin.RegisteredListener;
+ import org.jetbrains.annotations.NotNull;
++import io.multipaper.shreddedpaper.config.ShreddedPaperConfiguration;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
+ 
+ import java.lang.reflect.Method;
+ import java.util.Arrays;
+@@ -53,7 +55,15 @@ class PaperEventManager {
+             }
+ 
+             try {
+-                registration.callEvent(event);
++                // ShreddedPaper start - run unsupported plugins in sync
++                if (event.isAsynchronous()) {
++                    registration.callEvent(event);
++                } else {
++                    SynchronousPluginExecution.execute(registration.getPlugin(), () -> {
++                        registration.callEvent(event);
++                    });
++                }
++                // ShreddedPaper end - run unsupported plugins in sync
+             } catch (AuthorNagException ex) {
+                 Plugin plugin = registration.getPlugin();
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+index 91a7816968b3eb7ec2bc471a328d4b75eec09770..0ab40a285b72ab548a575edc3855422805e3b994 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftWorld.java
+@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
+ import com.mojang.datafixers.util.Pair;
+ import io.multipaper.shreddedpaper.ShreddedPaper;
+ import io.multipaper.shreddedpaper.region.RegionPos;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
+ import io.papermc.paper.util.TickThread;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+@@ -2583,12 +2584,13 @@ public class CraftWorld extends CraftRegionAccessor implements World {
+         }
+ 
+         java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
++        Plugin plugin = SynchronousPluginExecution.getCurrentPlugin(); // ShreddedPaper - synchronous plugin execution
+ 
+         io.papermc.paper.chunk.system.ChunkSystem.scheduleChunkLoad(this.getHandle(), x, z, gen, ChunkStatus.FULL, true, priority, (c) -> {
+             if (c != null) this.addTicket(x, z); // Paper // ShreddedPaper - add the ticket before scheduling on correct thread
+             ShreddedPaper.ensureSync(this.getHandle(), c.getPos(), () -> { // ShreddedPaper - ensure on correct thread
+                 net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk)c;
+-                ret.complete(chunk == null ? null : new CraftChunk(chunk));
++                SynchronousPluginExecution.executeNoException(plugin, () -> ret.complete(chunk == null ? null : new CraftChunk(chunk))); // ShreddedPaper - synchronous plugin execution
+             });
+         });
+ 
+diff --git a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+index 8bdb226269e931d31d3876a10f24f4e7810d4aae..99fad810a700952b15f71ca89d984ccd64e6a697 100644
+--- a/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
++++ b/src/main/java/org/bukkit/craftbukkit/entity/CraftEntity.java
+@@ -10,6 +10,7 @@ import java.util.Set;
+ import java.util.UUID;
+ 
+ import io.multipaper.shreddedpaper.ShreddedPaper;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.Tag;
+ import net.minecraft.network.chat.Component;
+@@ -1068,6 +1069,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+ 
+         net.minecraft.server.level.ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
+         java.util.concurrent.CompletableFuture<Boolean> ret = new java.util.concurrent.CompletableFuture<>();
++        Plugin plugin = SynchronousPluginExecution.getCurrentPlugin(); // ShreddedPaper - synchronous plugin execution
+ 
+         // ShreddedPaper start - run sync if possible
+         ChunkPos fromChunkPos = this.getHandle().chunkPosition();
+@@ -1100,13 +1102,13 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
+                         world, RegionPos.forLocation(locationClone),
+                         () -> { // ShreddedPaper - Run teleports on the correct threads
+                     try {
+-                        ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
++                        SynchronousPluginExecution.executeNoException(plugin, () -> ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE)); // ShreddedPaper - synchronous plugin execution
+                     } catch (Throwable throwable) {
+                         if (throwable instanceof ThreadDeath) {
+                             throw (ThreadDeath)throwable;
+                         }
+                         net.minecraft.server.MinecraftServer.LOGGER.error("Failed to teleport entity " + CraftEntity.this, throwable);
+-                        ret.completeExceptionally(throwable);
++                        SynchronousPluginExecution.executeNoException(plugin, () -> ret.completeExceptionally(throwable)); // ShreddedPaper - synchronous plugin execution
+                     }
+                 });
+             });
+diff --git a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
+index 57f0342513205e4fc536f31d47623b6564efc8b7..e8437d039af0457fc6fc877def12f973ab263735 100644
+--- a/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
++++ b/src/main/java/org/bukkit/craftbukkit/scheduler/CraftScheduler.java
+@@ -24,6 +24,7 @@ import org.bukkit.scheduler.BukkitRunnable;
+ import org.bukkit.scheduler.BukkitScheduler;
+ import org.bukkit.scheduler.BukkitTask;
+ import org.bukkit.scheduler.BukkitWorker;
++import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
+ 
+ /**
+  * The fundamental concepts for this implementation:
+@@ -479,7 +480,7 @@ public class CraftScheduler implements BukkitScheduler {
+             if (task.isSync()) {
+                 this.currentTask = task;
+                 try {
+-                    task.run();
++                    SynchronousPluginExecution.execute(task.getOwner(), task::run); // ShreddedPaper - run unsupported plugins in sync
+                 } catch (final Throwable throwable) {
+                     // Paper start
+                     String msg = String.format(

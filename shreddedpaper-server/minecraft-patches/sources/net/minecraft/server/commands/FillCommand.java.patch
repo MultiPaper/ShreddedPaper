@@ -8,59 +8,18 @@
  import java.util.Collections;
  import java.util.List;
  import java.util.function.Predicate;
-@@ -180,15 +_,17 @@
-         if (i > i1) {
-             throw ERROR_AREA_TOO_LARGE.create(i1, i);
-         } else {
--            record UpdatedPosition(BlockPos pos, BlockState oldState) {
--            }
--
--            List<UpdatedPosition> list = Lists.newArrayList();
-             ServerLevel level = source.getLevel();
+@@ -188,6 +_,7 @@
              if (level.isDebug()) {
                  throw ERROR_FAILED.create();
              } else {
--                int i2 = 0;
-+                // ShreddedPaper start - run on correct region thread
-+                ShreddedPaper.ensureSync(level, new BlockPos(box.minX(), box.minY(), box.minZ()), () -> {
-+                record UpdatedPosition(BlockPos pos, BlockState oldState) {
-+                }
-+
-+                List<UpdatedPosition> list = Lists.newArrayList();
-+                int[] counter = {0}; // ShreddedPaper - use array to allow modification in lambda
++                ShreddedPaper.ensureSync(level, new BlockPos(box.minX(), box.minY(), box.minZ()), () -> { // ShreddedPaper - run on correct region thread
+                 int i2 = 0;
  
                  for (BlockPos blockPos : BlockPos.betweenClosed(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ())) {
-                     if (filter == null || filter.test(new BlockInWorld(level, blockPos, true))) {
-@@ -201,20 +_,20 @@
-                         BlockInput blockInput = mode.filter.filter(box, blockPos, block, level);
-                         if (blockInput == null) {
-                             if (flag) {
--                                i2++;
-+                                counter[0]++;
-                             }
-                         } else if (!blockInput.place(
-                             level, blockPos, Block.UPDATE_CLIENTS | (strict ? Block.UPDATE_SKIP_ALL_SIDEEFFECTS : Block.UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS)
-                         )) {
-                             if (flag) {
--                                i2++;
-+                                counter[0]++;
-                             }
-                         } else {
-                             if (!strict) {
-                                 list.add(new UpdatedPosition(blockPos.immutable(), blockState));
-                             }
- 
--                            i2++;
-+                            counter[0]++;
-                         }
-                     }
-                 }
 @@ -223,13 +_,24 @@
                      level.updateNeighboursOnBlockSet(updatedPosition.pos, updatedPosition.oldState);
                  }
  
--                if (i2 == 0) {
--                    throw ERROR_FAILED.create();
 +                // ShreddedPaper start - clear cached chunk packets for affected chunks
 +                for (int chunkX = box.minX() >> 4; chunkX <= box.maxX() >> 4; chunkX++) {
 +                    for (int chunkZ = box.minZ() >> 4; chunkZ <= box.maxZ() >> 4; chunkZ++) {
@@ -70,18 +29,17 @@
 +                }
 +                // ShreddedPaper end - clear cached chunk packets for affected chunks
 +
-+                if (counter[0] == 0) {
-+                    source.sendFailure(Component.translatable("commands.fill.failed")); // ShreddedPaper - send failure message instead of throwing
+                 if (i2 == 0) {
+-                    throw ERROR_FAILED.create();
++                    source.sendFailure(Component.translatable("commands.fill.failed")); // ShreddedPaper - run on correct region thread - send failure message instead of throwing
                  } else {
--                    int i3 = i2;
--                    source.sendSuccess(() -> Component.translatable("commands.fill.success", i3), true);
+                     int i3 = i2;
+                     source.sendSuccess(() -> Component.translatable("commands.fill.success", i3), true);
 -                    return i2;
-+                    int finalCount = counter[0];
-+                    source.sendSuccess(() -> Component.translatable("commands.fill.success", finalCount), true);
++                    // return i2; // ShreddedPaper - run on correct region thread
                  }
-+                });
-+                return 1;
-+                // ShreddedPaper end - run on correct region thread
++                }); // ShreddedPaper - run on correct region thread
++                return 1; // ShreddedPaper - run on correct region thread
              }
          }
      }

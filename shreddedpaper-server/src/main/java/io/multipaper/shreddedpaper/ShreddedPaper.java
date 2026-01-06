@@ -21,6 +21,10 @@ public class ShreddedPaper {
         entity.getBukkitEntity().taskScheduler.schedule(e -> runnable.run(), null, 1);
     }
 
+    public static void runSync(Entity entity, Consumer<Entity> consumer) {
+        entity.getBukkitEntity().taskScheduler.schedule(consumer, null, 1);
+    }
+
     public static void runSync(ServerLevel serverLevel, BlockPos blockPos, Runnable runnable) {
         runSync(serverLevel, ChunkPos.of(blockPos), runnable);
     }
@@ -47,7 +51,7 @@ public class ShreddedPaper {
 
     public static void ensureSync(Entity entity, Consumer<Entity> consumer) {
         if (!isSync((ServerLevel) entity.level(), entity.chunkPosition())) {
-            entity.getBukkitEntity().taskScheduler.schedule(consumer, null, 1);
+            runSync(entity, consumer);
         } else {
             consumer.accept(entity);
         }

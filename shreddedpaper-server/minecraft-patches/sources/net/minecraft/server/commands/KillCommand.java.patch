@@ -13,14 +13,12 @@
  import net.minecraft.world.entity.Entity;
  
  public class KillCommand {
-@@ -23,8 +_,9 @@
-     }
+@@ -24,7 +_,7 @@
  
      private static int kill(CommandSourceStack source, Collection<? extends Entity> targets) {
-+        ServerLevel level = source.getLevel(); // ShreddedPaper
          for (Entity entity : targets) {
 -            entity.kill(source.getLevel());
-+            ShreddedPaper.ensureSync(entity, e -> e.kill(level)); // ShreddedPaper - run on right thread
++            ShreddedPaper.ensureSync(entity, e -> e.kill(source.getLevel())); // ShreddedPaper - run on right thread
          }
  
          if (targets.size() == 1) {

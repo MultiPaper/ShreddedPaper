@@ -1,13 +1,51 @@
 --- a/net/minecraft/world/entity/raid/Raids.java
 +++ b/net/minecraft/world/entity/raid/Raids.java
-@@ -2,6 +_,7 @@
+@@ -1,12 +_,15 @@
+ package net.minecraft.world.entity.raid;
  
++import com.google.common.collect.Maps;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
+ import java.util.Iterator;
+ import java.util.List;
++import java.util.Map;
+ import java.util.OptionalInt;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+@@ -37,7 +_,7 @@
+                 Raids.RaidWithId.CODEC
+                     .listOf()
+                     .optionalFieldOf("raids", List.of())
+-                    .forGetter(raids -> raids.raidMap.int2ObjectEntrySet().stream().map(Raids.RaidWithId::from).toList()),
++                    .forGetter(raids -> raids.raidMap.entrySet().stream().map(Raids.RaidWithId::from).toList()), // ShreddedPaper - concurrent map
+                 Codec.INT.fieldOf("next_id").forGetter(raids -> raids.nextId),
+                 Codec.INT.fieldOf("tick").forGetter(raids -> raids.tick)
+             )
+@@ -45,7 +_,7 @@
+     );
+     public static final SavedDataType<Raids> TYPE = new SavedDataType<>("raids", Raids::new, CODEC, DataFixTypes.SAVED_DATA_RAIDS);
+     public static final SavedDataType<Raids> TYPE_END = new SavedDataType<>("raids_end", Raids::new, CODEC, DataFixTypes.SAVED_DATA_RAIDS);
+-    public final Int2ObjectMap<Raid> raidMap = new Int2ObjectOpenHashMap<>();
++    public final Map<Integer, Raid> raidMap = Maps.newConcurrentMap(); // ShreddedPaper - concurrent map
+     private int nextId = 1;
+     private int tick;
+ 
+@@ -72,9 +_,9 @@
+     }
+ 
+     public OptionalInt getId(Raid raid) {
+-        for (Entry<Raid> entry : this.raidMap.int2ObjectEntrySet()) {
++        for (Map.Entry<Integer, Raid> entry : this.raidMap.entrySet()) { // ShreddedPaper - concurrent map
+             if (entry.getValue() == raid) {
+-                return OptionalInt.of(entry.getIntKey());
++                return OptionalInt.of(entry.getKey());
+             }
+         }
+ 
 @@ -98,16 +_,18 @@
  
          while (iterator.hasNext()) {
@@ -28,3 +66,14 @@
          }
  
          if (this.tick % 200 == 0) {
+@@ -215,8 +_,8 @@
+                 .apply(instance, Raids.RaidWithId::new)
+         );
+ 
+-        public static Raids.RaidWithId from(Entry<Raid> entry) {
+-            return new Raids.RaidWithId(entry.getIntKey(), entry.getValue());
++        public static Raids.RaidWithId from(Map.Entry<Integer, Raid> entry) { // ShreddedPaper - concurrent map
++            return new Raids.RaidWithId(entry.getKey(), entry.getValue()); // ShreddedPaper - concurrent map
+         }
+     }
+ }
