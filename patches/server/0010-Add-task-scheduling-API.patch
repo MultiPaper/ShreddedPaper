@@ -6,10 +6,10 @@ Subject: [PATCH] Add task scheduling API
 
 diff --git a/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..fd36882c99720cc04c72d30f18a943e2e70e0e99
+index 0000000000000000000000000000000000000000..2cbe8b4810b0198c0b00c8215c5e076ffd8d454e
 --- /dev/null
 +++ b/src/main/java/io/multipaper/shreddedpaper/ShreddedPaper.java
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,86 @@
 +package io.multipaper.shreddedpaper;
 +
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
@@ -69,7 +69,15 @@ index 0000000000000000000000000000000000000000..fd36882c99720cc04c72d30f18a943e2
 +
 +    public static void ensureSync(Entity entity1, ServerLevel serverLevel2, ChunkPos chunkPos2, Runnable runnable) {
 +        if (!isSync((ServerLevel) entity1.level(), entity1.chunkPosition()) || !isSync(serverLevel2, chunkPos2)) {
-+            runSync((ServerLevel) entity1.level(), entity1.chunkPosition(), serverLevel2, chunkPos2, () -> ensureSync(entity1, serverLevel2, chunkPos2, runnable)); // Entity may have moved since, ensure still sync);
++            runSync((ServerLevel) entity1.level(), entity1.chunkPosition(), serverLevel2, chunkPos2, () -> ensureSync(entity1, serverLevel2, chunkPos2, runnable)); // Entity may have moved since, ensure still sync
++        } else {
++            runnable.run();
++        }
++    }
++
++    public static void ensureSync(Entity entity1, Entity entity2, Runnable runnable) {
++        if (!isSync((ServerLevel) entity1.level(), entity1.chunkPosition()) || !isSync((ServerLevel) entity2.level(), entity2.chunkPosition())) {
++            runSync((ServerLevel) entity1.level(), entity1.chunkPosition(), (ServerLevel) entity2.level(), entity2.chunkPosition(), () -> ensureSync(entity1, entity2, runnable)); // Entity may have moved since, ensure still sync
 +        } else {
 +            runnable.run();
 +        }

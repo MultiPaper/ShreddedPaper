@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Tue, 6 Jan 2026 21:39:18 +0900
+Subject: [PATCH] Teleport to owner async
+
+
+diff --git a/src/main/java/net/minecraft/world/entity/ai/goal/FollowOwnerGoal.java b/src/main/java/net/minecraft/world/entity/ai/goal/FollowOwnerGoal.java
+index edd29c2f4d0151d512618115a8fb4b7423171491..36578973cf0066648d1c392a0fb760e5270eed2c 100644
+--- a/src/main/java/net/minecraft/world/entity/ai/goal/FollowOwnerGoal.java
++++ b/src/main/java/net/minecraft/world/entity/ai/goal/FollowOwnerGoal.java
+@@ -1,6 +1,8 @@
+ package net.minecraft.world.entity.ai.goal;
+ 
+ import java.util.EnumSet;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.LivingEntity;
+@@ -107,6 +109,7 @@ public class FollowOwnerGoal extends Goal {
+     }
+ 
+     private void teleportToOwner() {
++        ShreddedPaper.ensureSync(this.tamable, owner, () -> { // ShreddedPaper - run on this and owner's thread
+         BlockPos blockposition = this.owner.blockPosition();
+ 
+         for (int i = 0; i < 10; ++i) {
+@@ -119,6 +122,7 @@ public class FollowOwnerGoal extends Goal {
+                 return;
+             }
+         }
++        }); // ShreddedPaper - run on this and owner's thread
+ 
+     }
+ 
