@@ -1,0 +1,60 @@
+--- a/net/minecraft/server/commands/CloneCommands.java
++++ b/net/minecraft/server/commands/CloneCommands.java
+@@ -8,6 +_,7 @@
+ import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
+ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+ import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import java.util.Deque;
+ import java.util.List;
+ import java.util.function.Predicate;
+@@ -233,11 +_,13 @@
+             } else if (serverLevel1.isDebug()) {
+                 throw ERROR_FAILED.create();
+             } else {
++                // ShreddedPaper start - run on correct region thread
++                ShreddedPaper.ensureSync(serverLevel1, blockPos2, () -> {
+                 List<CloneCommands.CloneBlockInfo> list = Lists.newArrayList();
+                 List<CloneCommands.CloneBlockInfo> list1 = Lists.newArrayList();
+                 List<CloneCommands.CloneBlockInfo> list2 = Lists.newArrayList();
+                 Deque<BlockPos> list3 = Lists.newLinkedList();
+-                int i2 = 0;
++                int[] counter = {0}; // ShreddedPaper - use array to allow modification in lambda
+                 ProblemReporter.ScopedCollector scopedCollector = new ProblemReporter.ScopedCollector(LOGGER);
+ 
+                 try {
+@@ -303,7 +_,7 @@
+ 
+                     for (CloneCommands.CloneBlockInfo cloneBlockInfo : list4) {
+                         if (serverLevel1.setBlock(cloneBlockInfo.pos, cloneBlockInfo.state, z)) {
+-                            i2++;
++                            counter[0]++;
+                         }
+                     }
+ 
+@@ -336,17 +_,19 @@
+                         var35.addSuppressed(var34);
+                     }
+ 
+-                    throw var35;
++                    throw new RuntimeException(var35); // ShreddedPaper - wrap in RuntimeException for lambda
+                 }
+ 
+                 scopedCollector.close();
+-                if (i2 == 0) {
+-                    throw ERROR_FAILED.create();
++                if (counter[0] == 0) {
++                    source.sendFailure(Component.translatable("commands.clone.failed")); // ShreddedPaper - send failure message instead of throwing
+                 } else {
+-                    int i3 = i2;
+-                    source.sendSuccess(() -> Component.translatable("commands.clone.success", i3), true);
+-                    return i2;
++                    int finalCount = counter[0];
++                    source.sendSuccess(() -> Component.translatable("commands.clone.success", finalCount), true);
+                 }
++                });
++                return 1;
++                // ShreddedPaper end - run on correct region thread
+             }
+         }
+     }
