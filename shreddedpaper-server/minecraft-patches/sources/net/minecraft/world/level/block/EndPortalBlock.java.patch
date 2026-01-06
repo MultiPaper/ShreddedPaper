@@ -35,7 +35,7 @@
 +            final CompletableFuture<Void> future; // ShreddedPaper - async teleportation
              if (!flag) {
 -                EndPlatformFeature.createEndPlatform(level1, BlockPos.containing(bottomCenter).below(), true, entity); // CraftBukkit
-+                future = CompletableFuture.runAsync(() -> EndPlatformFeature.createEndPlatform(level1, blockPos, true, entity), r -> ShreddedPaper.ensureSync(level1, blockPos, r)); // CraftBukkit // ShreddedPaper - async teleportation
++                future = CompletableFuture.runAsync(() -> EndPlatformFeature.createEndPlatform(level1, BlockPos.containing(bottomCenter.get()).below(), true, entity), r -> ShreddedPaper.ensureSync(level1, blockPos, r)); // CraftBukkit // ShreddedPaper - async teleportation
                  f = Direction.WEST.toYRot();
                  f1 = 0.0F;
                  set = Relative.union(Relative.DELTA, Set.of(Relative.X_ROT));
