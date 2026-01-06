@@ -16,14 +16,15 @@
              this.level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, new ChunkPos(0, 0), 9);
              boolean isArenaLoaded = this.isArenaLoaded();
              if (this.needsStateScanning && isArenaLoaded) {
-@@ -184,6 +_,12 @@
+@@ -184,6 +_,13 @@
                      this.ticksSinceCrystalsScanned = 0;
                  }
              }
 +            // ShreddedPaper start - run on end island thread
 +            };
 +            while (!this.level.chunkScheduler.getRegionLocker().tryLockNow(RegionPos.forChunk(0, 0), r)) {
-+                Thread.yield(); // ShreddedPaper - yield instead of managedBlock to avoid deadlock
++                long startBlockingTime = System.nanoTime();
++                this.level.chunkSource.mainThreadProcessor.managedBlock(() -> System.nanoTime() - startBlockingTime < 1_000_000); // Wait for 1ms
 +            }
 +            // ShreddedPaper end - run on end island thread
          } else {

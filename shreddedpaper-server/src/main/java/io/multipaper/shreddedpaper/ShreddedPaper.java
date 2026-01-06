@@ -30,7 +30,7 @@ public class ShreddedPaper {
     }
 
     public static void runSync(ServerLevel serverLevel, ChunkPos chunkPos, Runnable runnable) {
-        serverLevel.chunkScheduler.schedule(RegionPos.forChunk(chunkPos), runnable);
+        serverLevel.getChunkSource().tickingRegions.scheduleTask(RegionPos.forChunk(chunkPos), runnable);
     }
 
     public static void runSync(ServerLevel serverLevel1, ChunkPos chunkPos1, ServerLevel serverLevel2, ChunkPos chunkPos2, Runnable runnable) {

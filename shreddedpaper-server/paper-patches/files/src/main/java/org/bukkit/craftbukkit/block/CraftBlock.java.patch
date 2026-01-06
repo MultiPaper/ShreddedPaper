@@ -44,21 +44,21 @@
  
          // SPIGOT-6895: Call StructureGrowEvent and BlockFertilizeEvent
 -        world.captureTreeGeneration = true;
-+        world.captureTreeGeneration.set(true); // ShreddedPaper - thread local
++        world.captureTreeGenerationThreadLocal.set(true); // ShreddedPaper - use thread local
          InteractionResult result = BoneMealItem.applyBonemeal(context);
 -        world.captureTreeGeneration = false;
-+        world.captureTreeGeneration.set(false); // ShreddedPaper - thread local
++        world.captureTreeGenerationThreadLocal.set(false); // ShreddedPaper - use thread local
  
 -        if (!world.capturedBlockStates.isEmpty()) {
 -            TreeType treeType = SaplingBlock.treeType;
 -            SaplingBlock.treeType = null;
 -            List<BlockState> states = new ArrayList<>(world.capturedBlockStates.values());
 -            world.capturedBlockStates.clear();
-+        if (!world.capturedBlockStates.get().isEmpty()) { // ShreddedPaper - thread local
++        if (!world.capturedBlockStatesThreadLocal.get().isEmpty()) { // ShreddedPaper - use thread local
 +            TreeType treeType = SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - use thread local
 +            SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - use thread local
-+            List<BlockState> states = new ArrayList<>(world.capturedBlockStates.get().values()); // ShreddedPaper - thread local
-+            world.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
++            List<BlockState> states = new ArrayList<>(world.capturedBlockStatesThreadLocal.get().values()); // ShreddedPaper - use thread local
++            world.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local
              StructureGrowEvent structureEvent = null;
  
              if (treeType != null) {

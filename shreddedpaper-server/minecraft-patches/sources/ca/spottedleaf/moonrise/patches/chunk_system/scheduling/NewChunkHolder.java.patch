@@ -40,7 +40,7 @@
              }
          }
      }
-@@ -1194,6 +_,24 @@
+@@ -1194,6 +_,22 @@
          this.currentFullChunkStatus = to;
      }
  
@@ -48,10 +48,8 @@
 +    public boolean ensureFullStatusChangeWithWriteLock() {
 +        // Upgrading to a full loaded chunk is just a chunk load task, which does not require the write lock
 +        // However, upgrading to block ticking or entity ticking is more than just loading a chunk, and requires us to have the write lock
-+        ChunkPos chunkPos = this.vanillaChunkHolder.getPos();
-+        RegionPos regionPos = RegionPos.forChunk(chunkPos);
-+        if (!MinecraftServer.getServer().forceTicks && !this.world.chunkScheduler.getRegionLocker().hasWriteLock(regionPos)) {
-+            ShreddedPaper.runSync(world, chunkPos, () -> {
++        if (!MinecraftServer.getServer().forceTicks && !ShreddedPaperChunkTicker.isCurrentlyTickingRegion(this.world, RegionPos.forChunk(this.vanillaChunkHolder.getPos()))) {
++            ShreddedPaper.runSync(world, vanillaChunkHolder.getPos(), () -> {
 +                List<NewChunkHolder> changedFullStatus2 = new ArrayList<>();
 +                handleFullStatusChange(changedFullStatus2);
 +                this.scheduler.chunkHolderManager.addChangedStatuses(changedFullStatus2);

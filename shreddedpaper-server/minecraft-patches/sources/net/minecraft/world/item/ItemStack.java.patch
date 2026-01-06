@@ -5,21 +5,21 @@
  
              if (!(item instanceof BucketItem/* || item instanceof SolidBucketItem*/)) { // if not bucket // Paper - Fix cancelled powdered snow bucket placement
 -                serverLevel.captureBlockStates = true;
-+                serverLevel.captureBlockStates.set(true); // ShreddedPaper - thread local
++                serverLevel.captureBlockStatesThreadLocal.set(true); // ShreddedPaper - use thread local
                  // special case bonemeal
                  if (item == Items.BONE_MEAL) {
 -                    serverLevel.captureTreeGeneration = true;
-+                    serverLevel.captureTreeGeneration.set(true); // ShreddedPaper - thread local
++                    serverLevel.captureTreeGenerationThreadLocal.set(false); // ShreddedPaper - use thread local
                  }
              }
              InteractionResult interactionResult;
              try {
-+                serverLevel.capturedTileEntities.get().clear(); // ShreddedPaper - clear beforehand
-+                serverLevel.capturedBlockStates.get().clear(); // ShreddedPaper - clear beforehand
++                serverLevel.capturedTileEntitiesThreadLocal.get().clear(); // ShreddedPaper - use thread local - clear beforehand
++                serverLevel.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local - clear beforehand
                  interactionResult = item.useOn(context);
              } finally {
 -                serverLevel.captureBlockStates = false;
-+                serverLevel.captureBlockStates.set(false); // ShreddedPaper - thread local
++                serverLevel.captureBlockStatesThreadLocal.set(false); // ShreddedPaper - use thread local
              }
              DataComponentPatch newPatch = this.components.asPatch();
              int newCount = this.getCount();
@@ -27,8 +27,8 @@
              this.restorePatch(previousPatch);
 -            if (interactionResult.consumesAction() && serverLevel.captureTreeGeneration && !serverLevel.capturedBlockStates.isEmpty()) {
 -                serverLevel.captureTreeGeneration = false;
-+            if (interactionResult.consumesAction() && serverLevel.captureTreeGeneration.get() && !serverLevel.capturedBlockStates.get().isEmpty()) { // ShreddedPaper - thread local
-+                serverLevel.captureTreeGeneration.set(false); // ShreddedPaper - thread local
++            if (interactionResult.consumesAction() && serverLevel.captureTreeGenerationThreadLocal.get() && !serverLevel.capturedBlockStatesThreadLocal.get().isEmpty()) { // ShreddedPaper - use thread local
++                serverLevel.captureTreeGenerationThreadLocal.set(false); // ShreddedPaper - use thread local
                  org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(clickedPos, serverLevel);
 -                org.bukkit.TreeType treeType = net.minecraft.world.level.block.SaplingBlock.treeType;
 -                net.minecraft.world.level.block.SaplingBlock.treeType = null;
@@ -36,8 +36,8 @@
 -                serverLevel.capturedBlockStates.clear();
 +                org.bukkit.TreeType treeType = net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - use thread local
 +                net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - use thread local
-+                List<org.bukkit.craftbukkit.block.CraftBlockState> blocks = new java.util.ArrayList<>(serverLevel.capturedBlockStates.get().values()); // ShreddedPaper - thread local
-+                serverLevel.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
++                List<org.bukkit.craftbukkit.block.CraftBlockState> blocks = new java.util.ArrayList<>(serverLevel.capturedBlockStatesThreadLocal.get().values()); // ShreddedPaper - use thread local
++                serverLevel.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local
                  org.bukkit.event.world.StructureGrowEvent structureEvent = null;
                  if (treeType != null) {
                      boolean isBonemeal = this.getItem() == Items.BONE_MEAL;
@@ -50,14 +50,14 @@
                  return interactionResult;
              }
 -            serverLevel.captureTreeGeneration = false;
-+            serverLevel.captureTreeGeneration.set(false); // ShreddedPaper - thread local
++            serverLevel.captureTreeGenerationThreadLocal.set(false); // ShreddedPaper - use thread local
              if (player != null && interactionResult instanceof InteractionResult.Success success && success.wasItemInteraction()) {
                  InteractionHand hand = context.getHand();
                  org.bukkit.event.block.BlockPlaceEvent placeEvent = null;
 -                List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(serverLevel.capturedBlockStates.values());
 -                serverLevel.capturedBlockStates.clear();
-+                List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(serverLevel.capturedBlockStates.get().values()); // ShreddedPaper - thread local
-+                serverLevel.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
++                List<org.bukkit.block.BlockState> blocks = new java.util.ArrayList<>(serverLevel.capturedBlockStatesThreadLocal.get().values()); // ShreddedPaper - use thread local
++                serverLevel.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local
                  if (blocks.size() > 1) {
                      placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(serverLevel, player, hand, blocks, clickedPos);
                  } else if (blocks.size() == 1 && item != Items.POWDER_SNOW_BUCKET) { // Paper - Fix cancelled powdered snow bucket placement
@@ -66,7 +66,7 @@
                      // PAIL: Remove this when MC-99075 fixed
                      player.containerMenu.forceHeldSlot(hand);
 -                    serverLevel.capturedTileEntities.clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot
-+                    serverLevel.capturedTileEntities.get().clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot // ShreddedPaper - thread local
++                    serverLevel.capturedTileEntitiesThreadLocal.get().clear(); // Paper - Allow chests to be placed with NBT data; clear out block entities as chests and such will pop loot // ShreddedPaper - use thread local
                      // revert back all captured blocks
                      for (org.bukkit.block.BlockState blockstate : blocks) {
                          ((org.bukkit.craftbukkit.block.CraftBlockState) blockstate).revertPlace();
@@ -83,7 +83,7 @@
                      }
  
 -                    for (java.util.Map.Entry<BlockPos, net.minecraft.world.level.block.entity.BlockEntity> e : serverLevel.capturedTileEntities.entrySet()) {
-+                    for (java.util.Map.Entry<BlockPos, net.minecraft.world.level.block.entity.BlockEntity> e : serverLevel.capturedTileEntities.get().entrySet()) { // ShreddedPaper - thread local
++                    for (java.util.Map.Entry<BlockPos, net.minecraft.world.level.block.entity.BlockEntity> e : serverLevel.capturedTileEntitiesThreadLocal.get().entrySet()) { // ShreddedPaper - use thread local
                          serverLevel.setBlockEntity(e.getValue());
                      }
  
@@ -113,8 +113,8 @@
              }
 -            serverLevel.capturedTileEntities.clear();
 -            serverLevel.capturedBlockStates.clear();
-+            serverLevel.capturedTileEntities.get().clear(); // ShreddedPaper - thread local
-+            serverLevel.capturedBlockStates.get().clear(); // ShreddedPaper - thread local
++            serverLevel.capturedTileEntitiesThreadLocal.get().clear(); // ShreddedPaper - use thread local
++            serverLevel.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local
              // CraftBukkit end
  
              return interactionResult;

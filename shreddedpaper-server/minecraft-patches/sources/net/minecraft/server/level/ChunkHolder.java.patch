@@ -23,51 +23,6 @@
      public static final ChunkResult<LevelChunk> UNLOADED_LEVEL_CHUNK = ChunkResult.error("Unloaded level chunk");
      private static final CompletableFuture<ChunkResult<LevelChunk>> UNLOADED_LEVEL_CHUNK_FUTURE = CompletableFuture.completedFuture(UNLOADED_LEVEL_CHUNK);
      private final LevelHeightAccessor levelHeightAccessor;
-@@ -65,16 +_,20 @@
- 
-     @Override
-     public final void moonrise$addReceivedChunk(final ServerPlayer player) {
-+        synchronized (this.playersSentChunkTo) { // ShreddedPaper - synchronize
-         if (!this.playersSentChunkTo.add(player)) {
-             throw new IllegalStateException("Already sent chunk " + this.pos + " in world '" + ca.spottedleaf.moonrise.common.util.WorldUtil.getWorldName(this.getChunkMap().level) + "' to player " + player);
-         }
-+        } // ShreddedPaper - synchronize
-     }
- 
-     @Override
-     public final void moonrise$removeReceivedChunk(final ServerPlayer player) {
-+        synchronized (this.playersSentChunkTo) { // ShreddedPaper - synchronize
-         if (!this.playersSentChunkTo.remove(player)) {
-             throw new IllegalStateException("Already sent chunk " + this.pos + " in world '" + ca.spottedleaf.moonrise.common.util.WorldUtil.getWorldName(this.getChunkMap().level) + "' to player " + player);
-         }
-+        } // ShreddedPaper - synchronize
-     }
- 
-     @Override
-@@ -84,12 +_,15 @@
- 
-     @Override
-     public final boolean moonrise$hasChunkBeenSent(final ServerPlayer to) {
-+        synchronized (this.playersSentChunkTo) { // ShreddedPaper - synchronize
-         return this.playersSentChunkTo.contains(to);
-+        } // ShreddedPaper - synchronize
-     }
- 
-     @Override
-     public final List<ServerPlayer> moonrise$getPlayers(final boolean onlyOnWatchDistanceEdge) {
-         final List<ServerPlayer> ret = new java.util.ArrayList<>();
-+        synchronized (this.playersSentChunkTo) { // ShreddedPaper - synchronize
-         final ServerPlayer[] raw = this.playersSentChunkTo.getRawDataUnchecked();
-         for (int i = 0, len = this.playersSentChunkTo.size(); i < len; ++i) {
-             final ServerPlayer player = raw[i];
-@@ -98,6 +_,7 @@
-             }
-             ret.add(player);
-         }
-+        } // ShreddedPaper - synchronize
- 
-         return ret;
-     }
 @@ -221,6 +_,10 @@
      }
  

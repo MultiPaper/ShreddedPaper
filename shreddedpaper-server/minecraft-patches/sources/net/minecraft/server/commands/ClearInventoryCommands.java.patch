@@ -26,7 +26,7 @@
 +                serverPlayer.inventoryMenu.slotsChanged(serverPlayer.getInventory());
 +                future.complete(j);
 +            });
-+            i += future.getNow(1); // ShreddedPaper - default to 1 if player is on a different thread
++            i += future.getNow(1); // ShreddedPaper - default to 1 if player in on a different thread
 +            // ShreddedPaper end - run on correct thread
          }
  

@@ -20,26 +20,6 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
-@@ -227,6 +_,9 @@
-         // Paper start - Fire PlayerJoinEvent when Player is actually ready; correctly register player BEFORE PlayerJoinEvent, so the entity is valid and doesn't require tick delay hacks
-         player.suppressTrackerForLogin = true;
-         this.sendLevelInfo(player, serverLevel);
-+        // ShreddedPaper start - ensure chunk is fully loaded before adding player
-+        serverLevel.getWorld().getChunkAtAsync(player.getBlockX() >> 4, player.getBlockZ() >> 4, true, true).join();
-+        // ShreddedPaper end - ensure chunk is fully loaded before adding player
-         serverLevel.addNewPlayer(player);
-         this.server.getCustomBossEvents().onPlayerConnect(player); // see commented out section below serverLevel.addPlayerJoin(player);
-         // Paper end - Fire PlayerJoinEvent when Player is actually ready
-@@ -515,8 +_,7 @@
-         // CraftBukkit start
-         // this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID())));
-         ClientboundPlayerInfoRemovePacket packet = new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID()));
--        for (int i = 0; i < this.players.size(); i++) {
--            ServerPlayer otherPlayer = this.players.get(i);
-+        for (ServerPlayer otherPlayer : this.players) { // ShreddedPaper - Fix concurrent modification
- 
-             if (otherPlayer.getBukkitEntity().canSee(player.getBukkitEntity())) {
-                 otherPlayer.connection.send(packet);
 @@ -595,12 +_,13 @@
      }
  
