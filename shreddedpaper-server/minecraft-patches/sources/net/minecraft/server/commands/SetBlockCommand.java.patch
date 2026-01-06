@@ -17,7 +17,7 @@
              boolean flag;
              if (mode == SetBlockCommand.Mode.DESTROY) {
                  level.destroyBlock(pos, true);
-@@ -117,15 +_,17 @@
+@@ -117,15 +_,22 @@
              BlockState blockState = level.getBlockState(pos);
              if (flag
                  && !block.place(level, pos, Block.UPDATE_CLIENTS | (strict ? Block.UPDATE_SKIP_ALL_SIDEEFFECTS : Block.UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS))) {
@@ -28,6 +28,11 @@
                      level.updateNeighboursOnBlockSet(pos, blockState);
                  }
  
++                // ShreddedPaper start - clear cached chunk packet
++                net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkIfLoaded(pos.getX() >> 4, pos.getZ() >> 4);
++                if (chunk != null) chunk.cachedChunkPacket = null;
++                // ShreddedPaper end - clear cached chunk packet
++
                  source.sendSuccess(() -> Component.translatable("commands.setblock.success", pos.getX(), pos.getY(), pos.getZ()), true);
 -                return 1;
              }

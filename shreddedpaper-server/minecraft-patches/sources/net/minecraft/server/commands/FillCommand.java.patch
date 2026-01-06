@@ -55,12 +55,21 @@
                          }
                      }
                  }
-@@ -223,13 +_,15 @@
+@@ -223,13 +_,24 @@
                      level.updateNeighboursOnBlockSet(updatedPosition.pos, updatedPosition.oldState);
                  }
  
 -                if (i2 == 0) {
 -                    throw ERROR_FAILED.create();
++                // ShreddedPaper start - clear cached chunk packets for affected chunks
++                for (int chunkX = box.minX() >> 4; chunkX <= box.maxX() >> 4; chunkX++) {
++                    for (int chunkZ = box.minZ() >> 4; chunkZ <= box.maxZ() >> 4; chunkZ++) {
++                        net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkIfLoaded(chunkX, chunkZ);
++                        if (chunk != null) chunk.cachedChunkPacket = null;
++                    }
++                }
++                // ShreddedPaper end - clear cached chunk packets for affected chunks
++
 +                if (counter[0] == 0) {
 +                    source.sendFailure(Component.translatable("commands.fill.failed")); // ShreddedPaper - send failure message instead of throwing
                  } else {

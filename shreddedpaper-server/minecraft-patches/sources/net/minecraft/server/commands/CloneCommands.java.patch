@@ -32,6 +32,22 @@
                          }
                      }
  
+@@ -329,6 +_,15 @@
+                     }
+ 
+                     serverLevel1.getBlockTicks().copyAreaFrom(serverLevel.getBlockTicks(), boundingBox, blockPos4);
++
++                    // ShreddedPaper start - clear cached chunk packets for destination chunks
++                    for (int chunkX = boundingBox1.minX() >> 4; chunkX <= boundingBox1.maxX() >> 4; chunkX++) {
++                        for (int chunkZ = boundingBox1.minZ() >> 4; chunkZ <= boundingBox1.maxZ() >> 4; chunkZ++) {
++                            net.minecraft.world.level.chunk.LevelChunk chunk = serverLevel1.getChunkIfLoaded(chunkX, chunkZ);
++                            if (chunk != null) chunk.cachedChunkPacket = null;
++                        }
++                    }
++                    // ShreddedPaper end - clear cached chunk packets for destination chunks
+                 } catch (Throwable var35) {
+                     try {
+                         scopedCollector.close();
 @@ -336,17 +_,19 @@
                          var35.addSuppressed(var34);
                      }
