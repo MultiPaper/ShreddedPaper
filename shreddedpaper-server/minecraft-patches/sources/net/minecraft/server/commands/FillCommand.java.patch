@@ -1,0 +1,78 @@
+--- a/net/minecraft/server/commands/FillCommand.java
++++ b/net/minecraft/server/commands/FillCommand.java
+@@ -7,6 +_,7 @@
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
+ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import java.util.Collections;
+ import java.util.List;
+ import java.util.function.Predicate;
+@@ -180,15 +_,17 @@
+         if (i > i1) {
+             throw ERROR_AREA_TOO_LARGE.create(i1, i);
+         } else {
+-            record UpdatedPosition(BlockPos pos, BlockState oldState) {
+-            }
+-
+-            List<UpdatedPosition> list = Lists.newArrayList();
+             ServerLevel level = source.getLevel();
+             if (level.isDebug()) {
+                 throw ERROR_FAILED.create();
+             } else {
+-                int i2 = 0;
++                // ShreddedPaper start - run on correct region thread
++                ShreddedPaper.ensureSync(level, new BlockPos(box.minX(), box.minY(), box.minZ()), () -> {
++                record UpdatedPosition(BlockPos pos, BlockState oldState) {
++                }
++
++                List<UpdatedPosition> list = Lists.newArrayList();
++                int[] counter = {0}; // ShreddedPaper - use array to allow modification in lambda
+ 
+                 for (BlockPos blockPos : BlockPos.betweenClosed(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ())) {
+                     if (filter == null || filter.test(new BlockInWorld(level, blockPos, true))) {
+@@ -201,20 +_,20 @@
+                         BlockInput blockInput = mode.filter.filter(box, blockPos, block, level);
+                         if (blockInput == null) {
+                             if (flag) {
+-                                i2++;
++                                counter[0]++;
+                             }
+                         } else if (!blockInput.place(
+                             level, blockPos, Block.UPDATE_CLIENTS | (strict ? Block.UPDATE_SKIP_ALL_SIDEEFFECTS : Block.UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS)
+                         )) {
+                             if (flag) {
+-                                i2++;
++                                counter[0]++;
+                             }
+                         } else {
+                             if (!strict) {
+                                 list.add(new UpdatedPosition(blockPos.immutable(), blockState));
+                             }
+ 
+-                            i2++;
++                            counter[0]++;
+                         }
+                     }
+                 }
+@@ -223,13 +_,15 @@
+                     level.updateNeighboursOnBlockSet(updatedPosition.pos, updatedPosition.oldState);
+                 }
+ 
+-                if (i2 == 0) {
+-                    throw ERROR_FAILED.create();
++                if (counter[0] == 0) {
++                    source.sendFailure(Component.translatable("commands.fill.failed")); // ShreddedPaper - send failure message instead of throwing
+                 } else {
+-                    int i3 = i2;
+-                    source.sendSuccess(() -> Component.translatable("commands.fill.success", i3), true);
+-                    return i2;
++                    int finalCount = counter[0];
++                    source.sendSuccess(() -> Component.translatable("commands.fill.success", finalCount), true);
+                 }
++                });
++                return 1;
++                // ShreddedPaper end - run on correct region thread
+             }
+         }
+     }
