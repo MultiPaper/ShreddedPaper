@@ -16,6 +16,8 @@ import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.chunk.LevelChunk;
 import io.multipaper.shreddedpaper.region.LevelChunkRegion;
 import org.bukkit.craftbukkit.entity.CraftEntity;
+import org.bukkit.craftbukkit.util.CraftSpawnCategory;
+import org.bukkit.entity.SpawnCategory;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -173,7 +175,7 @@ public class ShreddedPaperChunkTicker {
             return;
         }
 
-        if (levelChunkRegion.isPlayerTickingRequested(levelChunk.getPos())) {
+        if (spawnState != null && levelChunkRegion.isPlayerTickingRequested(levelChunk.getPos())) {
             this._tickSpawningChunk(world, levelChunk, timeInhabited, filteredSpawningCategories, spawnState);
         }
 
@@ -187,6 +189,18 @@ public class ShreddedPaperChunkTicker {
         }
 
         world.chunkSource.tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, spawnState);
+    }
+
+    public static boolean willTrySpawnMobsThisTick(final ServerLevel level) {
+        for (MobCategory mobCategory : NaturalSpawner.SPAWNING_CATEGORIES) {
+            SpawnCategory spawnCategory = CraftSpawnCategory.toBukkit(mobCategory);
+            if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {
+                if (level.ticksPerSpawnCategory.getLong(spawnCategory) != 0 && level.getLevelData().getGameTime() % level.ticksPerSpawnCategory.getLong(spawnCategory) == 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

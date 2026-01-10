@@ -104,7 +104,7 @@
          long gameTime = this.level.getGameTime();
          long l = gameTime - this.lastInhabitedUpdate;
          this.lastInhabitedUpdate = gameTime;
-@@ -504,30 +_,36 @@
+@@ -504,34 +_,41 @@
              profilerFiller.push("pollingChunks");
              if (this.level.tickRateManager().runsNormally()) {
                  profilerFiller.push("tickingChunks");
@@ -153,10 +153,30 @@
          profiler.push("naturalSpawnCount");
          int naturalSpawnChunkCount = this.distanceManager.getNaturalSpawnChunkCount();
          // Paper start - Optional per player mob spawns
-@@ -571,36 +_,40 @@
+         NaturalSpawner.SpawnState spawnState;
++        if (ShreddedPaperChunkTicker.willTrySpawnMobsThisTick(this.level)) { // ShreddedPaper - only create NaturalSpawner if we'll use it
+         if ((this.spawnFriendlies || this.spawnEnemies) && this.level.paperConfig().entities.spawning.perPlayerMobSpawns) { // don't count mobs when animals and monsters are disabled
+             // re-set mob counts
+             for (ServerPlayer player : this.level.players) {
+@@ -551,11 +_,13 @@
+         } else {
+             spawnState = NaturalSpawner.createState(naturalSpawnChunkCount, this.level.getAllEntities(), this::getFullChunk, !this.level.paperConfig().entities.spawning.perPlayerMobSpawns ? new LocalMobCapCalculator(this.chunkMap) : null, false);
+         }
++        } else { spawnState = null; } // ShreddedPaper - only create NaturalSpawner if we'll use it
+         // Paper end - Optional per player mob spawns
+         this.lastSpawnState = spawnState;
+         boolean flag = this.level.getGameRules().get(GameRules.SPAWN_MOBS) && !this.level.players().isEmpty(); // CraftBukkit
+         int i = this.level.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
+         List<MobCategory> filteredSpawningCategories;
++        if (spawnState != null) { // ShreddedPaper - only create NaturalSpawner if we'll use it
+         if (flag && (this.spawnEnemies || this.spawnFriendlies)) { // Paper
+             // Paper start - PlayerNaturallySpawnCreaturesEvent
+             for (ServerPlayer entityPlayer : this.level.players()) {
+@@ -570,37 +_,42 @@
+         } else {
              filteredSpawningCategories = List.of();
          }
- 
+-
 -        List<LevelChunk> list = this.spawningChunks;
 -
 -        try {
@@ -175,7 +195,9 @@
 -        } finally {
 -            list.clear();
 -        }
-+        future = future.thenCompose(v -> this.shreddedPaperChunkTicker.tickChunks(timeInhabited, filteredSpawningCategories, lastSpawnState)).thenRunAsync(() -> {}, this.level.levelThread); // ShreddedPaper - run async
++        } else { filteredSpawningCategories = null; } // ShreddedPaper - only create NaturalSpawner if we'll use it
++
++        future = future.thenCompose(v -> this.shreddedPaperChunkTicker.tickChunks(timeInhabited, filteredSpawningCategories, spawnState)).thenRunAsync(() -> {}, this.level.levelThread); // ShreddedPaper - run async
 +        // ShreddedPaper start - moved to ShreddedPaperChunkTicker
 +//        List<LevelChunk> list = this.spawningChunks;
 +//
