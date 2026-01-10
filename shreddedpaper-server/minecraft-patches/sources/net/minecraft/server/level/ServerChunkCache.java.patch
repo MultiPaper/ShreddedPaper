@@ -175,7 +175,7 @@
 -        } finally {
 -            list.clear();
 -        }
-+        future = future.thenCompose(v -> this.shreddedPaperChunkTicker.tickChunks(timeInhabited, filteredSpawningCategories, lastSpawnState)); // ShreddedPaper - run async
++        future = future.thenCompose(v -> this.shreddedPaperChunkTicker.tickChunks(timeInhabited, filteredSpawningCategories, lastSpawnState)).thenRunAsync(() -> {}, this.level.levelThread); // ShreddedPaper - run async
 +        // ShreddedPaper start - moved to ShreddedPaperChunkTicker
 +//        List<LevelChunk> list = this.spawningChunks;
 +//

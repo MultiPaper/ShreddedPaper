@@ -1,9 +1,10 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,10 +_,18 @@
+@@ -1,10 +_,20 @@
  package net.minecraft.server.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
++import ca.spottedleaf.moonrise.common.util.WorldUtil;
  import com.google.common.annotations.VisibleForTesting;
  import com.google.common.collect.Lists;
  import com.mojang.datafixers.DataFixer;
@@ -15,19 +16,22 @@
 +import io.multipaper.shreddedpaper.region.LevelTicksRegionProxy;
 +import io.multipaper.shreddedpaper.region.RegionPos;
 +import io.multipaper.shreddedpaper.threading.ShreddedPaperRegionScheduler;
++import io.multipaper.shreddedpaper.threading.ShreddedPaperTickThread;
 +import io.multipaper.shreddedpaper.util.NoOpServerWaypointManager;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
  import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
  import it.unimi.dsi.fastutil.longs.LongSet;
-@@ -26,6 +_,8 @@
+@@ -26,7 +_,10 @@
  import java.util.Optional;
  import java.util.Set;
  import java.util.UUID;
 +import java.util.concurrent.CompletableFuture;
 +import java.util.concurrent.CopyOnWriteArrayList;
  import java.util.concurrent.Executor;
++import java.util.concurrent.Executors;
  import java.util.function.BooleanSupplier;
  import java.util.function.Function;
+ import java.util.function.Predicate;
 @@ -190,11 +_,11 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final int EMPTY_TIME_NO_TICK = 300;
@@ -65,11 +69,12 @@
      private final List<CustomSpawner> customSpawners;
      private @Nullable EndDragonFight dragonFight;
      final Int2ObjectMap<EnderDragonPart> dragonParts = new Int2ObjectOpenHashMap<>();
-@@ -221,6 +_,7 @@
+@@ -221,6 +_,8 @@
      private double preciseTime; // Purpur - Configurable daylight cycle
      private boolean forceTime; // Purpur - Configurable daylight cycle
      private final RandomSequences randomSequences;
 +    public final ShreddedPaperRegionScheduler chunkScheduler = new ShreddedPaperRegionScheduler(); // ShreddedPaper
++    public final Executor levelThread; // ShreddedPaper
      final LevelDebugSynchronizers debugSynchronizers = new LevelDebugSynchronizers(this);
  
      // CraftBukkit start
@@ -279,6 +284,14 @@
          this.environmentAttributes = EnvironmentAttributeSystem.builder().addDefaultLayers(this).build();
          this.updateSkyBrightness();
          // Paper start - rewrite chunk system
+@@ -730,6 +_,7 @@
+         // Paper end - rewrite chunk system
+         this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
+         this.preciseTime = this.serverLevelData.getDayTime(); // Purpur - Configurable daylight cycle
++        this.levelThread = Executors.newSingleThreadExecutor(r -> new ShreddedPaperTickThread(r, "ServerLevel-%s".formatted(WorldUtil.getWorldName(this)))); // ShreddedPaper
+     }
+ 
+     // Paper start
 @@ -767,9 +_,9 @@
          return this.environmentAttributes;
      }

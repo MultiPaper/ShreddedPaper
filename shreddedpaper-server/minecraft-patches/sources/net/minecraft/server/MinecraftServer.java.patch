@@ -161,7 +161,7 @@
  
              try {
 -                serverLevel.tick(hasTimeLeft);
-+                futures.add(CompletableFuture.supplyAsync(() -> serverLevel.tickAsync(hasTimeLeft), ShreddedPaperTickThread.getExecutor()).thenCompose(v -> v).thenRun(() -> { // ShreddedPaper - tick worlds async
++                futures.add(CompletableFuture.supplyAsync(() -> serverLevel.tickAsync(hasTimeLeft), serverLevel.levelThread).thenCompose(v -> v).thenRun(() -> { // ShreddedPaper - tick worlds async
 +                    serverLevel.explosionDensityCache.clear(); // Paper - Optimize explosions // ShreddedPaper - moved up from below
 +                })); // ShreddedPaper
              } catch (Throwable var7) {
