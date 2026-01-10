@@ -1,0 +1,19 @@
+--- a/src/main/java/io/papermc/paper/plugin/manager/NormalPaperPermissionManager.java
++++ b/src/main/java/io/papermc/paper/plugin/manager/NormalPaperPermissionManager.java
+@@ -8,13 +_,14 @@
+ import java.util.LinkedHashSet;
+ import java.util.Map;
+ import java.util.Set;
++import java.util.concurrent.ConcurrentHashMap;
+ 
+ class NormalPaperPermissionManager extends PaperPermissionManager {
+ 
+     private final Map<String, Permission> permissions = new HashMap<>();
+     private final Map<Boolean, Set<Permission>> defaultPerms = new LinkedHashMap<>();
+-    private final Map<String, Map<Permissible, Boolean>> permSubs = new HashMap<>();
+-    private final Map<Boolean, Map<Permissible, Boolean>> defSubs = new HashMap<>();
++    private final Map<String, Map<Permissible, Boolean>> permSubs = new ConcurrentHashMap<>(); // ShreddedPaper - thread-safe permission manager
++    private final Map<Boolean, Map<Permissible, Boolean>> defSubs = new ConcurrentHashMap<>(); // ShreddedPaper - thread-safe permission manager
+ 
+     public NormalPaperPermissionManager() {
+         this.defaultPerms().put(true, new LinkedHashSet<>());
