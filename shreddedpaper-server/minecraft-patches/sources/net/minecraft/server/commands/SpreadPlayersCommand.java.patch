@@ -1,6 +1,23 @@
 --- a/net/minecraft/server/commands/SpreadPlayersCommand.java
 +++ b/net/minecraft/server/commands/SpreadPlayersCommand.java
-@@ -246,17 +_,12 @@
+@@ -30,6 +_,7 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.scores.Team;
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ 
+ public class SpreadPlayersCommand {
+     private static final int MAX_ITERATION_COUNT = 10000;
+@@ -205,6 +_,8 @@
+ 
+             if (!flag) {
+                 for (SpreadPlayersCommand.Position position1 : positions) {
++                    // ShreddedPaper - isSafe does read-only block access; blocking to sync would cause deadlock
++                    // when command runs on a region thread, so we accept the minor race condition here
+                     if (!position1.isSafe(level, maxHeight)) {
+                         position1.randomize(random, minX, minZ, maxX, maxZ);
+                         flag = true;
+@@ -246,17 +_,19 @@
                  position = positions[i++];
              }
  
@@ -14,12 +31,20 @@
 -                entity.getXRot(),
 -                true
 -                , org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.COMMAND // CraftBukkit - handle teleport reason
-+            // ShreddedPaper start - use teleportAsync to handle cross-region teleportation
-+            entity.getBukkitEntity().teleportAsync(
-+                new org.bukkit.Location(level.getWorld(), Mth.floor(position.x) + 0.5, position.getSpawnY(level, maxHeight), Mth.floor(position.z) + 0.5, entity.getYRot(), entity.getXRot()),
-+                org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.COMMAND
-             );
-+            // ShreddedPaper end - use teleportAsync to handle cross-region teleportation
+-            );
++            // ShreddedPaper start - compute spawn Y on correct region thread, then teleport
++            final float entityYRot = entity.getYRot();
++            final float entityXRot = entity.getXRot();
++            final SpreadPlayersCommand.Position finalPosition = position;
++            BlockPos targetPos = BlockPos.containing(position.x, maxHeight, position.z);
++            ShreddedPaper.runSync(level, targetPos, () -> {
++                int spawnY = finalPosition.getSpawnY(level, maxHeight);
++                entity.getBukkitEntity().teleportAsync(
++                    new org.bukkit.Location(level.getWorld(), Mth.floor(finalPosition.x) + 0.5, spawnY, Mth.floor(finalPosition.z) + 0.5, entityYRot, entityXRot),
++                    org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.COMMAND
++                );
++            });
++            // ShreddedPaper end - compute spawn Y on correct region thread, then teleport
              double d1 = Double.MAX_VALUE;
  
              for (SpreadPlayersCommand.Position position1 : positions) {
