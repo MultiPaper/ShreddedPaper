@@ -1,91 +1,37 @@
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperPermissionManager.java
 +++ b/src/main/java/io/papermc/paper/plugin/manager/PaperPermissionManager.java
-@@ -108,23 +_,33 @@
+@@ -106,7 +_,7 @@
+ 
+ 
      @Override
-     public void subscribeToPermission(@NotNull String permission, @NotNull Permissible permissible) {
+-    public void subscribeToPermission(@NotNull String permission, @NotNull Permissible permissible) {
++    public synchronized void subscribeToPermission(@NotNull String permission, @NotNull Permissible permissible) { // ShreddedPaper - synchronized
          String name = permission.toLowerCase(java.util.Locale.ENGLISH);
--        Map<Permissible, Boolean> map = this.permSubs().computeIfAbsent(name, k -> new WeakHashMap<>());
--
--        map.put(permissible, true);
-+        // ShreddedPaper start - thread-safe permission manager
-+        this.permSubs().compute(name, (k, map) -> {
-+            if (map == null) map = new WeakHashMap<>();
-+
-+            map.put(permissible, true);
-+
-+            return map;
-+        });
-+        // ShreddedPaper end - thread-safe permission manager
+         Map<Permissible, Boolean> map = this.permSubs().computeIfAbsent(name, k -> new WeakHashMap<>());
+ 
+@@ -114,7 +_,7 @@
      }
  
      @Override
-     public void unsubscribeFromPermission(@NotNull String permission, @NotNull Permissible permissible) {
+-    public void unsubscribeFromPermission(@NotNull String permission, @NotNull Permissible permissible) {
++    public synchronized void unsubscribeFromPermission(@NotNull String permission, @NotNull Permissible permissible) { // ShreddedPaper - synchronized
          String name = permission.toLowerCase(java.util.Locale.ENGLISH);
--        Map<Permissible, Boolean> map = this.permSubs().get(name);
--
--        if (map != null) {
--            map.remove(permissible);
--
--            if (map.isEmpty()) {
--                this.permSubs().remove(name);
-+        // ShreddedPaper start - thread-safe permission manager
-+        this.permSubs().compute(name, (k, map) -> {
-+            if (map != null) {
-+                map.remove(permissible);
-+
-+                if (map.isEmpty()) {
-+                    return null; // this.permSubs().remove(name);
-+                }
-             }
--        }
-+
-+            return map;
-+        });
-+        // ShreddedPaper end - thread-safe permission manager
+         Map<Permissible, Boolean> map = this.permSubs().get(name);
+ 
+@@ -141,14 +_,14 @@
      }
  
      @Override
-@@ -142,22 +_,32 @@
+-    public void subscribeToDefaultPerms(boolean op, @NotNull Permissible permissible) {
++    public synchronized void subscribeToDefaultPerms(boolean op, @NotNull Permissible permissible) { // ShreddedPaper - synchronized
+         Map<Permissible, Boolean> map = this.defSubs().computeIfAbsent(op, k -> new WeakHashMap<>());
  
-     @Override
-     public void subscribeToDefaultPerms(boolean op, @NotNull Permissible permissible) {
--        Map<Permissible, Boolean> map = this.defSubs().computeIfAbsent(op, k -> new WeakHashMap<>());
--
--        map.put(permissible, true);
-+        // ShreddedPaper start - thread-safe permission manager
-+        this.defSubs().compute(op, (k, map) -> {
-+            if (map == null) map = new WeakHashMap<>();
-+
-+            map.put(permissible, true);
-+
-+            return map;
-+        });
-+        // ShreddedPaper end - thread-safe permission manager
+         map.put(permissible, true);
      }
  
      @Override
-     public void unsubscribeFromDefaultPerms(boolean op, @NotNull Permissible permissible) {
--        Map<Permissible, Boolean> map = this.defSubs().get(op);
--
--        if (map != null) {
--            map.remove(permissible);
--
--            if (map.isEmpty()) {
--                this.defSubs().remove(op);
-+        // ShreddedPaper start - thread-safe permission manager
-+        this.defSubs().compute(op, (k, map) -> {
-+            if (map != null) {
-+                map.remove(permissible);
-+
-+                if (map.isEmpty()) {
-+                    return null; // this.defSubs().remove(op);
-+                }
-             }
--        }
-+
-+            return map;
-+        });
-+        // ShreddedPaper end - thread-safe permission manager
-     }
+-    public void unsubscribeFromDefaultPerms(boolean op, @NotNull Permissible permissible) {
++    public synchronized void unsubscribeFromDefaultPerms(boolean op, @NotNull Permissible permissible) { // ShreddedPaper - synchronized
+         Map<Permissible, Boolean> map = this.defSubs().get(op);
  
-     @Override
+         if (map != null) {
