@@ -56,9 +56,9 @@ public class SynchronousPluginExecution {
             // computeIfAbsent requires an expensive synchronized call even if the value is already present, so check with a get first
             pluginsToLock = cachedDependencyLists.computeIfAbsent(plugin.getName(), (name) -> {
                 TreeSet<String> dependencyList = new TreeSet<>(Comparator.naturalOrder());
+                LOGGER.info("Plugin {} does not support Folia! Initializing synchronous execution. This may cause a performance degradation.", plugin);
                 fillPluginsToLock(plugin, dependencyList);
-                LOGGER.info("Plugin {} does not support Folia! Initializing synchronous execution. This may cause a performance degradation.", plugin.getName());
-                LOGGER.info("Dependency list calculated for {}: {}", plugin.getName(), dependencyList);
+                LOGGER.info("Dependency list calculated for {}: {}", plugin, dependencyList);
                 return new ArrayList<>(dependencyList);
             });
         }
@@ -139,8 +139,10 @@ public class SynchronousPluginExecution {
     }
 
     private static boolean fillPluginsToLock(Plugin plugin, TreeSet<String> pluginsToLock) {
-        if (pluginsToLock.contains(plugin.getName())) {
+        if (!pluginsToLock.add(plugin.getName())) {
             // Cyclic graphhhh
+            LOGGER.error("Cyclich graph detected for plugin {}, synchronous execution initialising failure, disabling plugin.", plugin);
+            plugin.getServer().getPluginManager().disablePlugin(plugin);
             return true;
         }
 
@@ -167,10 +169,10 @@ public class SynchronousPluginExecution {
             }
         }
 
-        if (!hasDependency) {
+        if (hasDependency) {
             // Only add our own plugin if we have no dependencies to lock
             // If we have a dependency, there's no point in locking this plugin by itself as we'll always be locking the dependency anyway
-            pluginsToLock.add(plugin.getName());
+            pluginsToLock.remove(plugin.getName());
         }
 
         return true;
