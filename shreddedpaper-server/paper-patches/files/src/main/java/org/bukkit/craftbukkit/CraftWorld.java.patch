@@ -40,22 +40,34 @@
          warnUnsafeChunk("getting a faraway chunk", x, z); // Paper
          net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk) this.world.getChunk(x, z, ChunkStatus.FULL, true);
          return new CraftChunk(chunk);
-@@ -413,10 +_,12 @@
+@@ -413,11 +_,13 @@
      @Override
      public boolean isChunkGenerated(int x, int z) {
          // Paper start - Fix this method
 -        if (!Bukkit.isPrimaryThread()) {
 -            return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
-+        if (!TickThread.isTickThreadFor(this.world, x, z)) { // ShreddedPaper - regions
-+            CompletableFuture<Boolean> future = java.util.concurrent.CompletableFuture.supplyAsync(() -> { // ShreddedPaper - regions
-                 return CraftWorld.this.isChunkGenerated(x, z);
+-                return CraftWorld.this.isChunkGenerated(x, z);
 -            }, world.getChunkSource().mainThreadProcessor).join();
-+            }, world.getChunkSource().tickingRegions.executorFor(RegionPos.forChunk(x, z))); // ShreddedPaper - regions
-+            if (TickThread.isTickThread()) this.getHandle().getChunkSource().mainThreadProcessor.managedBlock(future::isDone); // ShreddedPaper - run tick thread tasks (this might be one tick thread accessing a chunk in another tick thread)
-+            return future.join(); // ShreddedPaper - regions
-         }
+-        }
++        // ShreddedPaper start - this is fine to be run async
++//        if (!Bukkit.isPrimaryThread()) {
++//            return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
++//                return CraftWorld.this.isChunkGenerated(x, z);
++//            }, world.getChunkSource().mainThreadProcessor).join();
++//        }
++        // ShreddedPaper end - this is fine to be run async
          ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
          if (chunk != null) {
+             return chunk instanceof ImposterProtoChunk || chunk instanceof net.minecraft.world.level.chunk.LevelChunk;
+@@ -426,7 +_,7 @@
+         ca.spottedleaf.moonrise.common.PlatformHooks.get().scheduleChunkLoad(
+             this.world, x, z, false, ChunkStatus.EMPTY, true, ca.spottedleaf.concurrentutil.util.Priority.NORMAL, future::complete
+         );
+-        world.getChunkSource().mainThreadProcessor.managedBlock(future::isDone);
++        if (TickThread.isTickThread()) world.getChunkSource().mainThreadProcessor.managedBlock(future::isDone); // ShreddedPaper - only managed block if tick thread
+         return future.thenApply(c -> {
+             if (c != null) {
+                 return c.getPersistedStatus() == ChunkStatus.FULL;
 @@ -751,13 +_,15 @@
  
      @Override
