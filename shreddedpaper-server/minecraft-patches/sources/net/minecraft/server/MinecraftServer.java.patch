@@ -58,7 +58,7 @@
      }
  
     @Override
-@@ -895,6 +_,8 @@
+@@ -893,6 +_,8 @@
  
      // CraftBukkit start
      public void prepareLevel(ServerLevel serverLevel) {
@@ -67,7 +67,7 @@
          this.forceTicks = true;
          // CraftBukkit end
          ChunkLoadCounter chunkLoadCounter = new ChunkLoadCounter();
-@@ -1020,6 +_,7 @@
+@@ -1018,6 +_,7 @@
  
          LOGGER.info("Stopping server");
          Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
@@ -75,7 +75,7 @@
          // Purpur start - UPnP Port Forwarding
          if (upnp) {
              if (dev.omega24.upnp4j.UPnP4J.close(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
-@@ -1059,7 +_,7 @@
+@@ -1057,7 +_,7 @@
  
              for (ServerLevel serverLevelx : this.getAllLevels()) {
                  serverLevelx.getChunkSource().deactivateTicketsOnClosing();
@@ -84,7 +84,7 @@
              }
  
              this.waitUntilNextTick();
-@@ -1629,7 +_,9 @@
+@@ -1627,7 +_,9 @@
                      this.autoSave();
                  }
  
@@ -94,7 +94,7 @@
                  // Paper start - avoid issues with certain tasks not processing during sleep
                  Runnable task;
                  while ((task = this.processQueue.poll()) != null) {
-@@ -1637,7 +_,7 @@
+@@ -1635,7 +_,7 @@
                  }
                  for (final ServerLevel level : this.levels.values()) {
                      // process unloads
@@ -103,7 +103,7 @@
                  }
                  // Paper end - avoid issues with certain tasks not processing during sleep
                  this.server.spark.executeMainThreadTasks(); // Paper - spark
-@@ -1796,16 +_,20 @@
+@@ -1794,16 +_,20 @@
      protected void tickChildren(BooleanSupplier hasTimeLeft) {
          ProfilerFiller profilerFiller = Profiler.get();
          this.getPlayerList().getPlayers().forEach(serverPlayer1 -> serverPlayer1.connection.suspendFlushing());
@@ -132,7 +132,7 @@
          // Paper end - optimise Folia entity scheduler
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.ADVENTURE_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
          io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.DIALOG_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
-@@ -1841,7 +_,23 @@
+@@ -1839,7 +_,23 @@
              }
          }
  
@@ -156,7 +156,7 @@
          for (ServerLevel serverLevel : this.getAllLevels()) {
              serverLevel.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
              serverLevel.hasEntityMoveEvent = io.papermc.paper.event.entity.EntityMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - Add EntityMoveEvent
-@@ -1860,7 +_,9 @@
+@@ -1858,7 +_,9 @@
              profilerFiller.push("tick");
  
              try {
@@ -167,7 +167,7 @@
              } catch (Throwable var7) {
                  CrashReport crashReport = CrashReport.forThrowable(var7, "Exception ticking world");
                  serverLevel.fillReportDetails(crashReport);
-@@ -1869,12 +_,20 @@
+@@ -1867,12 +_,20 @@
  
              profilerFiller.pop();
              profilerFiller.pop();
@@ -191,7 +191,7 @@
          profilerFiller.popPush("players");
          this.playerList.tick();
          profilerFiller.popPush("debugSubscribers");
-@@ -1894,6 +_,7 @@
+@@ -1892,6 +_,7 @@
  
          for (ServerPlayer serverPlayer : this.playerList.getPlayers()) {
              serverPlayer.connection.chunkSender.sendNextChunks(serverPlayer);
