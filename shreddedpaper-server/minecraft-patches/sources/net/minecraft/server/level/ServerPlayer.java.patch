@@ -204,7 +204,7 @@
      }
  
      @Override
-@@ -2964,6 +_,8 @@
+@@ -2962,6 +_,8 @@
              for (MobEffectInstance mobEffectInstance : livingEntity.getActiveEffects()) {
                  this.connection.send(new ClientboundRemoveMobEffectPacket(vehicle.getId(), mobEffectInstance.getEffect()));
              }

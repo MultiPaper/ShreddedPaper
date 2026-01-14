@@ -15,7 +15,7 @@
  import io.papermc.paper.FeatureHooks;
  import io.papermc.paper.connection.PlayerGameConnection;
  import io.papermc.paper.connection.PluginMessageBridgeImpl;
-@@ -1461,9 +_,12 @@
+@@ -1457,9 +_,12 @@
              return CraftLocation.toBukkit(respawnData.pos(), world, respawnData.yaw(), respawnData.pitch());
          }
  
@@ -31,7 +31,7 @@
      }
  
      @Override
-@@ -1963,7 +_,7 @@
+@@ -1957,7 +_,7 @@
      private void unregisterEntity(Entity other) {
          // Paper end
          ChunkMap tracker = ((ServerLevel) this.getHandle().level()).getChunkSource().chunkMap;
@@ -40,7 +40,7 @@
          if (entry != null) {
              entry.removePlayer(this.getHandle());
          }
-@@ -2052,7 +_,7 @@
+@@ -2046,7 +_,7 @@
              if (original != null) otherPlayer.setUUID(original); // Paper - uuid override
          }
  
@@ -49,7 +49,7 @@
          if (entry != null && !entry.seenBy.contains(this.getHandle().connection)) {
              entry.updatePlayer(this.getHandle());
          }
-@@ -2137,15 +_,18 @@
+@@ -2131,15 +_,18 @@
  
      @Override
      public boolean canSee(Player player) {
@@ -68,7 +68,7 @@
          org.bukkit.entity.Entity entity = this.getServer().getPlayer(uuid);
  
          return (entity != null) ? this.canSee(entity) : false; // If we can't find it, we can't see it
-@@ -3136,8 +_,9 @@
+@@ -3130,8 +_,9 @@
          @Override
          public void respawn() {
              if (CraftPlayer.this.getHealth() <= 0 && CraftPlayer.this.isOnline()) {
@@ -79,7 +79,7 @@
              }
          }
  
-@@ -3267,19 +_,19 @@
+@@ -3261,19 +_,19 @@
      // Paper start - Add chunk view API
      @Override
      public Set<java.lang.Long> getSentChunkKeys() {
