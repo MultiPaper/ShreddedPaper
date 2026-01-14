@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -57,7 +58,7 @@ public class SynchronousPluginExecution {
             pluginsToLock = cachedDependencyLists.computeIfAbsent(plugin.getName(), (name) -> {
                 TreeSet<String> dependencyList = new TreeSet<>(Comparator.naturalOrder());
                 LOGGER.info("Plugin {} does not support Folia! Initializing synchronous execution. This may cause a performance degradation.", plugin);
-                fillPluginsToLock(plugin, dependencyList);
+                fillPluginsToLock(plugin, dependencyList, new ArrayList<>());
                 LOGGER.info("Dependency list calculated for {}: {}", plugin, dependencyList);
                 return new ArrayList<>(dependencyList);
             });
@@ -138,25 +139,33 @@ public class SynchronousPluginExecution {
         return success;
     }
 
-    private static boolean fillPluginsToLock(Plugin plugin, TreeSet<String> pluginsToLock) {
-        if (!pluginsToLock.add(plugin.getName())) {
-            // Cyclic graphhhh
-            LOGGER.error("Cyclich graph detected for plugin {}, synchronous execution initialising failure, disabling plugin.", plugin);
-            plugin.getServer().getPluginManager().disablePlugin(plugin);
-            return true;
-        }
-
+    private static boolean fillPluginsToLock(Plugin plugin, TreeSet<String> pluginsToLock, List<String> parentList) {
         if (plugin.getDescription().isFoliaSupported()) {
             // Multi-thread safe plugin, we don't need to lock it
             return false;
         }
+
+        if (pluginsToLock.contains(plugin.getName())) {
+            // Already visited
+            return true;
+        }
+
+        if (parentList.contains(plugin.getName())) {
+            // Cyclic graph, add all the plugins in the cycle
+            int i = parentList.size() - 1;
+            do {
+                pluginsToLock.add(parentList.get(i));
+            } while (!parentList.get(i--).equals(plugin.getName()));
+            return false;
+        }
+        parentList.add(plugin.getName());
 
         boolean hasDependency = false;
 
         for (String depend : plugin.getDescription().getDepend()) {
             Plugin dependPlugin = plugin.getServer().getPluginManager().getPlugin(depend);
             if (dependPlugin != null) {
-                hasDependency |= fillPluginsToLock(dependPlugin, pluginsToLock);
+                hasDependency |= fillPluginsToLock(dependPlugin, pluginsToLock, parentList);
             } else {
                 LOGGER.warn("Could not find dependency " + depend + " for plugin " + plugin.getName() + " even though it is a required dependency - this code shouldn't've been able to be run!");
             }
@@ -165,14 +174,19 @@ public class SynchronousPluginExecution {
         for (String softDepend : plugin.getDescription().getSoftDepend()) {
             Plugin softDependPlugin = plugin.getServer().getPluginManager().getPlugin(softDepend);
             if (softDependPlugin != null) {
-                hasDependency |= fillPluginsToLock(softDependPlugin, pluginsToLock);
+                hasDependency |= fillPluginsToLock(softDependPlugin, pluginsToLock, parentList);
             }
         }
 
-        if (hasDependency) {
+        if (!hasDependency) {
             // Only add our own plugin if we have no dependencies to lock
             // If we have a dependency, there's no point in locking this plugin by itself as we'll always be locking the dependency anyway
-            pluginsToLock.remove(plugin.getName());
+            pluginsToLock.add(plugin.getName());
+        }
+
+        String lastRemoved = parentList.removeLast();
+        if (!lastRemoved.equals(plugin.getName())) {
+            LOGGER.error("Removed wrong last plugin from parentList. Expected {}, got {}", plugin.getName(), lastRemoved);
         }
 
         return true;
