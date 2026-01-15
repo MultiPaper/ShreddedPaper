@@ -41,6 +41,7 @@ public class ShreddedPaperEntityTicker {
     /** processTrackQueue has been renamed to newTrackerTick */
     public static void processTrackQueue(Entity entity) {
         ChunkMap.TrackedEntity tracker = Objects.requireNonNull(entity.moonrise$getTrackedEntity());
+        if (((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData() == null) return; // ShreddedPaper - skip if chunk data not loaded
         ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
         if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
                 || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
