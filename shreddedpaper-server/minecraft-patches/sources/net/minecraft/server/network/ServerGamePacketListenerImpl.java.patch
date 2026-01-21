@@ -93,7 +93,7 @@
              } else {
                  handler.run();
              }
-@@ -3035,23 +_,27 @@
+@@ -3041,23 +_,27 @@
          switch (action) {
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
@@ -123,7 +123,7 @@
                  }
                  break;
              case REQUEST_STATS:
-@@ -3580,7 +_,7 @@
+@@ -3586,7 +_,7 @@
          }
          List<String> list = Stream.of(lines).map(ChatFormatting::stripFormatting).collect(Collectors.toList());
          // Paper end - Limit client sign length
@@ -132,7 +132,7 @@
      }
  
      private void updateSignText(ServerboundSignUpdatePacket packet, List<FilteredText> filteredText) {
-@@ -3838,7 +_,7 @@
+@@ -3849,7 +_,7 @@
  
      @Override
      public void disconnectAsync(final net.minecraft.network.DisconnectionDetails disconnectionInfo) {

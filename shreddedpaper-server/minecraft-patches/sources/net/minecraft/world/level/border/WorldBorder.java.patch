@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/border/WorldBorder.java
 +++ b/net/minecraft/world/level/border/WorldBorder.java
-@@ -56,16 +_,16 @@
+@@ -57,16 +_,16 @@
      }
  
      // Paper start - Bound treasure maps to world border
