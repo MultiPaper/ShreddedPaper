@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PureGero <puregero@gmail.com>
+Date: Mon, 26 Jan 2026 00:21:28 +0900
+Subject: [PATCH] Make max interaction range configurable (PaperMC/Paper#11164)
+ The server validates incoming interaction packets by ensuring the player
+ sending them is inside their interaction range. For this, the server adds a
+ magic value, by default 1.0, to the original interaction range to account for
+ latency issues.
+
+This value however may be too low in high latency environments.
+The patch exposes a new configuration option to configure said value.
+
+ShreddedPaper: Backported from Paper 1.21
+
+diff --git a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+index 0467ad99b144aa81a04baa45d4c8bbb2b70185a2..e943c561a7c92244129417de9ef9feb61b005630 100644
+--- a/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
++++ b/src/main/java/io/papermc/paper/configuration/GlobalConfiguration.java
+@@ -3,6 +3,7 @@ package io.papermc.paper.configuration;
+ import co.aikar.timings.MinecraftTimings;
+ import com.mojang.logging.LogUtils;
+ import io.papermc.paper.configuration.constraint.Constraints;
++import io.papermc.paper.configuration.type.number.DoubleOr;
+ import io.papermc.paper.configuration.type.number.IntOr;
+ import net.kyori.adventure.text.Component;
+ import net.kyori.adventure.text.format.NamedTextColor;
+@@ -336,6 +337,8 @@ public class GlobalConfiguration extends ConfigurationPart {
+         public boolean useDimensionTypeForCustomSpawners = false;
+         public boolean strictAdvancementDimensionCheck = false;
+         public IntOr.Default compressionLevel = IntOr.Default.USE_DEFAULT;
++        @Comment("Defines the leniency distance added on the server to the interaction range of a player when validating interact packets.")
++        public DoubleOr.Default clientInteractionLeniencyDistance = DoubleOr.Default.USE_DEFAULT;
+     }
+ 
+     public BlockUpdates blockUpdates;
+diff --git a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
+index 83a726bcf8b7dce73a361b0d79dbd63a0afc7a12..783eac6e458c6f1a0584301fb84a2fe341868f34 100644
+--- a/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
++++ b/src/main/java/io/papermc/paper/configuration/PaperConfigurations.java
+@@ -193,6 +193,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
+             .serializers(builder -> builder
+                 .register(new PacketClassSerializer())
+                 .register(IntOr.Default.SERIALIZER)
++                .register(DoubleOr.Default.SERIALIZER)
+             );
+     }
+ 
+diff --git a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+index 28b85349908829ddbe90718e4c5729a36952847f..cd75648913ec747e8b3471c6d11eea913c992536 100644
+--- a/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
++++ b/src/main/java/net/minecraft/server/network/ServerGamePacketListenerImpl.java
+@@ -2850,7 +2850,7 @@ public class ServerGamePacketListenerImpl extends ServerCommonPacketListenerImpl
+ 
+             AABB axisalignedbb = entity.getBoundingBox();
+ 
+-            if (this.player.canInteractWithEntity(axisalignedbb, 1.0D)) {
++            if (this.player.canInteractWithEntity(axisalignedbb, io.papermc.paper.configuration.GlobalConfiguration.get().misc.clientInteractionLeniencyDistance.or(1.0D))) { // Paper - configurable lenience value for interact range // ShreddedPaper - backported
+                 if (entity instanceof Mob mob) mob.ticksSinceLastInteraction = 0; // Purpur
+                 packet.dispatch(new ServerboundInteractPacket.Handler() {
+                     private void performInteraction(InteractionHand enumhand, ServerGamePacketListenerImpl.EntityInteraction playerconnection_a, PlayerInteractEntityEvent event) { // CraftBukkit
