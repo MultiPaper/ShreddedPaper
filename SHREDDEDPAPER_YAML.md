@@ -33,6 +33,30 @@ multithreading:
   # for single server instances.
   allow-unsupported-plugins-to-modify-chunks-via-global-scheduler: true
 
+# Threading performance monitoring settings
+threading:
+  performance-monitor:
+    # Whether the thread performance monitor is enabled
+    enabled: true
+    
+    # How often to update thread performance metrics (in milliseconds)
+    update-interval: 5000
+    
+    # CPU usage percentage threshold for warning
+    cpu-warning-threshold: 80.0
+    
+    # Memory usage percentage threshold for warning
+    memory-warning-threshold: 75.0
+    
+    # Chunk processing rate threshold for warning (chunks per second)
+    chunk-processing-warning-threshold: 50
+    
+    # How long to retain performance history (in seconds)
+    retain-history-seconds: 300
+    
+    # Whether to enable detailed logging of performance metrics
+    detailed-logging: false
+
 # ShreddedPaper's optimizations settings
 optimizations:
   
