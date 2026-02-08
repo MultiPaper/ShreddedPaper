@@ -15,7 +15,7 @@
  import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
  import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
  import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-@@ -368,7 +_,7 @@
+@@ -369,7 +_,7 @@
          }
  
          if (this.server.isPaused() || !this.tickPlayer()) {
@@ -24,7 +24,7 @@
              this.chatSpamThrottler.tick();
              this.dropSpamThrottler.tick();
              this.tabSpamThrottler.tick(); // Paper - configurable tab spam limits
-@@ -626,6 +_,12 @@
+@@ -627,6 +_,12 @@
                      return;
                  }
                  // Paper end - Prevent moving into unloaded chunks
@@ -37,7 +37,7 @@
                  if (d7 - d6 > Math.max(100.0, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed)) && !this.isSingleplayerOwner()) {
                      // CraftBukkit end
                      LOGGER.warn("{} (vehicle of {}) moved too quickly! {},{},{}", rootVehicle.getPlainTextName(), this.player.getPlainTextName(), d3, d4, d5);
-@@ -1379,7 +_,7 @@
+@@ -1380,7 +_,7 @@
              Consumer<List<FilteredText>> consumer = optional.isPresent()
                  ? texts -> this.signBook(texts.get(0), texts.subList(1, texts.size()), slot, hasSignPerm) // Purpur - Allow color codes in books
                  : list1 -> this.updateBookContents(list1, slot, hasEditPerm); // Purpur - Allow color codes in books
@@ -46,7 +46,7 @@
          }
      }
  
-@@ -1573,6 +_,12 @@
+@@ -1574,6 +_,12 @@
                                          // Paper end - Add fail move event
                                      }
                                      // Paper end - Prevent moving into unloaded chunks
@@ -59,7 +59,7 @@
  
                                      if (this.shouldCheckPlayerMovement(isFallFlying)) {
                                          float f2 = isFallFlying ? 300.0F : 100.0F;
-@@ -2293,7 +_,9 @@
+@@ -2294,7 +_,9 @@
              for (ServerLevel serverLevel : this.server.getAllLevels()) {
                  Entity entity = packet.getEntity(serverLevel);
                  if (entity != null) {
@@ -69,7 +69,7 @@
                      return;
                  }
              }
-@@ -2317,12 +_,14 @@
+@@ -2318,12 +_,14 @@
              this.processedDisconnect = true;
          }
          // CraftBukkit end
@@ -84,7 +84,7 @@
      }
  
      private void removePlayerFromWorld() {
-@@ -2584,7 +_,7 @@
+@@ -2585,7 +_,7 @@
              this.player.resetLastActionTime();
              // CraftBukkit start
              if (sync) {
@@ -93,7 +93,7 @@
              } else {
                  handler.run();
              }
-@@ -3041,23 +_,27 @@
+@@ -3042,23 +_,27 @@
          switch (action) {
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
@@ -123,7 +123,7 @@
                  }
                  break;
              case REQUEST_STATS:
-@@ -3586,7 +_,7 @@
+@@ -3587,7 +_,7 @@
          }
          List<String> list = Stream.of(lines).map(ChatFormatting::stripFormatting).collect(Collectors.toList());
          // Paper end - Limit client sign length
@@ -132,7 +132,7 @@
      }
  
      private void updateSignText(ServerboundSignUpdatePacket packet, List<FilteredText> filteredText) {
-@@ -3849,7 +_,7 @@
+@@ -3850,7 +_,7 @@
  
      @Override
      public void disconnectAsync(final net.minecraft.network.DisconnectionDetails disconnectionInfo) {
