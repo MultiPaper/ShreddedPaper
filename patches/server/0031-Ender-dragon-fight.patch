@@ -5,7 +5,7 @@ Subject: [PATCH] Ender dragon fight
 
 
 diff --git a/src/main/java/net/minecraft/world/level/dimension/end/EndDragonFight.java b/src/main/java/net/minecraft/world/level/dimension/end/EndDragonFight.java
-index 18a1b4325cac81b040596071dab99ef9bf6f3142..40df5dbe88419e81e36998120381387eff4f1921 100644
+index 18a1b4325cac81b040596071dab99ef9bf6f3142..09552a26497e26590a306f76fff3162af36c1812 100644
 --- a/src/main/java/net/minecraft/world/level/dimension/end/EndDragonFight.java
 +++ b/src/main/java/net/minecraft/world/level/dimension/end/EndDragonFight.java
 @@ -9,6 +9,7 @@ import com.google.common.collect.Sets;
@@ -32,7 +32,7 @@ index 18a1b4325cac81b040596071dab99ef9bf6f3142..40df5dbe88419e81e36998120381387e
 +            };
 +            while (!this.level.chunkScheduler.getRegionLocker().tryLockNow(RegionPos.forChunk(0, 0), r)) {
 +                long startBlockingTime = System.nanoTime();
-+                this.level.chunkSource.mainThreadProcessor.managedBlock(() -> System.nanoTime() - startBlockingTime < 1_000_000); // Wait for 1ms
++                this.level.chunkSource.mainThreadProcessor.managedBlock(() -> System.nanoTime() - startBlockingTime >= 1_000_000); // Wait for 1ms
 +            }
 +            // ShreddedPaper end - run on end island thread
          } else {
