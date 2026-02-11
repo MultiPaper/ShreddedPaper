@@ -1,0 +1,1481 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nu11 <86795298+Nu11ified@users.noreply.github.com>
+Date: Fri, 18 Jul 2025 14:28:57 -0500
+Subject: [PATCH] Add thread performance monitoring feature
+
+- Add ThreadPerformanceMonitor class with CPU and memory tracking
+- Add ThreadMetrics and PerformanceSnapshot data structures
+- Add ThreadsCommand for /shreddedpaper threads command
+- Add threading configuration section to ShreddedPaperConfiguration
+- Integrate chunk processing metrics into ShreddedPaperChunkTicker
+- Add performance monitoring to shreddedpaper.yml configuration
+
+diff --git a/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java b/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java
+index 4dd39bce7ed93bf96cc893cc5e3cf539f44763fe..4e02321a4d980b2f0ced8d84e7d736bbadc458ae 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java
++++ b/src/main/java/io/multipaper/shreddedpaper/commands/ShreddedPaperCommands.java
+@@ -11,7 +11,8 @@ public class ShreddedPaperCommands {
+     private static final Map<String, Command> COMMANDS = new HashMap<>();
+     static {
+         for (Command command : new Command[] {
+-                new MPMapCommand("mpmap")
++                new MPMapCommand("mpmap"),
++                new ThreadsCommand("threads")
+         }) {
+             COMMANDS.put(command.getName(), command);
+         }
+diff --git a/src/main/java/io/multipaper/shreddedpaper/commands/ThreadsCommand.java b/src/main/java/io/multipaper/shreddedpaper/commands/ThreadsCommand.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4e8d248df4af1912985fe58d57022c8a9ffff41d
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/commands/ThreadsCommand.java
+@@ -0,0 +1,580 @@
++package io.multipaper.shreddedpaper.commands;
++
++import io.multipaper.shreddedpaper.config.ThreadingConfig;
++import io.multipaper.shreddedpaper.threading.PerformanceSnapshot;
++import io.multipaper.shreddedpaper.threading.ThreadMetrics;
++import io.multipaper.shreddedpaper.threading.ThreadPerformanceMonitor;
++import net.kyori.adventure.text.Component;
++import net.kyori.adventure.text.TextComponent;
++import net.kyori.adventure.text.format.NamedTextColor;
++import net.kyori.adventure.text.format.TextDecoration;
++import org.bukkit.command.Command;
++import org.bukkit.command.CommandSender;
++import org.jetbrains.annotations.NotNull;
++
++import java.time.ZoneId;
++import java.time.format.DateTimeFormatter;
++import java.util.List;
++import java.util.Locale;
++import java.util.Optional;
++
++/**
++ * Command implementation for the /shreddedpaper threads command.
++ * Displays thread performance metrics in a formatted table.
++ */
++public class ThreadsCommand extends Command {
++
++    private static final DateTimeFormatter TIMESTAMP_FORMATTER = 
++            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
++                    .withLocale(Locale.US)
++                    .withZone(ZoneId.systemDefault());
++
++    /**
++     * Creates a new ThreadsCommand instance.
++     *
++     * @param name the name of the command
++     */
++    public ThreadsCommand(String name) {
++        super(name);
++        setDescription("Displays thread performance metrics and history");
++        setUsage("/shreddedpaper threads [history|thread <id|name>]");
++        setPermission("shreddedpaper.command.threads");
++    }
++
++    @Override
++    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
++        if (!testPermission(sender)) {
++            return false;
++        }
++
++        ThreadingConfig config = new ThreadingConfig();
++        if (!config.isPerformanceMonitorEnabled()) {
++            sender.sendMessage(Component.text("Thread performance monitoring is disabled in the configuration.")
++                    .color(NamedTextColor.RED));
++            sender.sendMessage(Component.text("Enable it in shreddedpaper.yml by setting threading.performance-monitor.enabled to true.")
++                    .color(NamedTextColor.GRAY));
++            return true;
++        }
++
++        // Get the latest snapshot for all commands
++        PerformanceSnapshot snapshot = ThreadPerformanceMonitor.getInstance().getLatestSnapshot();
++        if (snapshot == null) {
++            sender.sendMessage(Component.text("Thread performance data is not available yet.")
++                    .color(NamedTextColor.RED));
++            sender.sendMessage(Component.text("Please wait a few seconds for data to be collected.")
++                    .color(NamedTextColor.GRAY));
++            return true;
++        }
++
++        // Check if history subcommand was used
++        if (args.length > 0 && args[0].equalsIgnoreCase("history")) {
++            List<PerformanceSnapshot> history = ThreadPerformanceMonitor.getInstance().getHistory();
++            if (history.isEmpty()) {
++                sender.sendMessage(Component.text("No performance history is available yet.")
++                        .color(NamedTextColor.RED));
++                sender.sendMessage(Component.text("Please wait for data to be collected.")
++                        .color(NamedTextColor.GRAY));
++                return true;
++            }
++            
++            sendHistoryReport(sender, history);
++            return true;
++        }
++        
++        // Check if thread subcommand was used
++        if (args.length > 1 && args[0].equalsIgnoreCase("thread")) {
++            String threadIdentifier = args[1];
++            Optional<ThreadMetrics> threadMetrics;
++            
++            // Try to parse as thread ID first
++            try {
++                long threadId = Long.parseLong(threadIdentifier);
++                threadMetrics = snapshot.getThreadMetricsById(threadId);
++            } catch (NumberFormatException e) {
++                // If not a number, treat as thread name
++                threadMetrics = snapshot.getThreadMetricsByName(threadIdentifier);
++            }
++            
++            if (!threadMetrics.isPresent()) {
++                sender.sendMessage(Component.text("Thread not found: " + threadIdentifier)
++                        .color(NamedTextColor.RED));
++                sender.sendMessage(Component.text("Use /shreddedpaper threads to see a list of available threads.")
++                        .color(NamedTextColor.GRAY));
++                return true;
++            }
++            
++            sendThreadDetailReport(sender, threadMetrics.get(), snapshot);
++            return true;
++        }
++        
++        // Default behavior - show current snapshot
++        sendPerformanceReport(sender, snapshot);
++        return true;
++    }
++
++    /**
++     * Sends a detailed report about a specific thread to the command sender.
++     *
++     * @param sender the command sender
++     * @param threadMetrics the metrics for the thread
++     * @param snapshot the overall performance snapshot
++     */
++    private void sendThreadDetailReport(@NotNull CommandSender sender, ThreadMetrics threadMetrics, PerformanceSnapshot snapshot) {
++        // Header
++        sender.sendMessage(Component.text("Thread Detail Report")
++                .color(NamedTextColor.GOLD)
++                .decorate(TextDecoration.BOLD));
++        
++        sender.sendMessage(Component.text("=======================================")
++                .color(NamedTextColor.GOLD));
++        
++        // Thread information
++        sender.sendMessage(Component.text("Thread: ")
++                .color(NamedTextColor.WHITE)
++                .append(Component.text(threadMetrics.getThreadName())
++                        .color(NamedTextColor.YELLOW)));
++        
++        sender.sendMessage(Component.text("Thread ID: ")
++                .color(NamedTextColor.WHITE)
++                .append(Component.text(String.valueOf(threadMetrics.getThreadId()))
++                        .color(NamedTextColor.YELLOW)));
++        
++        // Status with color
++        NamedTextColor statusColor;
++        switch (threadMetrics.getStatus()) {
++            case ACTIVE:
++                statusColor = NamedTextColor.GREEN;
++                break;
++            case IDLE:
++                statusColor = NamedTextColor.GRAY;
++                break;
++            case OVERLOADED:
++                statusColor = NamedTextColor.RED;
++                break;
++            default:
++                statusColor = NamedTextColor.WHITE;
++        }
++        
++        sender.sendMessage(Component.text("Status: ")
++                .color(NamedTextColor.WHITE)
++                .append(Component.text(threadMetrics.getStatus().toString())
++                        .color(statusColor)));
++        
++        // Performance metrics
++        sender.sendMessage(Component.empty());
++        sender.sendMessage(Component.text("Performance Metrics:")
++                .color(NamedTextColor.AQUA)
++                .decorate(TextDecoration.BOLD));
++        
++        sender.sendMessage(Component.text("CPU Usage: ")
++                .color(NamedTextColor.WHITE)
++                .append(Component.text(String.format("%.2f%%", threadMetrics.getCpuUsagePercent()))
++                        .color(getCpuColor(threadMetrics.getCpuUsagePercent()))));
++        
++        double memoryPercentage = (double) threadMetrics.getMemoryUsageMB() / snapshot.getMaxMemoryMB() * 100.0;
++        sender.sendMessage(Component.text("Memory Usage: ")
++                .color(NamedTextColor.WHITE)
++                .append(Component.text(String.format("%d MB (%.1f%%)", 
++                        threadMetrics.getMemoryUsageMB(), memoryPercentage))
++                        .color(getMemoryColor(memoryPercentage))));
++        
++        sender.sendMessage(Component.text("Chunks Processed: ")
++                .color(NamedTextColor.WHITE)
++                .append(Component.text(String.format("%d chunks/sec", threadMetrics.getChunksProcessedPerSecond()))
++                        .color(threadMetrics.getChunksProcessedPerSecond() > 0 ? NamedTextColor.GREEN : NamedTextColor.GRAY)));
++        
++        // Timestamp
++        sender.sendMessage(Component.empty());
++        sender.sendMessage(Component.text("Updated: ")
++                .color(NamedTextColor.GRAY)
++                .append(Component.text(TIMESTAMP_FORMATTER.format(threadMetrics.getTimestamp()))
++                        .color(NamedTextColor.GRAY)));
++        
++        // Usage hint
++        sender.sendMessage(Component.empty());
++        sender.sendMessage(Component.text("Use ")
++                .color(NamedTextColor.GRAY)
++                .append(Component.text("/shreddedpaper threads")
++                        .color(NamedTextColor.WHITE))
++                .append(Component.text(" to view all threads.")
++                        .color(NamedTextColor.GRAY)));
++    }
++
++    /**
++     * Sends a formatted performance report to the command sender.
++     *
++     * @param sender the command sender
++     * @param snapshot the performance snapshot to report
++     */
++    private void sendPerformanceReport(CommandSender sender, PerformanceSnapshot snapshot) {
++        // Header
++        sender.sendMessage(Component.text("ShreddedPaper Thread Performance Monitor")
++                .color(NamedTextColor.GOLD)
++                .decorate(TextDecoration.BOLD));
++        
++        sender.sendMessage(Component.text("=======================================")
++                .color(NamedTextColor.GOLD));
++
++        // Server status
++        NamedTextColor statusColor;
++        switch (snapshot.getServerStatus()) {
++            case HEALTHY:
++                statusColor = NamedTextColor.GREEN;
++                break;
++            case HIGH_LOAD:
++                statusColor = NamedTextColor.YELLOW;
++                break;
++            case WARNING:
++                statusColor = NamedTextColor.GOLD;
++                break;
++            case CRITICAL:
++                statusColor = NamedTextColor.RED;
++                break;
++            default:
++                statusColor = NamedTextColor.WHITE;
++        }
++
++        TextComponent.Builder statusLine = Component.text()
++                .append(Component.text("Server Status: ")
++                        .color(NamedTextColor.WHITE))
++                .append(Component.text(snapshot.getServerStatus().toString())
++                        .color(statusColor))
++                .append(Component.text(" | CPU: ")
++                        .color(NamedTextColor.WHITE))
++                .append(Component.text(String.format("%.1f%%", snapshot.getOverallCpuUsage()))
++                        .color(getCpuColor(snapshot.getOverallCpuUsage())))
++                .append(Component.text(" | Memory: ")
++                        .color(NamedTextColor.WHITE))
++                .append(Component.text(String.format("%dMB/%dMB", 
++                                snapshot.getTotalMemoryUsageMB(), 
++                                snapshot.getMaxMemoryMB()))
++                        .color(getMemoryColor(snapshot.getMemoryUsagePercent())));
++        
++        sender.sendMessage(statusLine.build());
++        sender.sendMessage(Component.empty());
++
++        // Thread performance table
++        sender.sendMessage(Component.text("Thread Performance:")
++                .color(NamedTextColor.AQUA)
++                .decorate(TextDecoration.BOLD));
++
++        // Table header
++        sender.sendMessage(createTableRow(
++                "Thread Name", "CPU %", "Memory", "Chunks/sec", "Status",
++                NamedTextColor.AQUA, NamedTextColor.AQUA, NamedTextColor.AQUA, 
++                NamedTextColor.AQUA, NamedTextColor.AQUA
++        ));
++
++        // Table separator
++        sender.sendMessage(Component.text("├─────────────────┼─────────┼─────────┼────────────┼──────────┤")
++                .color(NamedTextColor.GRAY));
++
++        // Table rows
++        List<ThreadMetrics> metrics = snapshot.getThreadMetrics();
++        for (ThreadMetrics metric : metrics) {
++            // Skip threads with very low activity
++            if (metric.getCpuUsagePercent() < 0.1 && metric.getChunksProcessedPerSecond() == 0) {
++                continue;
++            }
++
++            NamedTextColor statusColor2;
++            switch (metric.getStatus()) {
++                case ACTIVE:
++                    statusColor2 = NamedTextColor.GREEN;
++                    break;
++                case IDLE:
++                    statusColor2 = NamedTextColor.GRAY;
++                    break;
++                case OVERLOADED:
++                    statusColor2 = NamedTextColor.RED;
++                    break;
++                default:
++                    statusColor2 = NamedTextColor.WHITE;
++            }
++
++            sender.sendMessage(createTableRow(
++                    truncateString(metric.getThreadName(), 15),
++                    String.format("%.1f%%", metric.getCpuUsagePercent()),
++                    String.format("%dMB", metric.getMemoryUsageMB()),
++                    String.valueOf(metric.getChunksProcessedPerSecond()),
++                    metric.getStatus().toString(),
++                    NamedTextColor.WHITE,
++                    getCpuColor(metric.getCpuUsagePercent()),
++                    getMemoryColor((double) metric.getMemoryUsageMB() / snapshot.getMaxMemoryMB() * 100.0),
++                    NamedTextColor.WHITE,
++                    statusColor2
++            ));
++        }
++
++        // Table footer
++        sender.sendMessage(Component.text("└─────────────────┴─────────┴─────────┴────────────┴──────────┘")
++                .color(NamedTextColor.GRAY));
++
++        // Warnings
++        if (!snapshot.getWarnings().isEmpty()) {
++            sender.sendMessage(Component.empty());
++            sender.sendMessage(Component.text("Warnings: ")
++                    .color(NamedTextColor.GOLD)
++                    .append(Component.text(String.join(", ", snapshot.getWarnings()))
++                            .color(NamedTextColor.RED)));
++        }
++
++        // Timestamp
++        sender.sendMessage(Component.empty());
++        sender.sendMessage(Component.text("Updated: ")
++                .color(NamedTextColor.GRAY)
++                .append(Component.text(TIMESTAMP_FORMATTER.format(snapshot.getTimestamp()))
++                        .color(NamedTextColor.GRAY)));
++    }
++
++    /**
++     * Creates a formatted table row with colored cells.
++     *
++     * @param col1 content of column 1
++     * @param col2 content of column 2
++     * @param col3 content of column 3
++     * @param col4 content of column 4
++     * @param col5 content of column 5
++     * @param color1 color of column 1
++     * @param color2 color of column 2
++     * @param color3 color of column 3
++     * @param color4 color of column 4
++     * @param color5 color of column 5
++     * @return a component representing a formatted table row
++     */
++    private Component createTableRow(String col1, String col2, String col3, String col4, String col5,
++                                    NamedTextColor color1, NamedTextColor color2, NamedTextColor color3,
++                                    NamedTextColor color4, NamedTextColor color5) {
++        return Component.text("│ ")
++                .color(NamedTextColor.GRAY)
++                .append(Component.text(padRight(col1, 15))
++                        .color(color1))
++                .append(Component.text(" │ ")
++                        .color(NamedTextColor.GRAY))
++                .append(Component.text(padRight(col2, 7))
++                        .color(color2))
++                .append(Component.text(" │ ")
++                        .color(NamedTextColor.GRAY))
++                .append(Component.text(padRight(col3, 7))
++                        .color(color3))
++                .append(Component.text(" │ ")
++                        .color(NamedTextColor.GRAY))
++                .append(Component.text(padRight(col4, 10))
++                        .color(color4))
++                .append(Component.text(" │ ")
++                        .color(NamedTextColor.GRAY))
++                .append(Component.text(padRight(col5, 8))
++                        .color(color5))
++                .append(Component.text(" │")
++                        .color(NamedTextColor.GRAY));
++    }
++
++    /**
++     * Gets the appropriate color for CPU usage based on the value.
++     *
++     * @param cpuUsage the CPU usage percentage
++     * @return the appropriate color
++     */
++    private NamedTextColor getCpuColor(double cpuUsage) {
++        if (cpuUsage > 90.0) {
++            return NamedTextColor.RED;
++        } else if (cpuUsage > 70.0) {
++            return NamedTextColor.GOLD;
++        } else if (cpuUsage > 40.0) {
++            return NamedTextColor.YELLOW;
++        } else {
++            return NamedTextColor.GREEN;
++        }
++    }
++
++    /**
++     * Gets the appropriate color for memory usage based on the value.
++     *
++     * @param memoryUsage the memory usage percentage
++     * @return the appropriate color
++     */
++    private NamedTextColor getMemoryColor(double memoryUsage) {
++        if (memoryUsage > 90.0) {
++            return NamedTextColor.RED;
++        } else if (memoryUsage > 70.0) {
++            return NamedTextColor.GOLD;
++        } else if (memoryUsage > 50.0) {
++            return NamedTextColor.YELLOW;
++        } else {
++            return NamedTextColor.GREEN;
++        }
++    }
++
++    /**
++     * Pads a string with spaces to the right to reach the specified length.
++     *
++     * @param s the string to pad
++     * @param length the desired length
++     * @return the padded string
++     */
++    private String padRight(String s, int length) {
++        return String.format("%-" + length + "s", s);
++    }
++
++    /**
++     * Truncates a string to the specified length, adding "..." if truncated.
++     *
++     * @param s the string to truncate
++     * @param length the maximum length
++     * @return the truncated string
++     */
++    private String truncateString(String s, int length) {
++        if (s.length() <= length) {
++            return s;
++        }
++        return s.substring(0, length - 3) + "...";
++    }
++    
++    /**
++     * Sends a formatted history report to the command sender.
++     *
++     * @param sender the command sender
++     * @param history the list of performance snapshots
++     */
++    private void sendHistoryReport(CommandSender sender, List<PerformanceSnapshot> history) {
++        // Header
++        sender.sendMessage(Component.text("ShreddedPaper Thread Performance History")
++                .color(NamedTextColor.GOLD)
++                .decorate(TextDecoration.BOLD));
++        
++        sender.sendMessage(Component.text("=======================================")
++                .color(NamedTextColor.GOLD));
++        
++        // Summary information
++        int historySize = history.size();
++        PerformanceSnapshot latest = history.get(historySize - 1);
++        PerformanceSnapshot oldest = history.get(0);
++        
++        long durationSeconds = (latest.getTimestamp().toEpochMilli() - oldest.getTimestamp().toEpochMilli()) / 1000;
++        
++        sender.sendMessage(Component.text("History period: ")
++                .color(NamedTextColor.WHITE)
++                .append(Component.text(String.format("%d seconds (%d snapshots)", durationSeconds, historySize))
++                        .color(NamedTextColor.YELLOW)));
++        
++        sender.sendMessage(Component.text("From: ")
++                .color(NamedTextColor.WHITE)
++                .append(Component.text(TIMESTAMP_FORMATTER.format(oldest.getTimestamp()))
++                        .color(NamedTextColor.GRAY))
++                .append(Component.text(" to: ")
++                        .color(NamedTextColor.WHITE))
++                .append(Component.text(TIMESTAMP_FORMATTER.format(latest.getTimestamp()))
++                        .color(NamedTextColor.GRAY)));
++        
++        sender.sendMessage(Component.empty());
++        
++        // Calculate averages and trends
++        double avgCpuUsage = history.stream().mapToDouble(PerformanceSnapshot::getOverallCpuUsage).average().orElse(0);
++        double avgMemoryUsagePercent = history.stream().mapToDouble(PerformanceSnapshot::getMemoryUsagePercent).average().orElse(0);
++        double avgChunksProcessed = history.stream().mapToDouble(PerformanceSnapshot::getTotalChunksProcessed).average().orElse(0);
++        
++        // CPU trend (comparing first half to second half)
++        int midPoint = historySize / 2;
++        double firstHalfCpu = history.subList(0, midPoint).stream().mapToDouble(PerformanceSnapshot::getOverallCpuUsage).average().orElse(0);
++        double secondHalfCpu = history.subList(midPoint, historySize).stream().mapToDouble(PerformanceSnapshot::getOverallCpuUsage).average().orElse(0);
++        String cpuTrend = secondHalfCpu > firstHalfCpu * 1.1 ? "↑" : (secondHalfCpu < firstHalfCpu * 0.9 ? "↓" : "→");
++        
++        // Memory trend
++        double firstHalfMem = history.subList(0, midPoint).stream().mapToDouble(PerformanceSnapshot::getMemoryUsagePercent).average().orElse(0);
++        double secondHalfMem = history.subList(midPoint, historySize).stream().mapToDouble(PerformanceSnapshot::getMemoryUsagePercent).average().orElse(0);
++        String memTrend = secondHalfMem > firstHalfMem * 1.1 ? "↑" : (secondHalfMem < firstHalfMem * 0.9 ? "↓" : "→");
++        
++        // Chunks trend
++        double firstHalfChunks = history.subList(0, midPoint).stream().mapToDouble(PerformanceSnapshot::getTotalChunksProcessed).average().orElse(0);
++        double secondHalfChunks = history.subList(midPoint, historySize).stream().mapToDouble(PerformanceSnapshot::getTotalChunksProcessed).average().orElse(0);
++        String chunksTrend = secondHalfChunks > firstHalfChunks * 1.1 ? "↑" : (secondHalfChunks < firstHalfChunks * 0.9 ? "↓" : "→");
++        
++        // Performance metrics table
++        sender.sendMessage(Component.text("Performance Metrics Summary:")
++                .color(NamedTextColor.AQUA)
++                .decorate(TextDecoration.BOLD));
++        
++        // Table header
++        sender.sendMessage(createTableRow(
++                "Metric", "Min", "Avg", "Max", "Trend",
++                NamedTextColor.AQUA, NamedTextColor.AQUA, NamedTextColor.AQUA, 
++                NamedTextColor.AQUA, NamedTextColor.AQUA
++        ));
++        
++        // Table separator
++        sender.sendMessage(Component.text("├─────────────────┼─────────┼─────────┼────────────┼──────────┤")
++                .color(NamedTextColor.GRAY));
++        
++        // CPU row
++        double minCpu = history.stream().mapToDouble(PerformanceSnapshot::getOverallCpuUsage).min().orElse(0);
++        double maxCpu = history.stream().mapToDouble(PerformanceSnapshot::getOverallCpuUsage).max().orElse(0);
++        sender.sendMessage(createTableRow(
++                "CPU Usage", 
++                String.format("%.1f%%", minCpu),
++                String.format("%.1f%%", avgCpuUsage),
++                String.format("%.1f%%", maxCpu),
++                cpuTrend,
++                NamedTextColor.WHITE,
++                getCpuColor(minCpu),
++                getCpuColor(avgCpuUsage),
++                getCpuColor(maxCpu),
++                cpuTrend.equals("↑") ? NamedTextColor.RED : (cpuTrend.equals("↓") ? NamedTextColor.GREEN : NamedTextColor.YELLOW)
++        ));
++        
++        // Memory row
++        double minMem = history.stream().mapToDouble(PerformanceSnapshot::getMemoryUsagePercent).min().orElse(0);
++        double maxMem = history.stream().mapToDouble(PerformanceSnapshot::getMemoryUsagePercent).max().orElse(0);
++        sender.sendMessage(createTableRow(
++                "Memory Usage", 
++                String.format("%.1f%%", minMem),
++                String.format("%.1f%%", avgMemoryUsagePercent),
++                String.format("%.1f%%", maxMem),
++                memTrend,
++                NamedTextColor.WHITE,
++                getMemoryColor(minMem),
++                getMemoryColor(avgMemoryUsagePercent),
++                getMemoryColor(maxMem),
++                memTrend.equals("↑") ? NamedTextColor.RED : (memTrend.equals("↓") ? NamedTextColor.GREEN : NamedTextColor.YELLOW)
++        ));
++        
++        // Chunks row
++        int minChunks = history.stream().mapToInt(PerformanceSnapshot::getTotalChunksProcessed).min().orElse(0);
++        int maxChunks = history.stream().mapToInt(PerformanceSnapshot::getTotalChunksProcessed).max().orElse(0);
++        sender.sendMessage(createTableRow(
++                "Chunks/sec", 
++                String.valueOf(minChunks),
++                String.format("%.1f", avgChunksProcessed),
++                String.valueOf(maxChunks),
++                chunksTrend,
++                NamedTextColor.WHITE,
++                NamedTextColor.WHITE,
++                NamedTextColor.WHITE,
++                NamedTextColor.WHITE,
++                chunksTrend.equals("↑") ? NamedTextColor.GREEN : (chunksTrend.equals("↓") ? NamedTextColor.RED : NamedTextColor.YELLOW)
++        ));
++        
++        // Table footer
++        sender.sendMessage(Component.text("└─────────────────┴─────────┴─────────┴────────────┴──────────┘")
++                .color(NamedTextColor.GRAY));
++        
++        // Warning frequency
++        long warningCount = history.stream().filter(s -> !s.getWarnings().isEmpty()).count();
++        if (warningCount > 0) {
++            double warningPercent = (double) warningCount / historySize * 100.0;
++            sender.sendMessage(Component.empty());
++            sender.sendMessage(Component.text("Warning frequency: ")
++                    .color(NamedTextColor.GOLD)
++                    .append(Component.text(String.format("%.1f%% (%d/%d snapshots)", warningPercent, warningCount, historySize))
++                            .color(warningPercent > 50 ? NamedTextColor.RED : (warningPercent > 20 ? NamedTextColor.GOLD : NamedTextColor.YELLOW))));
++        }
++        
++        // Usage hint
++        sender.sendMessage(Component.empty());
++        sender.sendMessage(Component.text("Use ")
++                .color(NamedTextColor.GRAY)
++                .append(Component.text("/shreddedpaper threads")
++                        .color(NamedTextColor.WHITE))
++                .append(Component.text(" to view current performance details.")
++                        .color(NamedTextColor.GRAY)));
++    }
++}
+\ No newline at end of file
+diff --git a/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java b/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java
+index 9da1a1fde62c78ee7a504672bcda5d99b472f2d8..bdd567467812ec865eb6d5cf5ada7ffdb229564f 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java
++++ b/src/main/java/io/multipaper/shreddedpaper/config/ShreddedPaperConfiguration.java
+@@ -36,6 +36,36 @@ public class ShreddedPaperConfiguration extends ConfigurationPart {
+ 
+     }
+ 
++    public Threading threading;
++
++    public class Threading extends ConfigurationPart {
++
++        public PerformanceMonitor performanceMonitor;
++
++        public class PerformanceMonitor extends ConfigurationPart {
++            @Comment("Whether the thread performance monitor is enabled")
++            public boolean enabled = true;
++
++            @Comment("How often to update thread performance metrics (in milliseconds)")
++            public int updateInterval = 5000;
++
++            @Comment("CPU usage percentage threshold for warning")
++            public double cpuWarningThreshold = 80.0;
++
++            @Comment("Memory usage percentage threshold for warning")
++            public double memoryWarningThreshold = 75.0;
++
++            @Comment("Chunk processing rate threshold for warning (chunks per second)")
++            public int chunkProcessingWarningThreshold = 50;
++
++            @Comment("How long to retain performance history (in seconds)")
++            public int retainHistorySeconds = 300;
++
++            @Comment("Whether to enable detailed logging of performance metrics")
++            public boolean detailedLogging = false;
++        }
++    }
++
+     public Optimizations optimizations;
+ 
+     public class Optimizations extends ConfigurationPart {
+diff --git a/src/main/java/io/multipaper/shreddedpaper/config/ThreadingConfig.java b/src/main/java/io/multipaper/shreddedpaper/config/ThreadingConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..bd808158e06fbd742a83124005e36a08e32264cc
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/config/ThreadingConfig.java
+@@ -0,0 +1,79 @@
++package io.multipaper.shreddedpaper.config;
++
++/**
++ * Configuration wrapper for threading-related settings.
++ * Provides type-safe access to threading configuration values.
++ */
++public class ThreadingConfig {
++    private final ShreddedPaperConfiguration.Threading config;
++
++    /**
++     * Creates a new ThreadingConfig instance.
++     */
++    public ThreadingConfig() {
++        this.config = ShreddedPaperConfiguration.get().threading;
++    }
++
++    /**
++     * Checks if the thread performance monitor is enabled.
++     *
++     * @return true if enabled, false otherwise
++     */
++    public boolean isPerformanceMonitorEnabled() {
++        return config != null && config.performanceMonitor != null && config.performanceMonitor.enabled;
++    }
++
++    /**
++     * Gets the update interval for thread performance metrics in milliseconds.
++     *
++     * @return the update interval in milliseconds
++     */
++    public int getUpdateIntervalMs() {
++        return config != null && config.performanceMonitor != null ? config.performanceMonitor.updateInterval : 5000;
++    }
++
++    /**
++     * Gets the CPU usage percentage threshold for warnings.
++     *
++     * @return the CPU warning threshold (0-100)
++     */
++    public double getCpuWarningThreshold() {
++        return config != null && config.performanceMonitor != null ? config.performanceMonitor.cpuWarningThreshold : 80.0;
++    }
++
++    /**
++     * Gets the memory usage percentage threshold for warnings.
++     *
++     * @return the memory warning threshold (0-100)
++     */
++    public double getMemoryWarningThreshold() {
++        return config != null && config.performanceMonitor != null ? config.performanceMonitor.memoryWarningThreshold : 75.0;
++    }
++
++    /**
++     * Gets the chunk processing rate threshold for warnings.
++     *
++     * @return the chunk processing warning threshold (chunks per second)
++     */
++    public int getChunkProcessingWarningThreshold() {
++        return config != null && config.performanceMonitor != null ? config.performanceMonitor.chunkProcessingWarningThreshold : 50;
++    }
++
++    /**
++     * Gets how long to retain performance history in seconds.
++     *
++     * @return the history retention time in seconds
++     */
++    public int getRetainHistorySeconds() {
++        return config != null && config.performanceMonitor != null ? config.performanceMonitor.retainHistorySeconds : 300;
++    }
++
++    /**
++     * Checks if detailed logging of performance metrics is enabled.
++     *
++     * @return true if detailed logging is enabled, false otherwise
++     */
++    public boolean isDetailedLoggingEnabled() {
++        return config != null && config.performanceMonitor != null && config.performanceMonitor.detailedLogging;
++    }
++}
+\ No newline at end of file
+diff --git a/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java b/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java
+index 89436f82a49d69f3bd21195bf44dfc4fa9bd4df7..dbd319e52296aed274fca72064d0554d90316a0a 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java
++++ b/src/main/java/io/multipaper/shreddedpaper/permissions/ShreddedPaperCommandPermissions.java
+@@ -13,6 +13,7 @@ public class ShreddedPaperCommandPermissions {
+         Permission commands = DefaultPermissions.registerPermission(ROOT, "Gives the user the ability to use all ShreddedPaper commands", parent);
+ 
+         DefaultPermissions.registerPermission(PREFIX + "mpmap", "MPMap command", PermissionDefault.TRUE, commands);
++        DefaultPermissions.registerPermission(PREFIX + "threads", "Thread performance monitor command", PermissionDefault.OP, commands);
+ 
+         commands.recalculatePermissibles();
+     }
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/PerformanceSnapshot.java b/src/main/java/io/multipaper/shreddedpaper/threading/PerformanceSnapshot.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c35ef32fcdc0f52912513308ae493b792c99f431
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/PerformanceSnapshot.java
+@@ -0,0 +1,184 @@
++package io.multipaper.shreddedpaper.threading;
++
++import java.time.Instant;
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.List;
++import java.util.Optional;
++
++/**
++ * Represents a snapshot of server performance metrics across all threads.
++ */
++public class PerformanceSnapshot {
++    private final List<ThreadMetrics> threadMetrics;
++    private final double overallCpuUsage;
++    private final long totalMemoryUsageMB;
++    private final long maxMemoryMB;
++    private final int totalChunksProcessed;
++    private final List<String> warnings;
++    private final Instant timestamp;
++
++    /**
++     * Creates a new performance snapshot.
++     *
++     * @param threadMetrics List of thread metrics
++     * @param overallCpuUsage Overall CPU usage percentage (0-100)
++     * @param totalMemoryUsageMB Total memory usage in MB
++     * @param maxMemoryMB Maximum available memory in MB
++     * @param totalChunksProcessed Total chunks processed per second
++     * @param warnings List of performance warnings
++     */
++    public PerformanceSnapshot(List<ThreadMetrics> threadMetrics, double overallCpuUsage,
++                              long totalMemoryUsageMB, long maxMemoryMB, 
++                              int totalChunksProcessed, List<String> warnings) {
++        this.threadMetrics = new ArrayList<>(threadMetrics);
++        this.overallCpuUsage = overallCpuUsage;
++        this.totalMemoryUsageMB = totalMemoryUsageMB;
++        this.maxMemoryMB = maxMemoryMB;
++        this.totalChunksProcessed = totalChunksProcessed;
++        this.warnings = new ArrayList<>(warnings);
++        this.timestamp = Instant.now();
++    }
++
++    /**
++     * Gets the list of thread metrics.
++     *
++     * @return An unmodifiable list of thread metrics
++     */
++    public List<ThreadMetrics> getThreadMetrics() {
++        return Collections.unmodifiableList(threadMetrics);
++    }
++
++    /**
++     * Gets the overall CPU usage percentage.
++     *
++     * @return The overall CPU usage percentage (0-100)
++     */
++    public double getOverallCpuUsage() {
++        return overallCpuUsage;
++    }
++
++    /**
++     * Gets the total memory usage in MB.
++     *
++     * @return The total memory usage in MB
++     */
++    public long getTotalMemoryUsageMB() {
++        return totalMemoryUsageMB;
++    }
++
++    /**
++     * Gets the maximum available memory in MB.
++     *
++     * @return The maximum available memory in MB
++     */
++    public long getMaxMemoryMB() {
++        return maxMemoryMB;
++    }
++
++    /**
++     * Gets the memory usage as a percentage of maximum memory.
++     *
++     * @return The memory usage percentage (0-100)
++     */
++    public double getMemoryUsagePercent() {
++        return (double) totalMemoryUsageMB / maxMemoryMB * 100.0;
++    }
++
++    /**
++     * Gets the total chunks processed per second.
++     *
++     * @return The total chunks processed per second
++     */
++    public int getTotalChunksProcessed() {
++        return totalChunksProcessed;
++    }
++
++    /**
++     * Gets the list of performance warnings.
++     *
++     * @return An unmodifiable list of performance warnings
++     */
++    public List<String> getWarnings() {
++        return Collections.unmodifiableList(warnings);
++    }
++
++    /**
++     * Gets the timestamp when this snapshot was created.
++     *
++     * @return The timestamp
++     */
++    public Instant getTimestamp() {
++        return timestamp;
++    }
++
++    /**
++     * Gets the server status based on current performance metrics.
++     *
++     * @return The server status
++     */
++    public ServerStatus getServerStatus() {
++        if (!warnings.isEmpty()) {
++            return ServerStatus.WARNING;
++        }
++        
++        if (overallCpuUsage > 90.0 || getMemoryUsagePercent() > 90.0) {
++            return ServerStatus.CRITICAL;
++        }
++        
++        if (overallCpuUsage > 70.0 || getMemoryUsagePercent() > 70.0) {
++            return ServerStatus.HIGH_LOAD;
++        }
++        
++        return ServerStatus.HEALTHY;
++    }
++
++    /**
++     * Gets metrics for a specific thread by ID.
++     *
++     * @param threadId The thread ID to look for
++     * @return An Optional containing the thread metrics if found, or empty if not found
++     */
++    public Optional<ThreadMetrics> getThreadMetricsById(long threadId) {
++        return threadMetrics.stream()
++                .filter(metrics -> metrics.getThreadId() == threadId)
++                .findFirst();
++    }
++
++    /**
++     * Gets metrics for a specific thread by name.
++     *
++     * @param threadName The thread name to look for
++     * @return An Optional containing the thread metrics if found, or empty if not found
++     */
++    public Optional<ThreadMetrics> getThreadMetricsByName(String threadName) {
++        return threadMetrics.stream()
++                .filter(metrics -> metrics.getThreadName().equals(threadName))
++                .findFirst();
++    }
++
++    /**
++     * Enum representing the overall server status.
++     */
++    public enum ServerStatus {
++        /**
++         * Server is healthy with no performance issues.
++         */
++        HEALTHY,
++        
++        /**
++         * Server is under high load but still functioning normally.
++         */
++        HIGH_LOAD,
++        
++        /**
++         * Server has performance warnings that should be addressed.
++         */
++        WARNING,
++        
++        /**
++         * Server is in a critical state with severe performance issues.
++         */
++        CRITICAL
++    }
++}
+\ No newline at end of file
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+index a0a862a617b28375d89afb19697606e4ad97f7a2..d2c110636afd01ba888952f8c2b50f6c50a3be82 100644
+--- a/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ShreddedPaperChunkTicker.java
+@@ -21,6 +21,7 @@ import org.bukkit.craftbukkit.entity.CraftEntity;
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.atomic.AtomicInteger;
+ 
+ public class ShreddedPaperChunkTicker {
+ 
+@@ -134,7 +135,17 @@ public class ShreddedPaperChunkTicker {
+             level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
+             level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
+ 
+-            region.forEach(chunk -> _tickChunk(level, chunk, spawnercreature_d));
++            // Count chunks processed in this region
++            final AtomicInteger chunkCount = new AtomicInteger(0);
++            region.forEach(chunk -> {
++                _tickChunk(level, chunk, spawnercreature_d);
++                chunkCount.incrementAndGet();
++            });
++            
++            // Record chunks processed in bulk
++            if (chunkCount.get() > 0) {
++                ThreadPerformanceMonitor.getInstance().recordChunksProcessed(Thread.currentThread().getId(), chunkCount.get());
++            }
+ 
+             level.runBlockEvents(region);
+ 
+@@ -162,6 +173,9 @@ public class ShreddedPaperChunkTicker {
+ 
+     private static void _tickChunk(ServerLevel level, LevelChunk chunk1, NaturalSpawner.SpawnState spawnercreature_d) {
+         if (chunk1.getChunkHolder().vanillaChunkHolder.needsBroadcastChanges()) ShreddedPaperChangesBroadcaster.add(chunk1.getChunkHolder().vanillaChunkHolder); // ShreddedPaper
++        
++        // Record individual chunk processing
++        ThreadPerformanceMonitor.getInstance().recordChunkProcessed(Thread.currentThread().getId());
+ 
+         // Start - Import the same variables as the original chunk ticking method to make copying new changes easier
+         int j = 1; // Inhabited time increment in ticks
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ThreadMetrics.java b/src/main/java/io/multipaper/shreddedpaper/threading/ThreadMetrics.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5c95627d9536179d858311d6245f84e722059a3b
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ThreadMetrics.java
+@@ -0,0 +1,125 @@
++package io.multipaper.shreddedpaper.threading;
++
++import java.time.Instant;
++
++/**
++ * Data class containing metrics for a single thread.
++ */
++public class ThreadMetrics {
++    private final long threadId;
++    private final String threadName;
++    private final double cpuUsagePercent;
++    private final long memoryUsageMB;
++    private final int chunksProcessedPerSecond;
++    private final ThreadStatus status;
++    private final Instant timestamp;
++
++    /**
++     * Creates a new ThreadMetrics instance.
++     *
++     * @param threadId The ID of the thread
++     * @param threadName The name of the thread
++     * @param cpuUsagePercent CPU usage percentage (0-100)
++     * @param memoryUsageMB Memory usage in MB
++     * @param chunksProcessedPerSecond Chunks processed per second
++     * @param status Current thread status
++     */
++    public ThreadMetrics(long threadId, String threadName, double cpuUsagePercent, 
++                         long memoryUsageMB, int chunksProcessedPerSecond, ThreadStatus status) {
++        this.threadId = threadId;
++        this.threadName = threadName;
++        this.cpuUsagePercent = cpuUsagePercent;
++        this.memoryUsageMB = memoryUsageMB;
++        this.chunksProcessedPerSecond = chunksProcessedPerSecond;
++        this.status = status;
++        this.timestamp = Instant.now();
++    }
++
++    /**
++     * Gets the thread ID.
++     *
++     * @return The thread ID
++     */
++    public long getThreadId() {
++        return threadId;
++    }
++
++    /**
++     * Gets the thread name.
++     *
++     * @return The thread name
++     */
++    public String getThreadName() {
++        return threadName;
++    }
++
++    /**
++     * Gets the CPU usage percentage.
++     *
++     * @return The CPU usage percentage (0-100)
++     */
++    public double getCpuUsagePercent() {
++        return cpuUsagePercent;
++    }
++
++    /**
++     * Gets the memory usage in MB.
++     *
++     * @return The memory usage in MB
++     */
++    public long getMemoryUsageMB() {
++        return memoryUsageMB;
++    }
++
++    /**
++     * Gets the chunks processed per second.
++     *
++     * @return The chunks processed per second
++     */
++    public int getChunksProcessedPerSecond() {
++        return chunksProcessedPerSecond;
++    }
++
++    /**
++     * Gets the thread status.
++     *
++     * @return The thread status
++     */
++    public ThreadStatus getStatus() {
++        return status;
++    }
++
++    /**
++     * Gets the timestamp when these metrics were collected.
++     *
++     * @return The timestamp
++     */
++    public Instant getTimestamp() {
++        return timestamp;
++    }
++
++    /**
++     * Enum representing the status of a thread.
++     */
++    public enum ThreadStatus {
++        /**
++         * Thread is actively processing work.
++         */
++        ACTIVE,
++        
++        /**
++         * Thread is idle (not processing work).
++         */
++        IDLE,
++        
++        /**
++         * Thread is overloaded (high CPU or memory usage).
++         */
++        OVERLOADED,
++        
++        /**
++         * Thread status is unknown.
++         */
++        UNKNOWN
++    }
++}
+\ No newline at end of file
+diff --git a/src/main/java/io/multipaper/shreddedpaper/threading/ThreadPerformanceMonitor.java b/src/main/java/io/multipaper/shreddedpaper/threading/ThreadPerformanceMonitor.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..d02b5580bb5bfeb08807e4c8e0bf01f4c2f478ac
+--- /dev/null
++++ b/src/main/java/io/multipaper/shreddedpaper/threading/ThreadPerformanceMonitor.java
+@@ -0,0 +1,358 @@
++package io.multipaper.shreddedpaper.threading;
++
++import com.mojang.logging.LogUtils;
++import io.multipaper.shreddedpaper.config.ThreadingConfig;
++import org.slf4j.Logger;
++
++import java.lang.management.ManagementFactory;
++import java.lang.management.MemoryMXBean;
++import java.lang.management.ThreadInfo;
++import java.lang.management.ThreadMXBean;
++import java.time.Instant;
++import java.util.*;
++import java.util.concurrent.*;
++import java.util.concurrent.atomic.AtomicInteger;
++
++/**
++ * Monitors thread performance metrics including CPU usage, memory usage, and chunk processing.
++ * Implements singleton pattern for server-wide access.
++ */
++public class ThreadPerformanceMonitor {
++    private static final Logger LOGGER = LogUtils.getLogger();
++    private static ThreadPerformanceMonitor instance;
++
++    private final ThreadingConfig config;
++    private final ThreadMXBean threadMXBean;
++    private final MemoryMXBean memoryMXBean;
++    private final ScheduledExecutorService scheduler;
++    private final Map<Long, ThreadMetrics> lastThreadMetrics;
++    private final Map<Long, Long> lastCpuTimes;
++    private final Map<Long, Integer> chunkProcessingCounts;
++    private final ConcurrentLinkedDeque<PerformanceSnapshot> history;
++    private final AtomicInteger totalChunksProcessedLastSecond;
++    private PerformanceSnapshot latestSnapshot;
++
++    /**
++     * Gets the singleton instance of the ThreadPerformanceMonitor.
++     *
++     * @return the ThreadPerformanceMonitor instance
++     */
++    public static synchronized ThreadPerformanceMonitor getInstance() {
++        if (instance == null) {
++            instance = new ThreadPerformanceMonitor();
++        }
++        return instance;
++    }
++
++    private ThreadPerformanceMonitor() {
++        this.config = new ThreadingConfig();
++        this.threadMXBean = ManagementFactory.getThreadMXBean();
++        this.memoryMXBean = ManagementFactory.getMemoryMXBean();
++        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
++            Thread thread = new Thread(r, "ShreddedPaper-ThreadMonitor");
++            thread.setDaemon(true);
++            return thread;
++        });
++        this.lastThreadMetrics = new ConcurrentHashMap<>();
++        this.lastCpuTimes = new ConcurrentHashMap<>();
++        this.chunkProcessingCounts = new ConcurrentHashMap<>();
++        this.history = new ConcurrentLinkedDeque<>();
++        this.totalChunksProcessedLastSecond = new AtomicInteger(0);
++        
++        // Enable CPU time monitoring if supported
++        if (threadMXBean.isThreadCpuTimeSupported() && !threadMXBean.isThreadCpuTimeEnabled()) {
++            threadMXBean.setThreadCpuTimeEnabled(true);
++        }
++        
++        // Start the monitoring task
++        start();
++    }
++
++    /**
++     * Starts the performance monitoring task.
++     */
++    public void start() {
++        if (!config.isPerformanceMonitorEnabled()) {
++            LOGGER.info("Thread performance monitoring is disabled in configuration");
++            return;
++        }
++        
++        int updateIntervalMs = config.getUpdateIntervalMs();
++        scheduler.scheduleAtFixedRate(this::updateMetrics, 0, updateIntervalMs, TimeUnit.MILLISECONDS);
++        LOGGER.info("Thread performance monitoring started with update interval of {} ms", updateIntervalMs);
++    }
++
++    /**
++     * Stops the performance monitoring task.
++     */
++    public void stop() {
++        scheduler.shutdown();
++        LOGGER.info("Thread performance monitoring stopped");
++    }
++
++    /**
++     * Restarts the performance monitoring task with updated configuration.
++     */
++    public void restart() {
++        stop();
++        try {
++            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
++                scheduler.shutdownNow();
++            }
++        } catch (InterruptedException e) {
++            Thread.currentThread().interrupt();
++        }
++        start();
++    }
++
++    /**
++     * Updates the performance metrics for all threads.
++     */
++    private void updateMetrics() {
++        try {
++            List<ThreadMetrics> currentMetrics = new ArrayList<>();
++            List<String> warnings = new ArrayList<>();
++            double totalCpuUsage = 0.0;
++            
++            // Get all thread info
++            ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 0);
++            
++            for (ThreadInfo threadInfo : threadInfos) {
++                if (threadInfo == null) continue;
++                
++                long threadId = threadInfo.getThreadId();
++                String threadName = threadInfo.getThreadName();
++                
++                // Calculate CPU usage
++                double cpuUsage = calculateCpuUsage(threadId);
++                totalCpuUsage += cpuUsage;
++                
++                // Get chunk processing count
++                int chunksProcessed = chunkProcessingCounts.getOrDefault(threadId, 0);
++                
++                // Determine thread status
++                ThreadMetrics.ThreadStatus status = determineThreadStatus(cpuUsage, chunksProcessed);
++                
++                // Create thread metrics
++                ThreadMetrics metrics = new ThreadMetrics(
++                    threadId,
++                    threadName,
++                    cpuUsage,
++                    estimateThreadMemoryUsage(threadId),
++                    chunksProcessed,
++                    status
++                );
++                
++                // Add to current metrics
++                currentMetrics.add(metrics);
++                
++                // Store for next comparison
++                lastThreadMetrics.put(threadId, metrics);
++                
++                // Check for warnings
++                checkForWarnings(metrics, warnings);
++            }
++            
++            // Reset chunk processing counts for next interval
++            chunkProcessingCounts.clear();
++            
++            // Calculate memory usage
++            long usedMemory = memoryMXBean.getHeapMemoryUsage().getUsed() / (1024 * 1024);
++            long maxMemory = memoryMXBean.getHeapMemoryUsage().getMax() / (1024 * 1024);
++            
++            // Create performance snapshot
++            latestSnapshot = new PerformanceSnapshot(
++                currentMetrics,
++                totalCpuUsage,
++                usedMemory,
++                maxMemory,
++                totalChunksProcessedLastSecond.getAndSet(0),
++                warnings
++            );
++            
++            // Add to history
++            addToHistory(latestSnapshot);
++            
++            // Log if detailed logging is enabled
++            if (config.isDetailedLoggingEnabled()) {
++                logDetailedMetrics(latestSnapshot);
++            }
++        } catch (Exception e) {
++            LOGGER.error("Error updating thread performance metrics", e);
++        }
++    }
++
++    /**
++     * Calculates CPU usage for a thread.
++     *
++     * @param threadId the thread ID
++     * @return the CPU usage percentage (0-100)
++     */
++    private double calculateCpuUsage(long threadId) {
++        if (!threadMXBean.isThreadCpuTimeSupported()) {
++            return 0.0;
++        }
++        
++        long currentCpuTime = threadMXBean.getThreadCpuTime(threadId);
++        if (currentCpuTime == -1) {
++            return 0.0;
++        }
++        
++        long lastCpuTime = lastCpuTimes.getOrDefault(threadId, 0L);
++        long cpuTimeDiff = currentCpuTime - lastCpuTime;
++        
++        lastCpuTimes.put(threadId, currentCpuTime);
++        
++        if (lastCpuTime == 0L) {
++            return 0.0; // First measurement
++        }
++        
++        // Calculate CPU usage as percentage of update interval
++        double intervalNanos = config.getUpdateIntervalMs() * 1_000_000.0;
++        return Math.min(100.0, (cpuTimeDiff / intervalNanos) * 100.0);
++    }
++
++    /**
++     * Estimates memory usage for a thread.
++     * Note: JVM doesn't provide per-thread memory usage, so this is an approximation.
++     *
++     * @param threadId the thread ID
++     * @return the estimated memory usage in MB
++     */
++    private long estimateThreadMemoryUsage(long threadId) {
++        // This is a rough approximation since JVM doesn't provide per-thread memory usage
++        long totalMemory = memoryMXBean.getHeapMemoryUsage().getUsed() / (1024 * 1024);
++        int threadCount = threadMXBean.getThreadCount();
++        
++        // Distribute memory based on CPU usage ratio
++        ThreadMetrics lastMetrics = lastThreadMetrics.get(threadId);
++        if (lastMetrics != null && totalCpuUsage() > 0) {
++            return Math.round((lastMetrics.getCpuUsagePercent() / totalCpuUsage()) * totalMemory);
++        }
++        
++        // Fallback to even distribution
++        return threadCount > 0 ? totalMemory / threadCount : 0;
++    }
++
++    /**
++     * Calculates the total CPU usage across all threads.
++     *
++     * @return the total CPU usage percentage
++     */
++    private double totalCpuUsage() {
++        return lastThreadMetrics.values().stream()
++                .mapToDouble(ThreadMetrics::getCpuUsagePercent)
++                .sum();
++    }
++
++    /**
++     * Determines the status of a thread based on its metrics.
++     *
++     * @param cpuUsage the CPU usage percentage
++     * @param chunksProcessed the chunks processed per second
++     * @return the thread status
++     */
++    private ThreadMetrics.ThreadStatus determineThreadStatus(double cpuUsage, int chunksProcessed) {
++        if (cpuUsage > config.getCpuWarningThreshold()) {
++            return ThreadMetrics.ThreadStatus.OVERLOADED;
++        }
++        
++        if (chunksProcessed > 0 || cpuUsage > 5.0) {
++            return ThreadMetrics.ThreadStatus.ACTIVE;
++        }
++        
++        return ThreadMetrics.ThreadStatus.IDLE;
++    }
++
++    /**
++     * Checks for performance warnings based on thread metrics.
++     *
++     * @param metrics the thread metrics
++     * @param warnings the list to add warnings to
++     */
++    private void checkForWarnings(ThreadMetrics metrics, List<String> warnings) {
++        if (metrics.getCpuUsagePercent() > config.getCpuWarningThreshold()) {
++            warnings.add(String.format("%s CPU usage high (%.1f%% > %.1f%%)",
++                    metrics.getThreadName(), metrics.getCpuUsagePercent(), config.getCpuWarningThreshold()));
++        }
++        
++        if (metrics.getChunksProcessedPerSecond() > config.getChunkProcessingWarningThreshold()) {
++            warnings.add(String.format("%s chunk processing high (%d > %d chunks/sec)",
++                    metrics.getThreadName(), metrics.getChunksProcessedPerSecond(), 
++                    config.getChunkProcessingWarningThreshold()));
++        }
++    }
++
++    /**
++     * Adds a performance snapshot to the history, maintaining the configured history size.
++     *
++     * @param snapshot the performance snapshot to add
++     */
++    private void addToHistory(PerformanceSnapshot snapshot) {
++        history.addLast(snapshot);
++        
++        // Remove old snapshots based on retention time
++        Instant cutoff = Instant.now().minusSeconds(config.getRetainHistorySeconds());
++        while (!history.isEmpty() && history.getFirst().getTimestamp().isBefore(cutoff)) {
++            history.removeFirst();
++        }
++    }
++
++    /**
++     * Logs detailed metrics to the server log.
++     *
++     * @param snapshot the performance snapshot to log
++     */
++    private void logDetailedMetrics(PerformanceSnapshot snapshot) {
++        LOGGER.info("Thread Performance: CPU: {}%, Memory: {}MB/{}MB, Chunks/sec: {}, Status: {}",
++                String.format("%.1f", snapshot.getOverallCpuUsage()),
++                snapshot.getTotalMemoryUsageMB(),
++                snapshot.getMaxMemoryMB(),
++                snapshot.getTotalChunksProcessed(),
++                snapshot.getServerStatus());
++        
++        if (!snapshot.getWarnings().isEmpty()) {
++            LOGGER.warn("Performance warnings: {}", String.join(", ", snapshot.getWarnings()));
++        }
++    }
++
++    /**
++     * Gets the latest performance snapshot.
++     *
++     * @return the latest performance snapshot
++     */
++    public PerformanceSnapshot getLatestSnapshot() {
++        return latestSnapshot;
++    }
++
++    /**
++     * Gets the performance history.
++     *
++     * @return an unmodifiable list of performance snapshots
++     */
++    public List<PerformanceSnapshot> getHistory() {
++        return List.copyOf(history);
++    }
++
++    /**
++     * Records a chunk being processed by a thread.
++     *
++     * @param threadId the ID of the thread that processed the chunk
++     */
++    public void recordChunkProcessed(long threadId) {
++        chunkProcessingCounts.compute(threadId, (id, count) -> count == null ? 1 : count + 1);
++        totalChunksProcessedLastSecond.incrementAndGet();
++    }
++
++    /**
++     * Records multiple chunks being processed by a thread.
++     *
++     * @param threadId the ID of the thread that processed the chunks
++     * @param count the number of chunks processed
++     */
++    public void recordChunksProcessed(long threadId, int count) {
++        if (count <= 0) return;
++        chunkProcessingCounts.compute(threadId, (id, current) -> current == null ? count : current + count);
++        totalChunksProcessedLastSecond.addAndGet(count);
++    }
++}
+\ No newline at end of file
