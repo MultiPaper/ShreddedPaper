@@ -120,7 +120,7 @@
          if (entityTracker != null) {
              entityTracker.sendToTrackingPlayersAndSelf(packet);
          }
-@@ -2029,11 +_,12 @@
+@@ -2011,11 +_,12 @@
      @Override
      public void getChunkAtAsync(int x, int z, boolean gen, boolean urgent, @NotNull Consumer<? super Chunk> cb) {
          warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
@@ -134,7 +134,7 @@
              }
          );
  
-@@ -2043,11 +_,12 @@
+@@ -2025,11 +_,12 @@
      public void getChunksAtAsync(int minX, int minZ, int maxX, int maxZ, boolean urgent, Runnable cb) {
          warnUnsafeChunk("getting a faraway chunk async", minX, minZ); // Paper
          warnUnsafeChunk("getting a faraway chunk async", maxX, maxZ); // Paper
