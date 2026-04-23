@@ -606,7 +606,7 @@
          // CraftBukkit end
          this.getServer().getDataStorage().set(MapItemSavedData.type(id), data);
      }
-@@ -2447,11 +_,11 @@
+@@ -2446,11 +_,11 @@
          Optional<Holder<PoiType>> newType = PoiTypes.forState(newState);
          if (!Objects.equals(oldType, newType)) {
              BlockPos immutable = pos.immutable();
@@ -620,7 +620,7 @@
                  // Paper start - Remove stale POIs
                  if (oldType.isEmpty() && this.getPoiManager().exists(pos, _ -> true)) {
                      this.getPoiManager().remove(pos);
-@@ -2514,7 +_,7 @@
+@@ -2513,7 +_,7 @@
              }
  
              output.write(String.format(Locale.ROOT, "entities: %s\n", this.moonrise$getEntityLookup().getDebugInfo())); // Paper - rewrite chunk system
@@ -629,7 +629,7 @@
              output.write(String.format(Locale.ROOT, "block_ticks: %d\n", this.getBlockTicks().count()));
              output.write(String.format(Locale.ROOT, "fluid_ticks: %d\n", this.getFluidTicks().count()));
              output.write("distance_manager: " + chunkMap.getDistanceManager().getDebugStatus() + "\n");
-@@ -2582,17 +_,25 @@
+@@ -2581,17 +_,25 @@
      }
  
      private void dumpBlockEntityTickers(final Writer output) throws IOException {
@@ -662,7 +662,7 @@
      }
  
      public Iterable<Entity> getAllEntities() {
-@@ -2634,8 +_,8 @@
+@@ -2633,8 +_,8 @@
              this.players.size(),
              this.moonrise$getEntityLookup().getDebugInfo(), // Paper - rewrite chunk system
              getTypeCount(this.moonrise$getEntityLookup().getAll(), e -> e.typeHolder().getRegisteredName()), // Paper - rewrite chunk system
@@ -673,7 +673,7 @@
              this.getBlockTicks().count(),
              this.getFluidTicks().count(),
              this.gatherChunkSourceStats()
-@@ -2665,7 +_,7 @@
+@@ -2664,7 +_,7 @@
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
@@ -682,7 +682,7 @@
          return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
      }
  
-@@ -2855,7 +_,7 @@
+@@ -2854,7 +_,7 @@
      // Paper start - optimize redstone (Alternate Current)
      @Override
      public alternate.current.wire.WireHandler getWireHandler() {
@@ -691,7 +691,7 @@
      }
      // Paper end - optimize redstone (Alternate Current)
  
-@@ -2901,12 +_,12 @@
+@@ -2900,12 +_,12 @@
          @Override
          public void onTickingStart(final Entity entity) {
              if (entity instanceof net.minecraft.world.entity.Marker && !paperConfig().entities.markers.tick) return; // Paper - Configurable marker ticking
@@ -706,7 +706,7 @@
              // Paper start - Reset pearls when they stop being ticked
              if (ServerLevel.this.paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && ServerLevel.this.paperConfig().misc.legacyEnderPearlBehavior && entity instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl pearl) {
                  pearl.setOwner(null);
-@@ -2916,10 +_,11 @@
+@@ -2915,10 +_,11 @@
  
          @Override
          public void onTrackingStart(final Entity entity) {
@@ -719,7 +719,7 @@
                  if (player.isReceivingWaypoints()) {
                      ServerLevel.this.getWaypointManager().addPlayer(player);
                  }
-@@ -2932,14 +_,14 @@
+@@ -2931,14 +_,14 @@
              }
  
              if (entity instanceof Mob mob) {
@@ -736,7 +736,7 @@
              }
  
              if (entity instanceof EnderDragon dragon) {
-@@ -2966,7 +_,7 @@
+@@ -2965,7 +_,7 @@
  
          @Override
          public void onTrackingEnd(final Entity entity) {
@@ -745,7 +745,7 @@
              // Spigot start // TODO I don't think this is needed anymore
              if (entity instanceof Player player) {
                  for (final ServerLevel level : ServerLevel.this.getServer().getAllLevels()) {
-@@ -2975,10 +_,12 @@
+@@ -2974,10 +_,12 @@
                              continue;
                          }
  
@@ -758,7 +758,7 @@
                      }
                  }
              }
-@@ -2997,20 +_,21 @@
+@@ -2996,20 +_,21 @@
              // Spigot end
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer player) {
@@ -782,7 +782,7 @@
              }
  
              if (entity instanceof EnderDragon dragon) {
-@@ -3035,6 +_,9 @@
+@@ -3034,6 +_,9 @@
          @Override
          public void onSectionChange(final Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
