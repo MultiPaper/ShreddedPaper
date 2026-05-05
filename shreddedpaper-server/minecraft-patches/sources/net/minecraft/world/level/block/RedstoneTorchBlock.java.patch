@@ -17,7 +17,7 @@
          if (toggles != null) {
              RedstoneTorchBlock.Toggle curr;
              while ((curr = toggles.peek()) != null && level.getGameTime() - curr.when > 60L) {
-@@ -155,10 +_,12 @@
+@@ -142,10 +_,12 @@
  
      private static boolean isToggledTooFrequently(final Level level, final BlockPos pos, final boolean add) {
          // Paper start - Faster redstone torch rapid clock removal

@@ -1,6 +1,6 @@
 --- a/io/papermc/paper/redstone/RedstoneWireTurbo.java
 +++ b/io/papermc/paper/redstone/RedstoneWireTurbo.java
-@@ -829,14 +_,14 @@
+@@ -827,14 +_,14 @@
          j = getMaxCurrentStrength(upd, j);
          int l = 0;
  

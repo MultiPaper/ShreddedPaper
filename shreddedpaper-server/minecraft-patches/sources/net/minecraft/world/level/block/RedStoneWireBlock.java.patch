@@ -27,7 +27,7 @@
              return;
          }
          updatePowerStrength(worldIn, pos, state, orientation, blockAdded);
-@@ -315,7 +_,7 @@
+@@ -311,7 +_,7 @@
                  // [Space Walker] suppress shape updates and emit those manually to
                  // bypass the new neighbor update stack.
                  if (level.setBlock(pos, state, Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_CLIENTS)) {
@@ -36,7 +36,7 @@
                  }
              }
          }
-@@ -338,9 +_,9 @@
+@@ -334,9 +_,9 @@
      }
  
      public int getBlockSignal(final Level level, final BlockPos pos) {
@@ -48,7 +48,7 @@
          return blockSignal;
      }
  
-@@ -434,12 +_,12 @@
+@@ -430,12 +_,12 @@
  
      @Override
      protected int getDirectSignal(final BlockState state, final BlockGetter level, final BlockPos pos, final Direction direction) {
@@ -63,7 +63,7 @@
              int power = state.getValue(POWER);
              if (power == 0) {
                  return Redstone.SIGNAL_MIN;
-@@ -471,7 +_,7 @@
+@@ -467,7 +_,7 @@
  
      @Override
      protected boolean isSignalSource(final BlockState state) {
