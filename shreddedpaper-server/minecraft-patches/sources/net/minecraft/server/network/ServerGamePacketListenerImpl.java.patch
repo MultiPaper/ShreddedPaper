@@ -59,7 +59,7 @@
  
                                      if (this.shouldCheckPlayerMovement(isFallFlying)) {
                                          float metersPerTick = isFallFlying ? 300.0F : 100.0F;
-@@ -2326,7 +_,9 @@
+@@ -2331,7 +_,9 @@
              for (ServerLevel level : this.server.getAllLevels()) {
                  Entity entity = packet.getEntity(level);
                  if (entity != null) {
@@ -69,7 +69,7 @@
                      return;
                  }
              }
-@@ -2343,12 +_,15 @@
+@@ -2348,12 +_,15 @@
  
      @Override
      public void onDisconnect(final DisconnectionDetails details) {
@@ -85,7 +85,7 @@
      }
  
      private void removePlayerFromWorld() {
-@@ -2608,7 +_,7 @@
+@@ -2613,7 +_,7 @@
              this.player.resetLastActionTime();
              // CraftBukkit start
              if (sync) {
@@ -94,7 +94,7 @@
              } else {
                  chatHandler.run();
              }
-@@ -3070,22 +_,26 @@
+@@ -3075,22 +_,26 @@
          switch (action) {
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
@@ -123,7 +123,7 @@
                  }
                  break;
              case REQUEST_STATS:
-@@ -3632,7 +_,7 @@
+@@ -3637,7 +_,7 @@
          }
          List<String> lines = Stream.of(linesArray).map(ChatFormatting::stripFormatting).collect(Collectors.toList());
          // Paper end - Limit client sign length
@@ -132,7 +132,7 @@
      }
  
      private void updateSignText(final ServerboundSignUpdatePacket packet, final List<FilteredText> lines) {
-@@ -3890,7 +_,7 @@
+@@ -3895,7 +_,7 @@
  
      @Override
      public void disconnectAsync(final net.minecraft.network.DisconnectionDetails disconnectionInfo) {
