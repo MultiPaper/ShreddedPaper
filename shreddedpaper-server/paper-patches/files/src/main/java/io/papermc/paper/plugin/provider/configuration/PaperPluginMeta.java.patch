@@ -1,0 +1,17 @@
+--- a/src/main/java/io/papermc/paper/plugin/provider/configuration/PaperPluginMeta.java
++++ b/src/main/java/io/papermc/paper/plugin/provider/configuration/PaperPluginMeta.java
+@@ -64,6 +_,7 @@
+     private PermissionConfiguration permissionConfiguration = new PermissionConfiguration(PermissionDefault.OP, List.of());
+     @Required
+     private ApiVersion apiVersion;
++    private boolean foliaSupported = false; // ShreddedPaper - Folia supported
+ 
+     private Map<PluginDependencyLifeCycle, Map<String, DependencyConfiguration>> dependencies = new EnumMap<>(PluginDependencyLifeCycle.class);
+ 
+@@ -267,5 +_,5 @@
+     public boolean hasOpenClassloader() {
+         return this.hasOpenClassloader;
+     }
+-
++    @Override public boolean isFoliaSupported() { return foliaSupported; } // ShreddedPaper - Folia supported
+ }

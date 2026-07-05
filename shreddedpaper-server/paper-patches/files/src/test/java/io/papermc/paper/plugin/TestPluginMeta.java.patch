@@ -1,0 +1,8 @@
+--- a/src/test/java/io/papermc/paper/plugin/TestPluginMeta.java
++++ b/src/test/java/io/papermc/paper/plugin/TestPluginMeta.java
+@@ -111,4 +_,5 @@
+     public @NotNull String getAPIVersion() {
+         return "null";
+     }
++    @Override public boolean isFoliaSupported() { return false; } // ShreddedPaper - Folia supported
+ }

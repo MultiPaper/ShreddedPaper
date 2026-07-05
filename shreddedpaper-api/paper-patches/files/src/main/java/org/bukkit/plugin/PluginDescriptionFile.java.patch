@@ -4,17 +4,34 @@
      private Set<PluginAwareness> awareness = ImmutableSet.of();
      private String apiVersion = null;
      private List<String> libraries = ImmutableList.of();
-+    private String foliaSupported = null; // ShreddedPaper
++    private Boolean foliaSupported = null; // ShreddedPaper
      // Paper start - plugin loader api
      private String paperPluginLoader;
      @org.jetbrains.annotations.ApiStatus.Internal @org.jetbrains.annotations.Nullable
+@@ -272,7 +_,7 @@
+      * @hidden
+      */
+     @org.jetbrains.annotations.ApiStatus.Internal
+-    public PluginDescriptionFile(String rawName, String name, List<String> provides, String main, String classLoaderOf, List<String> depend, List<String> softDepend, List<String> loadBefore, String version, Map<String, Map<String, Object>> commands, String description, List<String> authors, List<String> contributors, String website, String prefix, PluginLoadOrder order, List<Permission> permissions, PermissionDefault defaultPerm, Set<PluginAwareness> awareness, String apiVersion, List<String> libraries) {
++    public PluginDescriptionFile(String rawName, String name, List<String> provides, String main, String classLoaderOf, List<String> depend, List<String> softDepend, List<String> loadBefore, String version, Map<String, Map<String, Object>> commands, String description, List<String> authors, List<String> contributors, String website, String prefix, PluginLoadOrder order, List<Permission> permissions, PermissionDefault defaultPerm, Set<PluginAwareness> awareness, String apiVersion, List<String> libraries, boolean foliaSupported) { // ShreddedPaper - Folia supported
+         this.rawName = rawName;
+         this.name = name;
+         this.provides = provides;
+@@ -294,6 +_,7 @@
+         this.awareness = awareness;
+         this.apiVersion = apiVersion;
+         this.libraries = libraries;
++        this.foliaSupported = foliaSupported; // ShreddedPaper - Folia supported
+     }
+ 
+     @Override
 @@ -1057,6 +_,11 @@
          return libraries;
      }
  
 +    // ShreddedPaper start
 +    public boolean isFoliaSupported() {
-+        return "true".equalsIgnoreCase(foliaSupported);
++        return Boolean.TRUE.equals(foliaSupported);
 +    }
 +
      /**
@@ -26,7 +43,7 @@
  
 +        // ShreddedPaper start
 +        if (map.get("folia-supported") != null) {
-+            foliaSupported = map.get("folia-supported").toString();
++            foliaSupported = Boolean.parseBoolean(map.get("folia-supported").toString());
 +        }
 +        // ShreddedPaper end
 +
@@ -40,7 +57,7 @@
 +
 +        // ShreddedPaper start
 +        if (foliaSupported != null) {
-+            map.put("folia-supported", foliaSupported);
++            map.put("folia-supported", foliaSupported.toString());
 +        }
 +        // ShreddedPaper end
  

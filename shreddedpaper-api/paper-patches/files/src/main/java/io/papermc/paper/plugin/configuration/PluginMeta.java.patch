@@ -1,0 +1,9 @@
+--- a/src/main/java/io/papermc/paper/plugin/configuration/PluginMeta.java
++++ b/src/main/java/io/papermc/paper/plugin/configuration/PluginMeta.java
+@@ -189,4 +_,6 @@
+     default String namespace() {
+         return this.getName().toLowerCase(Locale.ROOT);
+     }
++
++    boolean isFoliaSupported(); // ShreddedPaper - Folia supported
+ }

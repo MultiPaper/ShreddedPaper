@@ -1,0 +1,12 @@
+--- a/src/main/java/io/papermc/paper/plugin/entrypoint/classloader/PaperPluginClassLoader.java
++++ b/src/main/java/io/papermc/paper/plugin/entrypoint/classloader/PaperPluginClassLoader.java
+@@ -170,7 +_,8 @@
+             config.getPermissionDefault(),
+             Set.of(), // Aware api
+             config.getAPIVersion(),
+-            List.of() // Libraries
++            List.of(), // Libraries
++            config.isFoliaSupported() // ShreddedPaper - Folia supported
+         );
+ 
+         File dataFolder = new File(Bukkit.getPluginsFolder(), pluginDescriptionFile.getName());
