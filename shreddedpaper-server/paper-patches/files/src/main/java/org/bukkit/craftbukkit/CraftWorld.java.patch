@@ -94,7 +94,7 @@
          }
          if (grownTree) { // Copy block data to delegate
              for (CraftBlockState snapshot : capturedBlockStates) {
-@@ -1589,7 +_,7 @@
+@@ -1594,7 +_,7 @@
          if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
  
          ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(CraftSound.bukkitToMinecraftHolder(sound), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
@@ -103,7 +103,7 @@
          if (entityTracker != null) {
              entityTracker.sendToTrackingPlayersAndSelf(packet);
          }
-@@ -1610,7 +_,7 @@
+@@ -1615,7 +_,7 @@
          if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
  
          ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(Holder.direct(SoundEvent.createVariableRangeEvent(Identifier.parse(sound))), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
@@ -112,7 +112,7 @@
          if (entityTracker != null) {
              entityTracker.sendToTrackingPlayersAndSelf(packet);
          }
-@@ -2041,11 +_,12 @@
+@@ -2046,11 +_,12 @@
      @Override
      public void getChunkAtAsync(int x, int z, boolean gen, boolean urgent, @NotNull Consumer<? super Chunk> cb) {
          warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
@@ -126,7 +126,7 @@
              }
          );
  
-@@ -2055,11 +_,12 @@
+@@ -2060,11 +_,12 @@
      public void getChunksAtAsync(int minX, int minZ, int maxX, int maxZ, boolean urgent, Runnable cb) {
          warnUnsafeChunk("getting a faraway chunk async", minX, minZ); // Paper
          warnUnsafeChunk("getting a faraway chunk async", maxX, maxZ); // Paper

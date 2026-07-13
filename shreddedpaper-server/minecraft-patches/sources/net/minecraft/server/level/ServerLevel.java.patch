@@ -274,7 +274,7 @@
      // Paper end - chunk tick iteration
  
      public ServerLevel(
-@@ -741,7 +_,7 @@
+@@ -742,7 +_,7 @@
  
          this.sleepStatus = new SleepStatus();
          this.gameEventDispatcher = new GameEventDispatcher(this);
@@ -283,7 +283,7 @@
          this.environmentAttributes = EnvironmentAttributeSystem.builder().addDefaultLayers(this).build();
          this.updateSkyBrightness();
          // Paper start - rewrite chunk system
-@@ -759,6 +_,7 @@
+@@ -760,6 +_,7 @@
          this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
          // Paper end - rewrite chunk system
          this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
@@ -291,7 +291,7 @@
      }
  
      // Paper start
-@@ -812,9 +_,9 @@
+@@ -813,9 +_,9 @@
          return previous;
      }
  
@@ -303,7 +303,7 @@
          this.environmentAttributes().invalidateTickCache();
          TickRateManager tickRateManager = this.tickRateManager();
          boolean runs = tickRateManager.runsNormally();
-@@ -873,13 +_,13 @@
+@@ -874,13 +_,13 @@
          }
  
          profiler.popPush("chunkSource");
@@ -320,7 +320,7 @@
          profiler.pop();
          boolean isActive = !paperConfig().unsupportedSettings.disableWorldTickingWhenEmpty || this.chunkSource.hasActiveTickets(); // CraftBukkit - this prevents entity cleanup, other issues on servers with no players // Paper - restore this
          if (isActive) {
-@@ -899,35 +_,37 @@
+@@ -900,35 +_,37 @@
              }
  
              io.papermc.paper.entity.activation.ActivationRange.activateEntities(this); // Paper - EAR
@@ -385,7 +385,7 @@
              profiler.pop();
              } // Paper - option to disable ticking
              this.spigotConfig.currentPrimedTnt = 0; // Spigot
-@@ -938,14 +_,15 @@
+@@ -939,14 +_,15 @@
          profiler.pop();
          profiler.push("debugSynchronizers");
          if (this.debugSynchronizers.hasAnySubscriberFor(DebugSubscriptions.NEIGHBOR_UPDATES)) {
@@ -404,7 +404,7 @@
      }
  
      @Override
-@@ -974,7 +_,7 @@
+@@ -975,7 +_,7 @@
  
      private void wakeUpAllPlayers() {
          this.sleepStatus.removeAllSleepers();
@@ -413,7 +413,7 @@
      }
  
      // Paper start - optimise random ticking
-@@ -1198,7 +_,7 @@
+@@ -1199,7 +_,7 @@
      }
  
      public boolean isHandlingTick() {
@@ -422,7 +422,7 @@
      }
  
      public boolean canSleepThroughNights() {
-@@ -1419,27 +_,29 @@
+@@ -1420,27 +_,29 @@
          this.emptyTime = 0;
      }
  
@@ -456,7 +456,7 @@
              ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.server).moonrise$executeMidTickTasks();
          }
          // Paper end - rewrite chunk system
-@@ -1494,7 +_,7 @@
+@@ -1495,7 +_,7 @@
      private void tickPassenger(final Entity vehicle, final Entity entity, final boolean isActive) { // Paper - EAR 2
          if (entity.isRemoved() || entity.getVehicle() != vehicle) {
              entity.stopRiding();
@@ -465,7 +465,7 @@
              entity.setOldPosAndRot();
              entity.tickCount++;
              entity.totalEntityAge++; // Paper - age-like counter for all entities
-@@ -1718,8 +_,8 @@
+@@ -1719,8 +_,8 @@
          } else {
              if (entity instanceof net.minecraft.world.entity.item.ItemEntity item && item.getItem().isEmpty()) return false; // Paper - Prevent empty items from being added
              // Paper start - capture all item additions to the world
@@ -476,7 +476,7 @@
                  return true;
              }
              // Paper end - capture all item additions to the world
-@@ -1805,7 +_,9 @@
+@@ -1806,7 +_,9 @@
                  .callEvent();
          }
          // Paper end - Add BlockBreakProgressUpdateEvent
@@ -487,7 +487,7 @@
              if (player.level() == this && player.getId() != id) {
                  double xd = blockPos.getX() - player.getX();
                  double yd = blockPos.getY() - player.getY();
-@@ -1816,7 +_,7 @@
+@@ -1817,7 +_,7 @@
                          continue;
                      }
                      // CraftBukkit end
@@ -496,7 +496,7 @@
                  }
              }
          }
-@@ -1925,7 +_,7 @@
+@@ -1926,7 +_,7 @@
  
      @Override
      public void sendBlockUpdated(final BlockPos pos, final BlockState old, final BlockState current, final @Block.UpdateFlags int updateFlags) {
@@ -505,7 +505,7 @@
              String message = "recursive call to sendBlockUpdated";
              Util.logAndPauseIfInIde("recursive call to sendBlockUpdated", new IllegalStateException("recursive call to sendBlockUpdated"));
          }
-@@ -1939,7 +_,7 @@
+@@ -1940,7 +_,7 @@
              List<PathNavigation> navigationsToUpdate = new ObjectArrayList<>();
  
              try { // Paper - catch CME see below why
@@ -514,7 +514,7 @@
                  PathNavigation pathNavigation = navigatingMob.getNavigation();
                  if (pathNavigation.shouldRecomputePath(pos)) {
                      navigationsToUpdate.add(pathNavigation);
-@@ -1956,13 +_,13 @@
+@@ -1957,13 +_,13 @@
              // Paper end - catch CME see below why
  
              try {
@@ -530,7 +530,7 @@
              }
          }
          } // Paper - option to disable pathfinding updates
-@@ -1971,17 +_,17 @@
+@@ -1972,17 +_,17 @@
      @Override
      public void updateNeighborsAt(final BlockPos pos, final Block sourceBlock) {
          // CraftBukkit start
@@ -551,7 +551,7 @@
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, sourceBlock, null, orientation);
      }
  
-@@ -2110,14 +_,15 @@
+@@ -2111,14 +_,15 @@
  
      @Override
      public void blockEvent(final BlockPos pos, final Block block, final int b0, final int b1) {
@@ -572,7 +572,7 @@
              if (this.shouldTickBlocksAt(eventData.pos())) {
                  if (this.doBlockEvent(eventData)) {
                      this.server
-@@ -2133,11 +_,11 @@
+@@ -2134,11 +_,11 @@
                          );
                  }
              } else {
@@ -586,7 +586,7 @@
      }
  
      private boolean doBlockEvent(final BlockEventData eventData) {
-@@ -2387,7 +_,7 @@
+@@ -2388,7 +_,7 @@
              final MapItemSavedData mapData = storage.get(MapItemSavedData.type(id)); // get populates the cache
              if (mapData != null) { // map was read, init it and return
                  mapData.id = id;
@@ -595,7 +595,7 @@
                  return mapData;
              }
  
-@@ -2406,8 +_,7 @@
+@@ -2407,8 +_,7 @@
      public void setMapData(final MapId id, final MapItemSavedData data) {
          // CraftBukkit start
          data.id = id;
@@ -605,7 +605,7 @@
          // CraftBukkit end
          this.getServer().getDataStorage().set(MapItemSavedData.type(id), data);
      }
-@@ -2463,11 +_,11 @@
+@@ -2464,11 +_,11 @@
          Optional<Holder<PoiType>> newType = PoiTypes.forState(newState);
          if (!Objects.equals(oldType, newType)) {
              BlockPos immutable = pos.immutable();
@@ -619,7 +619,7 @@
                  // Paper start - Remove stale POIs
                  if (oldType.isEmpty() && this.getPoiManager().exists(immutable, _ -> true)) {
                      this.getPoiManager().remove(immutable);
-@@ -2530,7 +_,7 @@
+@@ -2531,7 +_,7 @@
              }
  
              output.write(String.format(Locale.ROOT, "entities: %s\n", this.moonrise$getEntityLookup().getDebugInfo())); // Paper - rewrite chunk system
@@ -628,7 +628,7 @@
              output.write(String.format(Locale.ROOT, "block_ticks: %d\n", this.getBlockTicks().count()));
              output.write(String.format(Locale.ROOT, "fluid_ticks: %d\n", this.getFluidTicks().count()));
              output.write("distance_manager: " + chunkMap.getDistanceManager().getDebugStatus() + "\n");
-@@ -2598,17 +_,25 @@
+@@ -2599,17 +_,25 @@
      }
  
      private void dumpBlockEntityTickers(final Writer output) throws IOException {
@@ -661,7 +661,7 @@
      }
  
      public Iterable<Entity> getAllEntities() {
-@@ -2650,8 +_,8 @@
+@@ -2651,8 +_,8 @@
              this.players.size(),
              this.moonrise$getEntityLookup().getDebugInfo(), // Paper - rewrite chunk system
              getTypeCount(this.moonrise$getEntityLookup().getAll(), e -> e.typeHolder().getRegisteredName()), // Paper - rewrite chunk system
@@ -672,7 +672,7 @@
              this.getBlockTicks().count(),
              this.getFluidTicks().count(),
              this.gatherChunkSourceStats()
-@@ -2681,7 +_,7 @@
+@@ -2682,7 +_,7 @@
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
@@ -681,7 +681,7 @@
          return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
      }
  
-@@ -2869,7 +_,7 @@
+@@ -2870,7 +_,7 @@
      // Paper start - optimize redstone (Alternate Current)
      @Override
      public alternate.current.wire.WireHandler getWireHandler() {
@@ -690,7 +690,7 @@
      }
      // Paper end - optimize redstone (Alternate Current)
  
-@@ -2910,12 +_,12 @@
+@@ -2911,12 +_,12 @@
          @Override
          public void onTickingStart(final Entity entity) {
              if (entity instanceof net.minecraft.world.entity.Marker && !paperConfig().entities.markers.tick) return; // Paper - Configurable marker ticking
@@ -705,7 +705,7 @@
              // Paper start - Reset pearls when they stop being ticked
              if (ServerLevel.this.paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && ServerLevel.this.paperConfig().misc.legacyEnderPearlBehavior && entity instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl pearl) {
                  pearl.setOwner(null);
-@@ -2925,10 +_,11 @@
+@@ -2926,10 +_,11 @@
  
          @Override
          public void onTrackingStart(final Entity entity) {
@@ -718,7 +718,7 @@
                  if (player.isReceivingWaypoints()) {
                      ServerLevel.this.getWaypointManager().addPlayer(player);
                  }
-@@ -2941,14 +_,14 @@
+@@ -2942,14 +_,14 @@
              }
  
              if (entity instanceof Mob mob) {
@@ -735,7 +735,7 @@
              }
  
              if (entity instanceof EnderDragon dragon) {
-@@ -2975,7 +_,7 @@
+@@ -2976,7 +_,7 @@
  
          @Override
          public void onTrackingEnd(final Entity entity) {
@@ -744,7 +744,7 @@
              // Spigot start // TODO I don't think this is needed anymore
              if (entity instanceof Player player) {
                  for (final ServerLevel level : ServerLevel.this.getServer().getAllLevels()) {
-@@ -2984,10 +_,12 @@
+@@ -2985,10 +_,12 @@
                              continue;
                          }
  
@@ -757,7 +757,7 @@
                      }
                  }
              }
-@@ -3006,20 +_,21 @@
+@@ -3007,20 +_,21 @@
              // Spigot end
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer player) {
@@ -781,7 +781,7 @@
              }
  
              if (entity instanceof EnderDragon dragon) {
-@@ -3044,6 +_,9 @@
+@@ -3045,6 +_,9 @@
          @Override
          public void onSectionChange(final Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
