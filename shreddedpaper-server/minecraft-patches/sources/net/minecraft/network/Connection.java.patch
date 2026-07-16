@@ -62,7 +62,7 @@
              this.channel.eventLoop().execute(() -> this.doSendPacket(packet, listener, flush));
          }
      }
-@@ -499,7 +_,7 @@
+@@ -499,19 +_,18 @@
      }
  
      // Paper start - Optimize network: Rewrite this to be safer if ran off main thread
@@ -71,6 +71,24 @@
          if (!this.isConnected()) {
              return true;
          }
+-        if (io.papermc.paper.util.MCUtil.isMainThread()) {
++        // ShreddedPaper start - Fix packet order: every ShreddedPaperTickThread satisfies isMainThread(), so unlike
++        // vanilla's single main thread, multiple region-tick-pool threads can reach flushQueue() for the same
++        // connection at once (tick(), send() from an async plugin call, and flushQueueInParallel's own sweep all
++        // race). Always synchronize so pendingActions is only ever drained by one thread at a time.
++        synchronized (this.pendingActions) {
+             return this.processQueue();
+-        } else if (this.isPending) {
+-            // Should only happen during login/status stages
+-            synchronized (this.pendingActions) {
+-                return this.processQueue();
+-            }
+         }
+-        return false;
++        // ShreddedPaper end - Fix packet order
+     }
+ 
+     private boolean processQueue() {
 @@ -555,7 +_,8 @@
      private static int currTick; // Paper - Buffer joins to world
      private static int tickSecond; // Purpur - Max joins per second
