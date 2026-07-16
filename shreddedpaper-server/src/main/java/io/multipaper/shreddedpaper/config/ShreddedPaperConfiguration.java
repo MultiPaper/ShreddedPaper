@@ -15,7 +15,7 @@ public class ShreddedPaperConfiguration extends ConfigurationPart {
             Docs: https://github.com/MultiPaper/ShreddedPaper/blob/main/SHREDDEDPAPER_YAML.md\s
             """;
 
-    private static ShreddedPaperConfiguration instance;
+    private static volatile ShreddedPaperConfiguration instance;
 
     public static ShreddedPaperConfiguration get() {
         return instance;
