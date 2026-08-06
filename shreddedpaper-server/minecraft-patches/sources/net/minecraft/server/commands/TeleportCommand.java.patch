@@ -21,7 +21,7 @@
          float relativeOrAbsoluteYRot = relatives.contains(Relative.Y_ROT) ? yRot - victim.getYRot() : yRot;
          float relativeOrAbsoluteXRot = relatives.contains(Relative.X_ROT) ? xRot - victim.getXRot() : xRot;
          float newYRot = Mth.wrapDegrees(relativeOrAbsoluteYRot);
-+        ShreddedPaper.ensureSync(victim, level, ChunkPos.containing(new BlockPos((int) x, (int) y, (int) z)), () -> { // ShreddedPaper - run on correct thread
++        ShreddedPaper.ensureSync(victim, level, ChunkPos.containing(new BlockPos((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z))), () -> { // ShreddedPaper - run on correct thread
          float newXRot = Mth.wrapDegrees(relativeOrAbsoluteXRot);
          if (victim.teleportTo(level, relativeOrAbsoluteX, relativeOrAbsoluteY, relativeOrAbsoluteZ, relatives, newYRot, newXRot, true, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.COMMAND)) { // Paper - teleport cause
              if (lookAt != null) {
