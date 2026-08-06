@@ -45,7 +45,7 @@
          this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
          this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
  
-@@ -1185,6 +_,8 @@
+@@ -1184,6 +_,8 @@
          Preconditions.checkState(this.console.getAllLevels().iterator().hasNext(), "Cannot create additional worlds on STARTUP");
          //Preconditions.checkState(!this.console.isIteratingOverLevels, "Cannot create a world while worlds are being ticked"); // Paper - Cat - Temp disable. We'll see how this goes.
          Preconditions.checkArgument(creator != null, "WorldCreator cannot be null");
@@ -54,7 +54,7 @@
  
          String name = creator.name();
          ChunkGenerator chunkGenerator = creator.generator();
-@@ -2939,6 +_,7 @@
+@@ -2938,6 +_,7 @@
          if (!io.papermc.paper.configuration.GlobalConfiguration.get().misc.loadPermissionsYmlBeforePlugins) loadCustomPermissions();
          DefaultPermissions.registerCorePermissions();
          CraftDefaultPermissions.registerCorePermissions();

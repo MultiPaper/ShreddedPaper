@@ -21,9 +21,9 @@
              if (teleportPosition == null) {
                  return null;
              } else {
-@@ -128,8 +_,9 @@
-                         org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_GATEWAY // CraftBukkit
-                     );
+@@ -127,8 +_,9 @@
+                         TeleportTransition.PLACE_PORTAL_TICKET
+                     ).withCause(org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_GATEWAY);  // CraftBukkit;
              }
 +            }); // ShreddedPaper - async teleportation
          } else {

@@ -10,7 +10,7 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.network.protocol.game.ClientboundLevelEventPacket;
  import net.minecraft.server.level.ServerLevel;
-@@ -80,12 +_,13 @@
+@@ -160,12 +_,13 @@
          entity.placePortalTicket(BlockPos.containing(entity.position()));
      }
  
@@ -26,7 +26,7 @@
              Vec3.ZERO,
              respawnData.yaw(),
              respawnData.pitch(),
-@@ -94,14 +_,16 @@
+@@ -174,14 +_,16 @@
              Set.of(),
              postTeleportTransition
          );
@@ -45,7 +45,7 @@
              Vec3.ZERO,
              respawnData.yaw(),
              respawnData.pitch(),
-@@ -110,10 +_,11 @@
+@@ -190,10 +_,11 @@
              Set.of(),
              postTeleportTransition
          );

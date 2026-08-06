@@ -32,7 +32,7 @@
              ChunkPos spawnChunk = ChunkPos.containing(BlockPos.containing(this.spawnPosition));
              this.spawnLevel.waitForEntities(spawnChunk, 3);
              // Paper start - configuration api - possibly use legacy saved server player instance
-@@ -314,8 +_,9 @@
+@@ -315,8 +_,9 @@
                      player.loadAndSpawnEnderPearls(tag);
                      player.loadAndSpawnParentVehicle(tag);
                  });

@@ -7,9 +7,9 @@
 +import io.multipaper.shreddedpaper.ShreddedPaper;
 +import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
  import io.papermc.paper.datacomponent.DataComponentType;
+ import io.papermc.paper.datacomponent.PaperDataComponentType;
  import io.papermc.paper.entity.LookAnchor;
- import io.papermc.paper.entity.TeleportFlag;
-@@ -34,6 +_,7 @@
+@@ -37,6 +_,7 @@
  import net.minecraft.world.entity.EntitySpawnRequest;
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
  import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
@@ -17,7 +17,7 @@
  import net.minecraft.world.level.portal.TeleportTransition;
  import net.minecraft.world.level.storage.TagValueOutput;
  import net.minecraft.world.level.storage.ValueInput;
-@@ -761,7 +_,7 @@
+@@ -778,7 +_,7 @@
          ImmutableSet.Builder<Player> players = ImmutableSet.builder();
  
          ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
@@ -26,7 +26,7 @@
  
          if (entityTracker != null) {
              for (ServerPlayerConnection connection : entityTracker.seenBy) {
-@@ -778,7 +_,7 @@
+@@ -795,7 +_,7 @@
          Preconditions.checkArgument(player != null, "Player cannot be null");
  
          ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
@@ -35,15 +35,6 @@
          if (entityTracker == null) return false;
  
          return entityTracker.seenBy.contains(((CraftPlayer) player).getHandle().connection);
-@@ -1093,7 +_,7 @@
-         }
- 
-         ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
--        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
-+        ChunkMap.TrackedEntity entityTracker = this.getHandle().moonrise$getTrackedEntity(); // world.getChunkSource().chunkMap.entityMap.get(this.getEntityId()); // ShreddedPaper - don't use map
- 
-         if (entityTracker == null) {
-             return;
 @@ -1110,7 +_,7 @@
          }
  
@@ -53,7 +44,16 @@
  
          if (entityTracker == null) {
              return;
-@@ -1148,10 +_,28 @@
+@@ -1127,7 +_,7 @@
+         }
+ 
+         ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
+-        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
++        ChunkMap.TrackedEntity entityTracker = this.getHandle().moonrise$getTrackedEntity(); // world.getChunkSource().chunkMap.entityMap.get(this.getEntityId()); // ShreddedPaper - don't use map
+ 
+         if (entityTracker == null) {
+             return;
+@@ -1165,10 +_,28 @@
  
          ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
          CompletableFuture<Boolean> ret = new CompletableFuture<>();
@@ -83,7 +83,7 @@
                      final ServerChunkCache chunkCache = world.getChunkSource();
                      for (final net.minecraft.world.level.chunk.ChunkAccess chunk : chunks) {
                          chunkCache.addTicketAtLevel(TicketType.POST_TELEPORT, chunk.getPos(), ChunkLevel.FULL_CHUNK_LEVEL);
-@@ -1239,7 +_,7 @@
+@@ -1256,7 +_,7 @@
      @Override
      public Set<org.bukkit.entity.Player> getTrackedPlayers() {
          ServerLevel world = (net.minecraft.server.level.ServerLevel)this.entity.level();

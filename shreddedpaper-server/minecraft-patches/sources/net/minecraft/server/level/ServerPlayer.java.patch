@@ -132,7 +132,7 @@
              teleportTransition.missingRespawnBlock(),
              respawnReason
          );
-@@ -1420,8 +_,8 @@
+@@ -1420,17 +_,18 @@
          // Spigot end
  
          // Paper start - consume anchor charge if location hasn't changed
@@ -143,21 +143,19 @@
          }
          // Paper end - consume anchor charge if location hasn't changed
          location = respawnEvent.getRespawnLocation();
-@@ -1439,10 +_,11 @@
-                 teleportTransition.postTeleportTransition(),
-                 teleportTransition.cause()
-             ),
+ 
+         return new RespawnResult(
+             teleportTransition.withChangedLocation(location),
 -            isBedSpawn,
 -            isAnchorSpawn
 +            isBedSpawn.get(), // ShreddedPaper - respawn async
 +            isAnchorSpawn.get() // ShreddedPaper - respawn async
          );
-         // CraftBukkit end
 +        }); // ShreddedPaper - respawn async
+         // CraftBukkit end
      }
  
-     public boolean isReceivingWaypoints() {
-@@ -1463,7 +_,7 @@
+@@ -1452,7 +_,7 @@
          super.onAttributeUpdated(attribute);
      }
  
@@ -166,7 +164,7 @@
          final ServerLevel level, final ServerPlayer.RespawnConfig respawnConfig, final boolean consumeSpawnBlock
      ) {
          LevelData.RespawnData respawnData = respawnConfig.respawnData;
-@@ -1471,6 +_,7 @@
+@@ -1460,6 +_,7 @@
          float yaw = respawnData.yaw();
          float pitch = respawnData.pitch();
          boolean forced = respawnConfig.forced;
@@ -174,7 +172,7 @@
          BlockState blockState = level.getBlockState(pos);
          Block block = blockState.getBlock();
          if (block instanceof RespawnAnchorBlock && (forced || blockState.getValue(RespawnAnchorBlock.CHARGE) > 0) && RespawnAnchorBlock.canSetSpawn(level, pos)
-@@ -1479,7 +_,16 @@
+@@ -1468,7 +_,16 @@
              Runnable consumeAnchorCharge = null; // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
              Optional<Vec3> standUpPosition = RespawnAnchorBlock.findStandUpPosition(EntityTypes.PLAYER, level, pos);
              if (!forced && consumeSpawnBlock && standUpPosition.isPresent()) {
@@ -192,7 +190,7 @@
              }
              final Runnable finalConsumeAnchorCharge = consumeAnchorCharge; // Paper - Fix SPIGOT-5989
  
-@@ -1501,6 +_,7 @@
+@@ -1490,6 +_,7 @@
                  ? Optional.of(new ServerPlayer.RespawnPosAngle(new Vec3(pos.getX() + 0.5, pos.getY() + 0.1, pos.getZ() + 0.5), yaw, pitch, false, false, null)) // Paper - Fix SPIGOT-5989
                  : Optional.empty();
          }
@@ -200,7 +198,7 @@
      }
  
      public void showEndCredits() {
-@@ -2696,6 +_,7 @@
+@@ -2675,6 +_,7 @@
      }
  
      public void setCamera(final @Nullable Entity newCamera) {
@@ -208,7 +206,7 @@
          Entity oldCamera = this.getCamera();
          this.camera = newCamera == null ? this : newCamera;
          if (oldCamera != this.camera) {
-@@ -2725,6 +_,7 @@
+@@ -2704,6 +_,7 @@
              this.connection.send(new ClientboundSetCameraPacket(this.camera));
              this.connection.resetPosition();
          }
@@ -216,7 +214,7 @@
      }
  
      @Override
-@@ -2994,6 +_,8 @@
+@@ -2973,6 +_,8 @@
              for (MobEffectInstance effect : livingEntity.getActiveEffects()) {
                  this.connection.send(new ClientboundRemoveMobEffectPacket(oldVehicle.getId(), effect.getEffect()));
              }

@@ -66,9 +66,9 @@
          if (result == null) {
              return null;
          }
-@@ -129,6 +_,7 @@
-             ((org.bukkit.craftbukkit.CraftWorld) to.getWorld()).getHandle(), org.bukkit.craftbukkit.util.CraftLocation.toVec3(to), Vec3.ZERO, to.getYaw(), to.getPitch(), relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_PORTAL
-         );
+@@ -135,6 +_,7 @@
+             TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET)
+         ).withCause(org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_PORTAL);
          // CraftBukkit end
 +        }); // ShreddedPaper - async teleportation
      }
