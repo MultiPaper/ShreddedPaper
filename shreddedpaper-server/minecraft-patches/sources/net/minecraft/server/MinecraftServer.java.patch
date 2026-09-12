@@ -84,6 +84,16 @@
              }
  
              this.waitUntilNextTick();
+@@ -1293,7 +_,9 @@
+             // Paper start
+             LOGGER.info("Running delayed init tasks");
+             new io.papermc.paper.threadedregions.RegionizedServerInitEvent().callEvent(); // Call Folia init event
++            MinecraftServer.isBukkitSchedulerHearbeat = true; // ShreddedPaper
+             this.server.getScheduler().mainThreadHeartbeat(); // run all 1 tick delay tasks during init,
++            MinecraftServer.isBukkitSchedulerHearbeat = false; // ShreddedPaper
+             // this is going to be the first thing the tick process does anyway, so move done and run it after
+             // everything is init before watchdog tick.
+             // anything at 3+ won't be caught here but also will trip watchdog....
 @@ -1632,7 +_,9 @@
                      this.autoSave();
                  }
