@@ -68,7 +68,7 @@
          org.bukkit.entity.Entity entity = this.getServer().getPlayer(uuid);
  
          return (entity != null) ? this.canSee(entity) : false; // If we can't find it, we can't see it
-@@ -3135,8 +_,9 @@
+@@ -3145,8 +_,9 @@
          @Override
          public void respawn() {
              if (CraftPlayer.this.getHealth() <= 0 && CraftPlayer.this.isOnline()) {
@@ -79,7 +79,7 @@
              }
          }
  
-@@ -3267,19 +_,19 @@
+@@ -3277,19 +_,19 @@
      // Paper start - Add chunk view API
      @Override
      public Set<java.lang.Long> getSentChunkKeys() {

@@ -47,6 +47,15 @@
          if (!connected && !this.preparing) {
              return;
          }
+@@ -427,7 +_,7 @@
+                 this.pendingActions.addAll(actions);
+             }
+ 
+-            this.flushQueue();
++            if (this.getPlayer() == null) this.flushQueue(); // ShreddedPaper - flush will be executed at the end of the tick for players
+             // Paper end - Optimize network
+         }
+     }
 @@ -487,6 +_,14 @@
          if (this.channel.eventLoop().inEventLoop()) {
              this.doSendPacket(packet, listener, flush);

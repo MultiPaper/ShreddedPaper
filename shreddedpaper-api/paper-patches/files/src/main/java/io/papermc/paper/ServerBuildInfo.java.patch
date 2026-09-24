@@ -1,6 +1,6 @@
 --- a/src/main/java/io/papermc/paper/ServerBuildInfo.java
 +++ b/src/main/java/io/papermc/paper/ServerBuildInfo.java
-@@ -25,6 +_,7 @@
+@@ -23,6 +_,7 @@
       */
      Key BRAND_PURPUR_ID = Key.key("purpurmc", "purpur");
      // Purpur end

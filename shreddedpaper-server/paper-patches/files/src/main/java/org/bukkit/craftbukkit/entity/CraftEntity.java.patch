@@ -9,7 +9,7 @@
  import io.papermc.paper.datacomponent.DataComponentType;
  import io.papermc.paper.datacomponent.PaperDataComponentType;
  import io.papermc.paper.entity.LookAnchor;
-@@ -37,6 +_,7 @@
+@@ -38,6 +_,7 @@
  import net.minecraft.world.entity.EntitySpawnRequest;
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
  import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
@@ -17,7 +17,7 @@
  import net.minecraft.world.level.portal.TeleportTransition;
  import net.minecraft.world.level.storage.TagValueOutput;
  import net.minecraft.world.level.storage.ValueInput;
-@@ -778,7 +_,7 @@
+@@ -787,7 +_,7 @@
          ImmutableSet.Builder<Player> players = ImmutableSet.builder();
  
          ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
@@ -26,7 +26,7 @@
  
          if (entityTracker != null) {
              for (ServerPlayerConnection connection : entityTracker.seenBy) {
-@@ -795,7 +_,7 @@
+@@ -804,7 +_,7 @@
          Preconditions.checkArgument(player != null, "Player cannot be null");
  
          ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
@@ -35,7 +35,7 @@
          if (entityTracker == null) return false;
  
          return entityTracker.seenBy.contains(((CraftPlayer) player).getHandle().connection);
-@@ -1110,7 +_,7 @@
+@@ -1119,7 +_,7 @@
          }
  
          ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
@@ -44,7 +44,7 @@
  
          if (entityTracker == null) {
              return;
-@@ -1127,7 +_,7 @@
+@@ -1136,7 +_,7 @@
          }
  
          ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
@@ -53,7 +53,7 @@
  
          if (entityTracker == null) {
              return;
-@@ -1165,10 +_,28 @@
+@@ -1174,10 +_,28 @@
  
          ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
          CompletableFuture<Boolean> ret = new CompletableFuture<>();
@@ -83,7 +83,7 @@
                      final ServerChunkCache chunkCache = world.getChunkSource();
                      for (final net.minecraft.world.level.chunk.ChunkAccess chunk : chunks) {
                          chunkCache.addTicketAtLevel(TicketType.POST_TELEPORT, chunk.getPos(), ChunkLevel.FULL_CHUNK_LEVEL);
-@@ -1256,7 +_,7 @@
+@@ -1265,7 +_,7 @@
      @Override
      public Set<org.bukkit.entity.Player> getTrackedPlayers() {
          ServerLevel world = (net.minecraft.server.level.ServerLevel)this.entity.level();
