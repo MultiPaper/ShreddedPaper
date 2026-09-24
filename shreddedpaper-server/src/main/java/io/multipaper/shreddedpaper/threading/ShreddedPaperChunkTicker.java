@@ -74,7 +74,11 @@ public class ShreddedPaperChunkTicker {
             }
 
             allFuture = allFuture.thenCompose(v -> CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)));
-            return allFuture;
+            return allFuture.exceptionally(e -> {
+                LOGGER.error("Exception processing tracked entities in parallel", e);
+                MinecraftServer.getServer().moonrise$setChunkSystemCrash(new RuntimeException("Ticking thread crash while processing tracked entities in parallel", e));
+                return null;
+            });
         } finally {
             allFuture.whenComplete((v, e) -> level.chunkScheduler.getRegionLocker().globalLock().tryUnlockWrite());
         }
@@ -89,7 +93,11 @@ public class ShreddedPaperChunkTicker {
             futures.add(CompletableFuture.runAsync(() -> players.forEach(player -> player.connection.connection.flushQueue()), ShreddedPaperTickThread.getExecutor()));
         }
 
-        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).exceptionally(e -> {
+            LOGGER.error("Exception flushing packet queues in parallel", e);
+            MinecraftServer.getServer().moonrise$setChunkSystemCrash(new RuntimeException("Ticking thread crash while flushing packet queues in parallel", e));
+            return null;
+        });
     }
 
     private CompletableFuture<Void> tickRegion(final ServerLevel level, final LevelChunkRegion region, final long timeInhabited, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
