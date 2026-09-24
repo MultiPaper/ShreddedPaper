@@ -37,7 +37,7 @@
                  if (movedDist - expectedDist > Math.max(100.0, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) i * speed)) && !this.isSingleplayerOwner()) {
                      // CraftBukkit end
                      LOGGER.warn(
-@@ -1423,7 +_,7 @@
+@@ -1424,7 +_,7 @@
              Consumer<List<FilteredText>> handler = title.isPresent()
                  ? filteredContents -> this.signBook(filteredContents.get(0), filteredContents.subList(1, filteredContents.size()), slot, hasSignPerm) // Purpur - Allow color codes in books
                  : filteredContents -> this.updateBookContents(filteredContents, slot, hasEditPerm); // Purpur - Allow color codes in books
@@ -46,7 +46,7 @@
          }
      }
  
-@@ -1616,6 +_,12 @@
+@@ -1617,6 +_,12 @@
                                          // Paper end - Add fail move event
                                      }
                                      // Paper end - Prevent moving into unloaded chunks
@@ -59,7 +59,7 @@
  
                                      if (this.shouldCheckPlayerMovement(isFallFlying)) {
                                          float metersPerTick = isFallFlying ? 300.0F : 100.0F;
-@@ -2331,7 +_,9 @@
+@@ -2332,7 +_,9 @@
              for (ServerLevel level : this.server.getAllLevels()) {
                  Entity entity = packet.getEntity(level);
                  if (entity != null) {
@@ -69,7 +69,7 @@
                      return;
                  }
              }
-@@ -2348,12 +_,15 @@
+@@ -2349,12 +_,15 @@
  
      @Override
      public void onDisconnect(final DisconnectionDetails details) {
@@ -85,7 +85,7 @@
      }
  
      private void removePlayerFromWorld() {
-@@ -2613,7 +_,7 @@
+@@ -2614,7 +_,7 @@
              this.player.resetLastActionTime();
              // CraftBukkit start
              if (sync) {
@@ -94,7 +94,7 @@
              } else {
                  chatHandler.run();
              }
-@@ -3075,22 +_,26 @@
+@@ -3076,22 +_,26 @@
          switch (action) {
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
@@ -123,7 +123,7 @@
                  }
                  break;
              case REQUEST_STATS:
-@@ -3637,7 +_,7 @@
+@@ -3638,7 +_,7 @@
          }
          List<String> lines = Stream.of(linesArray).map(ChatFormatting::stripFormatting).collect(Collectors.toList());
          // Paper end - Limit client sign length
@@ -132,7 +132,7 @@
      }
  
      private void updateSignText(final ServerboundSignUpdatePacket packet, final List<FilteredText> lines) {
-@@ -3895,7 +_,7 @@
+@@ -3896,7 +_,7 @@
  
      @Override
      public void disconnectAsync(final net.minecraft.network.DisconnectionDetails disconnectionInfo) {

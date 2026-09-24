@@ -8,7 +8,7 @@
  import java.util.ArrayList;
  import java.util.List;
  import java.util.Map;
-@@ -794,13 +_,16 @@
+@@ -811,13 +_,16 @@
              this.brain.getMemory(memoryType).ifPresent(memory -> {
                  ServerLevel poiLevel = server.getLevel(memory.dimension());
                  if (poiLevel != null) {

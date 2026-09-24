@@ -47,7 +47,7 @@
          if (!connected && !this.preparing) {
              return;
          }
-@@ -446,6 +_,14 @@
+@@ -487,6 +_,14 @@
          if (this.channel.eventLoop().inEventLoop()) {
              this.doSendPacket(packet, listener, flush);
          } else {
@@ -62,7 +62,7 @@
              this.channel.eventLoop().execute(() -> this.doSendPacket(packet, listener, flush));
          }
      }
-@@ -499,7 +_,7 @@
+@@ -540,7 +_,7 @@
      }
  
      // Paper start - Optimize network: Rewrite this to be safer if ran off main thread
@@ -71,7 +71,7 @@
          if (!this.isConnected()) {
              return true;
          }
-@@ -555,7 +_,8 @@
+@@ -596,7 +_,8 @@
      private static int currTick; // Paper - Buffer joins to world
      private static int tickSecond; // Purpur - Max joins per second
      public void tick() {

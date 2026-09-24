@@ -1,6 +1,15 @@
 --- a/purpur-api/build.gradle.kts
 +++ b/purpur-api/build.gradle.kts
-@@ -105,17 +_,21 @@
+@@ -109,7 +_,7 @@
+     testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.3")
+ 
+     // checkstyle
+-    checkstyle(project(":purpur-checkstyle"))
++    // checkstyle(project(":purpur-checkstyle")) // ShreddedPaper - unused
+ }
+ 
+ val generatedDir: java.nio.file.Path = rootProject.layout.projectDirectory.dir("paper-api/src/generated/java").asFile.toPath() // Purpur
+@@ -123,17 +_,21 @@
          java {
              srcDir(generatedDir)
              srcDir(file("../paper-api/src/main/java"))

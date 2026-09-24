@@ -40,7 +40,7 @@
      public float maxUpStep; // Purpur - Add option to set armorstand step height
      public boolean noPhysics;
      public final RandomSource random; // Paper - Share random for entities to make them more random // Purpur - Add toggle for RNG manipulation
-@@ -730,7 +_,7 @@
+@@ -731,7 +_,7 @@
      public void resendPossiblyDesyncedEntityData(ServerPlayer player) {
          if (player.getBukkitEntity().canSee(this.getBukkitEntity())) {
              ServerLevel level = (ServerLevel) this.level();
@@ -49,7 +49,7 @@
              if (tracker == null) {
                  return;
              }
-@@ -851,6 +_,14 @@
+@@ -852,6 +_,14 @@
      }
  
      public void setPos(final double x, final double y, final double z) {
@@ -64,7 +64,7 @@
          this.setPosRaw(x, y, z, true); // Paper - Block invalid positions and bounding box; force update
          // this.setBoundingBox(this.makeBoundingBox()); // Paper - Block invalid positions and bounding box; move into setPosRaw
      }
-@@ -1169,7 +_,9 @@
+@@ -1170,7 +_,9 @@
      public void move(final MoverType moverType, Vec3 delta) {
          final Vec3 originalMovement = delta; // Paper - Expose pre-collision velocity
          // Paper start - detailed watchdog information
@@ -75,7 +75,7 @@
          synchronized (this.posLock) {
              this.moveStartX = this.getX();
              this.moveStartY = this.getY();
-@@ -1564,7 +_,7 @@
+@@ -1565,7 +_,7 @@
      }
  
      protected BlockPos getOnPos(final float offset) {
@@ -84,7 +84,7 @@
              BlockPos getOnPos = this.mainSupportingBlockPos.get();
              if (!(offset > 1.0E-5F)) {
                  return getOnPos;
-@@ -2481,7 +_,7 @@
+@@ -2487,7 +_,7 @@
                  }
                  delta = event.getKnockback();
              }
@@ -93,7 +93,7 @@
              // Paper end - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
              this.needsSync = true;
          }
-@@ -3630,7 +_,9 @@
+@@ -3636,7 +_,9 @@
          }
      }
  
@@ -103,7 +103,7 @@
          if (this.level() instanceof ServerLevel level) {
              this.processPortalCooldown();
              if (this.portalProcess != null) {
-@@ -3638,13 +_,17 @@
+@@ -3644,13 +_,17 @@
                      ProfilerFiller profiler = Profiler.get();
                      profiler.push("portal");
                      this.setPortalCooldown();
@@ -122,7 +122,7 @@
  
                      profiler.pop();
                  } else if (this.portalProcess.hasExpired()) {
-@@ -4151,6 +_,11 @@
+@@ -4157,6 +_,11 @@
              PositionMoveRotation absolutePosition = PositionMoveRotation.calculateAbsolute(PositionMoveRotation.of(this), PositionMoveRotation.of(transition), transition.relatives());
              Vec3 velocity = absolutePosition.deltaMovement(); // Paper
              org.bukkit.Location to = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(absolutePosition.position(), transition.newLevel(), absolutePosition.yRot(), absolutePosition.xRot());
@@ -134,7 +134,7 @@
              // Paper start - gateway-specific teleport event
              final org.bukkit.event.entity.EntityTeleportEvent teleEvent;
              if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) Blocks.END_GATEWAY)) && this.level.getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
-@@ -4997,8 +_,14 @@
+@@ -5003,8 +_,14 @@
          return this.deltaMovement;
      }
  
