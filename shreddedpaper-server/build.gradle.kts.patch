@@ -22,9 +22,9 @@
 +    activeFork = shreddedpaper
 +    // ShreddedPaper end - Rebrand
 +
-     /*updatingMinecraft { // Purpur start - TODO - snapshot - we don't need this
-         // oldPaperCommit = "d4fe85375af18bfa88f44d7c1e6a61904ae550cc"
-     }*/ // Purpur end - TODO - snapshot - we don't need this
+     /*updatingMinecraft { // Purpur start - Rebrand - we don't need this
+         //oldPaperCommit = "e5fe71723e2ffde7cc9fafc085ac3bb73e63175e"
+     }*/ // Purpur end - Rebrand - we don't need this
 @@ -105,10 +_,14 @@
      main {
          java { srcDir("../paper-server/src/main/java") }
@@ -46,7 +46,7 @@
  dependencies {
 -    implementation(project(":purpur-api")) // Purpur
 +    implementation(project(":shreddedpaper-api")) // Purpur // ShreddedPaper
-     implementation("ca.spottedleaf:leafpile:1.2.0")
+     implementation("ca.spottedleaf:leafpile:1.2.2")
      implementation("org.jline:jline-terminal-ffm:3.27.1") // use ffm on java 22+
      implementation("org.jline:jline-terminal-jni:3.27.1") // fall back to jni on java 21
 @@ -203,14 +_,14 @@

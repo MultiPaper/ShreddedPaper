@@ -7,7 +7,7 @@
  import com.google.common.base.Preconditions;
  import com.google.common.collect.Sets;
  import io.papermc.paper.adventure.PaperAdventure;
-@@ -505,7 +_,7 @@
+@@ -506,7 +_,7 @@
  
      @Override
      public boolean addPotionEffect(PotionEffect effect) {

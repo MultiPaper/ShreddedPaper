@@ -1,14 +1,14 @@
 --- a/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
 +++ b/src/main/java/io/papermc/paper/plugin/manager/PaperEventManager.java
-@@ -4,6 +_,7 @@
- import com.destroystokyo.paper.event.server.ServerExceptionEvent;
- import com.destroystokyo.paper.exception.ServerEventException;
- import com.google.common.collect.Sets;
+@@ -10,6 +_,7 @@
+ import java.util.Map;
+ import java.util.Set;
+ import java.util.logging.Level;
 +import io.multipaper.shreddedpaper.threading.SynchronousPluginExecution;
  import org.bukkit.Server;
  import org.bukkit.Warning;
  import org.bukkit.event.Event;
-@@ -38,7 +_,7 @@
+@@ -36,7 +_,7 @@
      public void callEvent(@NotNull Event event) {
          if (event.isAsynchronous() && this.server.isPrimaryThread()) {
              throw new IllegalStateException(event.getEventName() + " may only be triggered asynchronously.");
@@ -17,7 +17,7 @@
              throw new IllegalStateException(event.getEventName() + " may only be triggered synchronously.");
          }
  
-@@ -51,7 +_,15 @@
+@@ -49,7 +_,15 @@
              }
  
              try {

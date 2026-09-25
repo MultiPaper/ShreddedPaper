@@ -22,7 +22,7 @@
  import java.util.function.Consumer;
  import java.util.function.Predicate;
  import java.util.stream.Collectors;
-@@ -237,7 +_,7 @@
+@@ -238,7 +_,7 @@
  
      @Override
      public int getTickableTileEntityCount() {
@@ -31,7 +31,7 @@
      }
  
      @Override
-@@ -370,6 +_,7 @@
+@@ -374,6 +_,7 @@
  
      @Override
      public Chunk getChunkAt(int x, int z) {
@@ -39,7 +39,7 @@
          warnUnsafeChunk("getting a faraway chunk", x, z); // Paper
          net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk) this.world.getChunk(x, z, ChunkStatus.FULL, true);
          return new CraftChunk(chunk);
-@@ -400,11 +_,13 @@
+@@ -404,11 +_,13 @@
      @Override
      public boolean isChunkGenerated(int x, int z) {
          // Paper start - Fix this method
@@ -58,7 +58,7 @@
          ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
          if (chunk != null) {
              return chunk instanceof ImposterProtoChunk || chunk instanceof net.minecraft.world.level.chunk.LevelChunk;
-@@ -413,7 +_,7 @@
+@@ -417,7 +_,7 @@
          ca.spottedleaf.moonrise.common.PlatformHooks.get().scheduleChunkLoad(
              this.world, x, z, false, ChunkStatus.EMPTY, true, ca.spottedleaf.concurrentutil.util.Priority.NORMAL, future::complete
          );
@@ -67,7 +67,7 @@
          return future.thenApply(c -> {
              if (c != null) {
                  return c.getPersistedStatus() == ChunkStatus.FULL;
-@@ -738,18 +_,20 @@
+@@ -742,18 +_,20 @@
  
      @Override
      public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
@@ -94,7 +94,7 @@
          }
          if (grownTree) { // Copy block data to delegate
              for (CraftBlockState snapshot : capturedBlockStates) {
-@@ -1594,7 +_,7 @@
+@@ -1598,7 +_,7 @@
          if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
  
          ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(CraftSound.bukkitToMinecraftHolder(sound), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
@@ -103,7 +103,7 @@
          if (entityTracker != null) {
              entityTracker.sendToTrackingPlayersAndSelf(packet);
          }
-@@ -1615,7 +_,7 @@
+@@ -1619,7 +_,7 @@
          if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
  
          ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(Holder.direct(SoundEvent.createVariableRangeEvent(Identifier.parse(sound))), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);

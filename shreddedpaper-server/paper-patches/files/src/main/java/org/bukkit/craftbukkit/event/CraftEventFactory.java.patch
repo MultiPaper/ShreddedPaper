@@ -1,6 +1,6 @@
 --- a/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
 +++ b/src/main/java/org/bukkit/craftbukkit/event/CraftEventFactory.java
-@@ -940,7 +_,7 @@
+@@ -943,7 +_,7 @@
          return false;
      }
  
@@ -9,12 +9,12 @@
  
      public static boolean handleBlockSpreadEvent(LevelAccessor level, BlockPos source, BlockPos target, net.minecraft.world.level.block.state.BlockState state, @net.minecraft.world.level.block.Block.UpdateFlags int flags) {
          return handleBlockSpreadEvent(level, source, target, state, flags, false);
-@@ -956,7 +_,7 @@
+@@ -959,7 +_,7 @@
          CraftBlockState snapshot = CraftBlockStates.getBlockState(level, target);
          snapshot.setBlock(state);
  
--        BlockSpreadEvent event = new BlockSpreadEvent(snapshot.getBlock(), CraftBlock.at(level, CraftEventFactory.sourceBlockOverride != null ? CraftEventFactory.sourceBlockOverride : source), snapshot);
-+        BlockSpreadEvent event = new BlockSpreadEvent(snapshot.getBlock(), CraftBlock.at(level, CraftEventFactory.sourceBlockOverrideThreadLocal.get() != null ? CraftEventFactory.sourceBlockOverrideThreadLocal.get() : source), snapshot); // ShreddedPaper - use thread local for sourceBlockOverride
+-        BlockSpreadEvent event = new BlockSpreadEvent(snapshot.getBlock(), CraftBlock.at(level, sourceBlockOverride != null ? sourceBlockOverride : source), snapshot);
++        BlockSpreadEvent event = new BlockSpreadEvent(snapshot.getBlock(), CraftBlock.at(level, sourceBlockOverrideThreadLocal.get() != null ? sourceBlockOverrideThreadLocal.get() : source), snapshot); // ShreddedPaper - use thread local for sourceBlockOverride
          if (event.callEvent()) {
              boolean result = snapshot.place(flags);
              return !checkSetResult || result;

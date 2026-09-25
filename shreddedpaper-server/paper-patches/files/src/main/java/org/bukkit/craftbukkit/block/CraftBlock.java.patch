@@ -7,7 +7,7 @@
  import com.google.common.base.Preconditions;
  import java.util.ArrayList;
  import java.util.Collection;
-@@ -80,6 +_,7 @@
+@@ -81,6 +_,7 @@
      }
  
      public net.minecraft.world.level.block.state.BlockState getBlockState() {
@@ -15,7 +15,7 @@
          return this.level.getBlockState(this.position);
      }
  
-@@ -156,6 +_,7 @@
+@@ -157,6 +_,7 @@
  
      @Override
      public byte getData() {
@@ -23,7 +23,7 @@
          return CraftMagicNumbers.toLegacyData(this.getBlockState());
      }
  
-@@ -187,6 +_,7 @@
+@@ -188,6 +_,7 @@
      }
  
      boolean setBlockState(final net.minecraft.world.level.block.state.BlockState state, final boolean applyPhysics) {
@@ -31,7 +31,7 @@
          return setBlockState(this.level, this.position, state, applyPhysics);
      }
  
-@@ -203,6 +_,7 @@
+@@ -204,6 +_,7 @@
  
      @Override
      public Material getType() {
@@ -39,7 +39,7 @@
          return this.getBlockState().getBukkitMaterial();
      }
  
-@@ -520,19 +_,19 @@
+@@ -521,19 +_,19 @@
  
          // SPIGOT-6895: Call StructureGrowEvent and BlockFertilizeEvent
          List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
