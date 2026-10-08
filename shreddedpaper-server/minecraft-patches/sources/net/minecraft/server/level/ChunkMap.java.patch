@@ -32,6 +32,14 @@
  import java.util.concurrent.atomic.AtomicInteger;
  import java.util.function.BooleanSupplier;
  import java.util.function.Consumer;
+@@ -105,6 +_,7 @@
+ import net.minecraft.world.level.storage.LevelStorageSource;
+ import net.minecraft.world.phys.Vec3;
+ import org.apache.commons.lang3.mutable.MutableBoolean;
++import org.jetbrains.annotations.NotNull;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
 @@ -138,7 +_,8 @@
      private final ChunkStatusUpdateListener chunkStatusListener;
      private final ChunkMap.DistanceManager distanceManager;

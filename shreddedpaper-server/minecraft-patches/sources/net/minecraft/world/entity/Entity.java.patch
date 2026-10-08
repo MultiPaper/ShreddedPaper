@@ -97,7 +97,7 @@
          }
      }
  
-+    private @Nullable CompletableFuture<Void> beingPortalled = null; // ShreddedPaper - async teleportation
++    public @Nullable CompletableFuture<Void> beingPortalled = null; // ShreddedPaper - async teleportation
      protected void handlePortal() {
 +        if (this.beingPortalled != null && !this.beingPortalled.isDone()) return; // Currently being teleported by a portal // ShreddedPaper - async teleportation
          if (this.level() instanceof ServerLevel level) {

@@ -38,12 +38,12 @@ public class ShreddedPaperChunkTicker {
         this.serverChunkCache = serverChunkCache;
     }
 
-    public CompletableFuture<Void> tickChunks(final long timeInhabited, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
+    public CompletableFuture<Void> tickChunks(final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
         ServerLevel level = this.serverChunkCache.chunkMap.level;
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         level.getChunkSource().tickingRegions.forEach(
-                region -> futures.add(this.tickRegion(level, region, timeInhabited, filteredSpawningCategories, spawnState))
+                region -> futures.add(this.tickRegion(level, region, filteredSpawningCategories, spawnState))
         );
 
         CompletableFuture<Void> future = CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
@@ -92,8 +92,8 @@ public class ShreddedPaperChunkTicker {
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
 
-    private CompletableFuture<Void> tickRegion(final ServerLevel level, final LevelChunkRegion region, final long timeInhabited, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
-        return level.chunkScheduler.schedule(region.getRegionPos(), () -> this._tickRegion(level, region, timeInhabited, filteredSpawningCategories, spawnState)).exceptionally(e -> {
+    private CompletableFuture<Void> tickRegion(final ServerLevel level, final LevelChunkRegion region, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
+        return level.chunkScheduler.schedule(region.getRegionPos(), () -> this._tickRegion(level, region, filteredSpawningCategories, spawnState)).exceptionally(e -> {
             LogUtils.getClassLogger().error("Exception ticking region {}", region.getRegionPos(), e);
             MinecraftServer.getServer().moonrise$setChunkSystemCrash(new RuntimeException("Ticking thread crash while ticking region " + region.getRegionPos(), e));
             return null;
@@ -105,7 +105,7 @@ public class ShreddedPaperChunkTicker {
         return region != null && level.equals(region.getLevel()) && regionPos.equals(region.getRegionPos());
     }
 
-    private void _tickRegion(final ServerLevel level, final LevelChunkRegion region, final long timeInhabited, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
+    private void _tickRegion(final ServerLevel level, final LevelChunkRegion region, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
         try {
             currentlyTickingRegion.set(region);
 
@@ -134,7 +134,7 @@ public class ShreddedPaperChunkTicker {
                 level.blockTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickBlock);
                 level.fluidTicks.tick(region.getRegionPos(), level.getGameTime(), level.paperConfig().environment.maxBlockTicks, level::tickFluid);
 
-                region.forEach(chunk -> this._tickChunk(region, level, chunk, timeInhabited, filteredSpawningCategories, spawnState));
+                region.forEach(chunk -> this._tickChunk(region, level, chunk, filteredSpawningCategories, spawnState));
 
                 level.runBlockEvents(region);
 
@@ -161,7 +161,7 @@ public class ShreddedPaperChunkTicker {
         }
     }
 
-    private void _tickChunk(final LevelChunkRegion levelChunkRegion, final ServerLevel world, final LevelChunk levelChunk, final long timeInhabited, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
+    private void _tickChunk(final LevelChunkRegion levelChunkRegion, final ServerLevel world, final LevelChunk levelChunk, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
         if (levelChunk.moonrise$getChunkHolder().vanillaChunkHolder.hasChangesToBroadcast())
             ShreddedPaperChangesBroadcaster.add(levelChunk.moonrise$getChunkHolder().vanillaChunkHolder); // ShreddedPaper
 
@@ -176,19 +176,19 @@ public class ShreddedPaperChunkTicker {
         }
 
         if (spawnState != null && levelChunkRegion.isPlayerTickingRequested(levelChunk.getPos())) {
-            this._tickSpawningChunk(world, levelChunk, timeInhabited, filteredSpawningCategories, spawnState);
+            this._tickSpawningChunk(world, levelChunk, filteredSpawningCategories, spawnState);
         }
 
         final int randomTickSpeed = world.getGameRules().get(net.minecraft.world.level.gamerules.GameRules.RANDOM_TICK_SPEED);
         world.tickChunk(levelChunk, randomTickSpeed);
     }
 
-    private void _tickSpawningChunk(final ServerLevel world, final LevelChunk levelChunk, final long timeInhabited, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
+    private void _tickSpawningChunk(final ServerLevel world, final LevelChunk levelChunk, final List<MobCategory> filteredSpawningCategories, final NaturalSpawner.SpawnState spawnState) {
         if (!world.getChunkSource().chunkMap.isChunkNearPlayer(world.getChunkSource().chunkMap, levelChunk.getPos(), levelChunk)) {
             return;
         }
 
-        world.getChunkSource().tickSpawningChunk(levelChunk, timeInhabited, filteredSpawningCategories, spawnState);
+        world.getChunkSource().tickSpawningChunk(levelChunk, filteredSpawningCategories, spawnState);
     }
 
     public static boolean willTrySpawnMobsThisTick(final ServerLevel level) {

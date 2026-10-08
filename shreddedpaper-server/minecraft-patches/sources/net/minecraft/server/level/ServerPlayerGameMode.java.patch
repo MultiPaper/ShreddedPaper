@@ -1,12 +1,26 @@
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
-@@ -1,5 +_,6 @@
+@@ -1,8 +_,12 @@
  package net.minecraft.server.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
  import com.mojang.logging.LogUtils;
  import java.util.List;
  import java.util.Objects;
++import java.util.concurrent.CompletableFuture;
++
++import io.multipaper.shreddedpaper.ShreddedPaper;
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.advancements.triggers.CriteriaTriggers;
+@@ -21,6 +_,7 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.context.UseOnContext;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
++import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.GameType;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Block;
 @@ -29,6 +_,7 @@
  import net.minecraft.world.level.block.Portal;
  import net.minecraft.world.level.block.entity.BlockEntity;
@@ -53,17 +67,41 @@
          if (event.isDropItems()) {
              org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, bState, this.player, itemsToDrop); // Paper - capture all item additions to the world
          }
-@@ -467,6 +_,13 @@
-         }
+@@ -468,6 +_,13 @@
          // Paper end - Trigger bee_nest_destroyed trigger in the correct place
          // CraftBukkit end
-+
+ 
 +        // ShreddedPaper start - broadcast block changes immediately if on the wrong thread
 +        LevelChunk levelChunk = this.level.getChunkIfLoaded(pos);
 +        if (levelChunk != null) {
 +            levelChunk.moonrise$getChunkHolder().vanillaChunkHolder.broadcastChanges(levelChunk);
 +        }
 +        // ShreddedPaper end - broadcast block changes immediately if on the wrong thread
- 
++
          return true;
      }
+ 
+@@ -580,17 +_,22 @@
+             }
+ 
+             if (state.getBlock() instanceof Portal portal) {
++                if (player.beingPortalled != null && !player.beingPortalled.isDone()) return InteractionResult.CONSUME; // Currently being teleported by a portal // ShreddedPaper - async teleportation
+                 ServerLevel serverLevel = player.level();
+-                TeleportTransition teleportTransition = portal.getPortalDestination(serverLevel, player, pos);
++                player.beingPortalled = portal.getPortalDestinationAsync(serverLevel, player, pos).thenCompose(teleportTransition -> { // ShreddedPaper - async teleportation
+                 if (teleportTransition != null) {
++                    return CompletableFuture.runAsync(() -> { // ShreddedPaper - async teleportation
+                     if (player.getCamera() != player) {
+                         player.setCamera(player);
+                     }
+ 
+                     player.teleportToPortalDestination(serverLevel, teleportTransition);
++                    }, r -> ShreddedPaper.ensureSync(player, teleportTransition.newLevel(), ChunkPos.containing(BlockPos.containing(teleportTransition.position())), r)); // ShreddedPaper - async teleportation
+                 } else {
+                     player.sendOverlayMessage(Component.translatable("spectator.cannot_teleport").withStyle(ChatFormatting.RED));
++                    return CompletableFuture.completedFuture(null); // ShreddedPaper - async teleportation
+                 }
++                }).thenRun(() -> player.beingPortalled = null); // ShreddedPaper - async teleportation
+ 
+                 return InteractionResult.CONSUME;
+             } else {

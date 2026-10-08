@@ -22,7 +22,7 @@
 +        // ShreddedPaper start - Cache chunk packet
 +        Reference<ClientboundLevelChunkWithLightPacket> cachedChunkPacket = chunk.cachedChunkPacket;
 +        ClientboundLevelChunkWithLightPacket chunkPacket;
-+        if (cachedChunkPacket == null || (chunkPacket = chunk.cachedChunkPacket.get()) == null || chunkPacket.modifyBlocks != shouldModify) {
++        if (cachedChunkPacket == null || (chunkPacket = chunk.cachedChunkPacket.get()) == null || chunkPacket.modifyBlocks() != shouldModify) {
 +            chunkPacket = new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null, shouldModify);
 +            if (ShreddedPaperConfiguration.get().optimizations.chunkPacketCaching.enabled) chunk.cachedChunkPacket = ShreddedPaperConfiguration.get().optimizations.chunkPacketCaching.useSoftReferences ? new SoftReference<>(chunkPacket) : new WeakReference<>(chunkPacket);
 +        }

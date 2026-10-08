@@ -3,6 +3,7 @@ package io.multipaper.shreddedpaper.threading;
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 public class ShreddedPaperChangesBroadcaster {
 
@@ -42,10 +43,9 @@ public class ShreddedPaperChangesBroadcaster {
                     continue;
                 }
 
-                holder.broadcastChanges(holder.getFullChunkNowUnchecked()); // LevelChunks are NEVER unloaded
-                if (holder.hasChangesToBroadcast()) {
-                    // I DON'T want to KNOW what DUMB plugins might be doing.
-                    needsChangeBroadcasting.add(holder);
+                final LevelChunk chunkToSend = holder.getChunkToSend();
+                if (chunkToSend != null) {
+                    holder.broadcastChanges(chunkToSend);
                 }
             }
         }

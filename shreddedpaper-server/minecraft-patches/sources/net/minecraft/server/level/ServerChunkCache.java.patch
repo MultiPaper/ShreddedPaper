@@ -35,6 +35,15 @@
      @VisibleForDebug
      private NaturalSpawner.@Nullable SpawnState lastSpawnState;
      // Paper start
+@@ -100,7 +_,7 @@
+ 
+     @Override
+     public void moonrise$chunkHolderUnload(final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder) {
+-        this.chunkHoldersToBroadcast.remove(chunkHolder.vanillaChunkHolder);
++        // this.chunkHoldersToBroadcast.remove(chunkHolder.vanillaChunkHolder); // ShreddedPaper  - handled by the regions
+     }
+ 
+     private ChunkAccess syncLoad(final int chunkX, final int chunkZ, final ChunkStatus toStatus) {
 @@ -118,7 +_,7 @@
              );
          }
@@ -100,7 +109,7 @@
 +                future = future.thenCompose(v -> this.tickChunks(profiler)); // ShreddedPaper - run async
                  profiler.pop();
 -            }
-+            } else future = future.thenCompose(v -> this.shreddedPaperChunkTicker.tickChunks(0, null, null)); // ShreddedPaper - still tick chunks anyway
++            } else future = future.thenCompose(v -> this.shreddedPaperChunkTicker.tickChunks(null, null)); // ShreddedPaper - still tick chunks anyway
  
 -            this.broadcastChangedChunks(profiler);
 +            // this.broadcastChangedChunks(profiler); // ShreddedPaper - handled in the region
@@ -185,7 +194,7 @@
 -        }
 +        } else { spawningCategories = null; } // ShreddedPaper - only create NaturalSpawner if we'll use it
 +
-+        future = future.thenCompose(v -> this.shreddedPaperChunkTicker.tickChunks(timeDiff, spawningCategories, spawnCookie)).thenRunAsync(() -> {}, this.level.levelThread); // ShreddedPaper - run async
++        future = future.thenCompose(v -> this.shreddedPaperChunkTicker.tickChunks(spawningCategories, spawnCookie)).thenRunAsync(() -> {}, this.level.levelThread); // ShreddedPaper - run async
 +        // ShreddedPaper start - moved to ShreddedPaperChunkTicker
 +//        List<LevelChunk> spawningChunks = this.spawningChunks;
 +//
