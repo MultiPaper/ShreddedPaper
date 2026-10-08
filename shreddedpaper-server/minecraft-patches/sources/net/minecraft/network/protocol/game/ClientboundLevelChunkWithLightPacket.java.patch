@@ -1,18 +1,28 @@
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
 +++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
-@@ -20,6 +_,7 @@
-     private final ClientboundLightUpdatePacketData lightData;
+@@ -11,7 +_,7 @@
+ import net.minecraft.world.level.lighting.LevelLightEngine;
+ import org.jspecify.annotations.Nullable;
+ 
+-public record ClientboundLevelChunkWithLightPacket(int x, int z, ClientboundLevelChunkPacketData chunkData, ClientboundLightUpdatePacketData lightData)
++public record ClientboundLevelChunkWithLightPacket(int x, int z, ClientboundLevelChunkPacketData chunkData, ClientboundLightUpdatePacketData lightData, boolean modifyBlocks) // ShreddedPaper - modifyBlocks
+     implements Packet<ClientGamePacketListener> {
+     public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundLevelChunkWithLightPacket> STREAM_CODEC = StreamCodec.composite(
+         ByteBufCodecs.INT,
+@@ -22,7 +_,7 @@
+         ClientboundLevelChunkWithLightPacket::chunkData,
+         ClientboundLightUpdatePacketData.STREAM_CODEC,
+         ClientboundLevelChunkWithLightPacket::lightData,
+-        ClientboundLevelChunkWithLightPacket::new
++        (x, z, chunkData, lightData) -> new ClientboundLevelChunkWithLightPacket(x, z, chunkData, lightData, false) // ShreddedPaper - modifyBlocks
+     );
      // Paper start - Async-Anti-Xray - Ready flag for the connection, add chunk packet info
-     private volatile boolean ready;
-+    public boolean modifyBlocks; // ShreddedPaper
      @Override
-     public boolean isReady() {
-         return this.ready;
-@@ -51,6 +_,7 @@
-         ChunkPos chunkPos = levelChunk.getPos();
-         this.x = chunkPos.x();
-         this.z = chunkPos.z();
-+        this.modifyBlocks = modifyBlocks; // ShreddedPaper
-         io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo = modifyBlocks ? levelChunk.getLevel().chunkPacketBlockController.getChunkPacketInfo(this, levelChunk) : null; // Paper - Anti-Xray
-         this.chunkData = new ClientboundLevelChunkPacketData(levelChunk, chunkPacketInfo); // Paper - Anti-Xray
-         this.lightData = new ClientboundLightUpdatePacketData(chunkPos, lightEngine, skyChangedLightSectionFilter, blockChangedLightSectionFilter);
+@@ -60,6 +_,7 @@
+             chunkPos.z(),
+             new ClientboundLevelChunkPacketData(levelChunk, chunkPacketInfo), // Paper - Anti-Xray
+             new ClientboundLightUpdatePacketData(chunkPos, lightEngine, skyChangedLightSectionFilter, blockChangedLightSectionFilter)
++            , modifyBlocks // ShreddedPaper - modifyBlocks
+         );
+         // Paper start - Anti-Xray - Modify blocks
+         if (chunkPacketInfo != null) {

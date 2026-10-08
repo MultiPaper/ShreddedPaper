@@ -32,25 +32,17 @@
  import java.util.concurrent.atomic.AtomicInteger;
  import java.util.function.BooleanSupplier;
  import java.util.function.Consumer;
-@@ -105,6 +_,7 @@
- import net.minecraft.world.level.storage.SavedDataStorage;
- import net.minecraft.world.phys.Vec3;
- import org.apache.commons.lang3.mutable.MutableBoolean;
-+import org.jetbrains.annotations.NotNull;
- import org.jspecify.annotations.Nullable;
- import org.slf4j.Logger;
- 
-@@ -139,7 +_,8 @@
+@@ -138,7 +_,8 @@
+     private final ChunkStatusUpdateListener chunkStatusListener;
      private final ChunkMap.DistanceManager distanceManager;
-     private final String storageName;
      private final PlayerMap playerMap = new PlayerMap();
 -    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new Int2ObjectOpenHashMap<>();
-+    public final ConcurrentHashMap<Integer, ChunkMap.TrackedEntity> entityConcurrentMap = new ConcurrentHashMap<>(); // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
-+    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new Int2ObjectMapWrapper(this.entityConcurrentMap); // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support
++    public final ConcurrentHashMap<Integer, ChunkMap.TrackedEntity> entityConcurrentMap = new ConcurrentHashMap<>(); // ShreddedPaper - Thread safe
++    public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new Int2ObjectMapWrapper(this.entityConcurrentMap); // ShreddedPaper - Wrapper of ConcurrentHashMap to maintain plugin support (Citizens)
      private final Long2ByteMap chunkTypeCache = new Long2ByteOpenHashMap();
      // Paper - rewrite chunk system
      public int serverViewDistance;
-@@ -253,7 +_,9 @@
+@@ -252,7 +_,9 @@
  
          final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
          for (int i = 0, len = inRange.size(); i < len; i++) {
@@ -60,7 +52,7 @@
          }
      }
  
-@@ -270,7 +_,9 @@
+@@ -269,7 +_,9 @@
          }
          final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
          for (int i = 0, len = inRange.size(); i < len; i++) {
@@ -70,7 +62,7 @@
          }
      }
      // Paper end - per player mob count backoff
-@@ -416,7 +_,7 @@
+@@ -415,7 +_,7 @@
      }
  
      private void processUnloads(final BooleanSupplier haveTime) {
@@ -79,7 +71,7 @@
          ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.autoSave(); // Paper - rewrite chunk system
      }
  
-@@ -703,7 +_,7 @@
+@@ -702,7 +_,7 @@
      }
  
      // Paper start - optimise chunk tick iteration
@@ -88,7 +80,7 @@
          final ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData chunkData = ((ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkSystemLevelChunk)levelChunk).moonrise$getChunkHolder().holderData;
          final ca.spottedleaf.moonrise.common.misc.NearbyPlayers.TrackedChunk nearbyPlayers = chunkData.nearbyPlayers;
          if (nearbyPlayers == null) {
-@@ -723,6 +_,7 @@
+@@ -722,6 +_,7 @@
  
          Objects.checkFromIndexSize(0, len, raw.length);
          for (int i = 0; i < len; ++i) {
@@ -96,7 +88,7 @@
              // Paper start - PlayerNaturallySpawnCreaturesEvent
              com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent event = raw[i].playerNaturallySpawnedEvent;
              if (event == null || event.isCancelled()) {
-@@ -733,31 +_,34 @@
+@@ -732,31 +_,34 @@
                  // Paper end - PlayerNaturallySpawnCreaturesEvent
                  return true;
              }
@@ -150,7 +142,7 @@
  
      public void forEachBlockTickingChunk(final Consumer<LevelChunk> tickingChunkConsumer) {
          this.distanceManager.forEachEntityTickingChunk(chunkPos -> {
-@@ -815,7 +_,9 @@
+@@ -814,7 +_,9 @@
  
          Objects.checkFromIndexSize(0, len, raw.length);
          for (int i = 0; i < len; ++i) {
@@ -160,7 +152,7 @@
              // Paper start - PlayerNaturallySpawnCreaturesEvent
              com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent event;
              blockRange = 16384.0;
-@@ -828,6 +_,7 @@
+@@ -827,6 +_,7 @@
                  // Paper end - PlayerNaturallySpawnCreaturesEvent
                  return true;
              }
@@ -168,7 +160,7 @@
          }
  
          return false;
-@@ -850,7 +_,9 @@
+@@ -849,7 +_,9 @@
  
          Objects.checkFromIndexSize(0, len, raw.length);
          for (int i = 0; i < len; ++i) {
@@ -178,7 +170,7 @@
              if (this.playerIsCloseEnoughForSpawning(player, pos, 16384.0D)) { // Spigot
                  if (ret == null) {
                      ret = new ArrayList<>(len - i);
-@@ -859,6 +_,7 @@
+@@ -858,6 +_,7 @@
                      ret.add(player);
                  }
              }
@@ -186,7 +178,7 @@
          }
  
          return ret == null ? new ArrayList<>() : ret;
-@@ -984,9 +_,9 @@
+@@ -983,9 +_,9 @@
      protected void addEntity(final Entity entity) {
          org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot
          // Paper start - ignore and warn about illegal addEntity calls instead of crashing server
@@ -198,15 +190,16 @@
              return;
          }
          // Paper end - ignore and warn about illegal addEntity calls instead of crashing server
-@@ -997,25 +_,27 @@
+@@ -995,26 +_,28 @@
+             int range = type.clientTrackingRange() * 16;
              range = org.spigotmc.TrackingRange.getEntityTrackingRange(entity, range); // Spigot
              if (range != 0) {
-                 int updateInterval = type.updateInterval();
 -                if (this.entityMap.containsKey(entity.getId())) {
 +                if (this.entityConcurrentMap.containsKey(entity.getId())) { // ShreddedPaper - use entityConcurrentMap
                      throw (IllegalStateException)Util.pauseInIde(new IllegalStateException("Entity is already tracked!"));
                  }
  
+                 UpdateInterval updateInterval = type.hasUpdateInterval() ? UpdateInterval.periodic(type.updateInterval()) : UpdateInterval.NEVER;
                  ChunkMap.TrackedEntity trackedEntity = new ChunkMap.TrackedEntity(entity, range, updateInterval, type.trackDeltas());
 -                this.entityMap.put(entity.getId(), trackedEntity);
 +                this.entityConcurrentMap.put(entity.getId(), trackedEntity); // ShreddedPaper - use entityConcurrentMap
@@ -230,7 +223,7 @@
                          if (e.entity != player) {
                              e.updatePlayer(player);
                          }
-@@ -1030,56 +_,63 @@
+@@ -1029,19 +_,20 @@
          if (entity instanceof ServerPlayer player) {
              this.updatePlayerStatus(player, false);
  
@@ -255,6 +248,8 @@
          // Paper end - optimise entity tracker
      }
  
+@@ -1081,38 +_,43 @@
+     // Paper end - rewrite chunk system
      // Paper start - optimise entity tracker
      private static final Entity[] EMPTY_ENTITY_ARRAY = new Entity[0];
 -    private ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_ENTITY_ARRAY);
@@ -268,9 +263,8 @@
 -        this.trackerEntities = this.trackerEntities.copy();
 -        this.iteratingTrackerEntities = false;
 -    }
-+    // private ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_ENTITY_ARRAY); // ShreddedPaper - remove trackerEntities, handled ourselves
-+
 +    // ShreddedPaper start - remove trackerEntities, handled ourselves
++//    private ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_ENTITY_ARRAY);
 +//    private boolean iteratingTrackerEntities = false;
 +//
 +//    private void checkIteratingTrackerEntities() {
@@ -328,7 +322,7 @@
      }
      // Paper end - optimise entity tracker
  
-@@ -1095,7 +_,7 @@
+@@ -1128,7 +_,7 @@
          List<ServerPlayer> movedPlayers = Lists.newArrayList();
          List<ServerPlayer> players = this.level.players();
  
@@ -337,7 +331,7 @@
              SectionPos oldPos = trackedEntity.lastSectionPos;
              SectionPos newPos = SectionPos.of(trackedEntity.entity);
              boolean sectionPosChanged = !Objects.equals(oldPos, newPos);
-@@ -1114,14 +_,14 @@
+@@ -1147,14 +_,14 @@
          }
  
          if (!movedPlayers.isEmpty()) {
@@ -354,7 +348,7 @@
          if (trackedEntity != null) {
              trackedEntity.sendToTrackingPlayers(packet);
          }
-@@ -1130,26 +_,26 @@
+@@ -1163,26 +_,26 @@
      public void sendToTrackingPlayersFiltered(
          final Entity entity, final Packet<? super ClientGamePacketListener> packet, final Predicate<ServerPlayer> targetPredicate
      ) {
@@ -385,7 +379,7 @@
              if (entity.seenBy.contains(player.connection)) {
                  consumer.accept(entity.entity);
              }
-@@ -1235,6 +_,7 @@
+@@ -1264,6 +_,7 @@
          private final int range;
          private SectionPos lastSectionPos;
          public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
@@ -393,7 +387,7 @@
  
          // Paper start - optimise entity tracker
          private long lastChunkUpdate = -1L;
-@@ -1260,21 +_,33 @@
+@@ -1289,21 +_,33 @@
              this.lastChunkUpdate = currChunkUpdate;
              this.lastTrackedChunk = chunk;
  
@@ -428,7 +422,7 @@
              }
          }
  
-@@ -1325,6 +_,91 @@
+@@ -1354,6 +_,91 @@
              this.range = range;
              this.lastSectionPos = SectionPos.of(entity);
          }
@@ -520,7 +514,7 @@
  
          @Override
          public boolean equals(final Object obj) {
-@@ -1338,9 +_,13 @@
+@@ -1367,9 +_,13 @@
  
          @Override
          public void sendToTrackingPlayers(final Packet<? super ClientGamePacketListener> packet) {
@@ -534,7 +528,7 @@
          }
  
          @Override
-@@ -1353,27 +_,33 @@
+@@ -1382,27 +_,33 @@
  
          @Override
          public void sendToTrackingPlayersFiltered(final Packet<? super ClientGamePacketListener> packet, final Predicate<ServerPlayer> targetPredicate) {
@@ -568,7 +562,7 @@
          }
  
          public void updatePlayer(final ServerPlayer player) {
-@@ -1407,6 +_,7 @@
+@@ -1436,6 +_,7 @@
                  }
                  // CraftBukkit end
                  if (visibleToPlayer) {
@@ -576,7 +570,7 @@
                      if (this.seenBy.add(player.connection)) {
                          // Paper start - entity tracking events
                          if (io.papermc.paper.event.player.PlayerTrackEntityEvent.getHandlerList().getRegisteredListeners().length == 0 || new io.papermc.paper.event.player.PlayerTrackEntityEvent(player.getBukkitEntity(), this.entity.getBukkitEntity()).callEvent()) {
-@@ -1420,6 +_,7 @@
+@@ -1449,6 +_,7 @@
                          // Paper end - entity tracking events
                          this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
                      }

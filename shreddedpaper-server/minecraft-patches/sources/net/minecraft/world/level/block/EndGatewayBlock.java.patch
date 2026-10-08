@@ -1,15 +1,14 @@
 --- a/net/minecraft/world/level/block/EndGatewayBlock.java
 +++ b/net/minecraft/world/level/block/EndGatewayBlock.java
-@@ -2,6 +_,8 @@
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.level.block;
  
- import com.mojang.serialization.MapCodec;
  import java.util.Set;
 +import java.util.concurrent.CompletableFuture;
-+
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.particles.ParticleTypes;
  import net.minecraft.server.level.ServerLevel;
-@@ -109,9 +_,9 @@
+@@ -101,9 +_,9 @@
      }
  
      @Override
@@ -21,7 +20,7 @@
              if (teleportPosition == null) {
                  return null;
              } else {
-@@ -127,8 +_,9 @@
+@@ -119,8 +_,9 @@
                          TeleportTransition.PLACE_PORTAL_TICKET
                      ).withCause(org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_GATEWAY);  // CraftBukkit;
              }

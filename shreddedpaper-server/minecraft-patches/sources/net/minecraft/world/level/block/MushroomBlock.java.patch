@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/MushroomBlock.java
 +++ b/net/minecraft/world/level/block/MushroomBlock.java
-@@ -94,7 +_,7 @@
+@@ -83,7 +_,7 @@
          }
  
          level.removeBlock(pos, false);

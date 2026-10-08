@@ -1,42 +1,42 @@
 --- a/net/minecraft/world/item/ItemStack.java
 +++ b/net/minecraft/world/item/ItemStack.java
-@@ -383,8 +_,8 @@
-         boolean isBonemeal = usedItem == Items.BONE_MEAL;
+@@ -384,8 +_,8 @@
+             boolean isBonemeal = usedItem == Items.BONE_MEAL;
  
-         if (!(usedItem instanceof BucketItem)) {
--            level.captureBlockStates = true;
--            level.captureTreeGeneration = isBonemeal;
-+            level.captureBlockStatesThreadLocal.set(true); // ShreddedPaper - use thread local
-+            level.captureTreeGenerationThreadLocal.set(isBonemeal); // ShreddedPaper - use thread local
-         }
+             if (!(usedItem instanceof BucketItem)) {
+-                level.captureBlockStates = true;
+-                level.captureTreeGeneration = isBonemeal;
++                level.captureBlockStatesThreadLocal.set(true); // ShreddedPaper - use thread local
++                level.captureTreeGenerationThreadLocal.set(isBonemeal); // ShreddedPaper - use thread local
+             }
  
-         List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
-@@ -394,17 +_,17 @@
-         try {
-             result = usedItem.useOn(context);
-         } finally {
--            level.captureBlockStates = false;
--            level.captureTreeGeneration = false;
+             List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
+@@ -395,17 +_,17 @@
+             try {
+                 result = usedItem.useOn(context);
+             } finally {
+-                level.captureBlockStates = false;
+-                level.captureTreeGeneration = false;
 -
--            capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStates.values());
--            level.capturedBlockStates.clear();
+-                capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStates.values());
+-                level.capturedBlockStates.clear();
 -
--            capturedBlockEntities = new java.util.ArrayList<>(level.capturedBlockEntities.values());
--            level.capturedBlockEntities.clear();
+-                capturedBlockEntities = new java.util.ArrayList<>(level.capturedBlockEntities.values());
+-                level.capturedBlockEntities.clear();
 -
--            treeType = net.minecraft.world.level.block.SaplingBlock.treeType;
--            net.minecraft.world.level.block.SaplingBlock.treeType = null;
-+            level.captureBlockStatesThreadLocal.remove(); // ShreddedPaper - use thread local
-+            level.captureTreeGenerationThreadLocal.remove(); // ShreddedPaper - use thread local
+-                treeType = net.minecraft.world.level.block.SaplingBlock.treeType;
+-                net.minecraft.world.level.block.SaplingBlock.treeType = null;
++                level.captureBlockStatesThreadLocal.remove(); // ShreddedPaper - use thread local
++                level.captureTreeGenerationThreadLocal.remove(); // ShreddedPaper - use thread local
 +
-+            capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStatesThreadLocal.get().values()); // ShreddedPaper - use thread local
-+            level.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local
++                capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStatesThreadLocal.get().values()); // ShreddedPaper - use thread local
++                level.capturedBlockStatesThreadLocal.get().clear(); // ShreddedPaper - use thread local
 +
-+            capturedBlockEntities = new java.util.ArrayList<>(level.capturedBlockEntitiesThreadLocal.get().values()); // ShreddedPaper - use thread local
-+            level.capturedBlockEntitiesThreadLocal.get().clear(); // ShreddedPaper - use thread local
++                capturedBlockEntities = new java.util.ArrayList<>(level.capturedBlockEntitiesThreadLocal.get().values()); // ShreddedPaper - use thread local
++                level.capturedBlockEntitiesThreadLocal.get().clear(); // ShreddedPaper - use thread local
 +
-+            treeType = net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - use thread local
-+            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - use thread local
-         }
++                treeType = net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.get(); // ShreddedPaper - use thread local
++                net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.remove(); // ShreddedPaper - use thread local
+             }
  
-         DataComponentPatch newPatch = this.components.asPatch();
+             DataComponentPatch newPatch = this.components.asPatch();

@@ -8,7 +8,7 @@
  import java.util.function.Predicate;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Holder;
-@@ -69,6 +_,7 @@
+@@ -68,6 +_,7 @@
      public byte scale;
      public byte[] colors = new byte[16384];
      public boolean locked;
@@ -16,7 +16,7 @@
      private final org.bukkit.craftbukkit.map.RenderData vanillaRender = new org.bukkit.craftbukkit.map.RenderData(); // Paper - Use Vanilla map renderer when possible
      public final List<MapItemSavedData.HoldingPlayer> carriedBy = Lists.newArrayList();
      public final Map<Player, MapItemSavedData.HoldingPlayer> carriedByPlayers = Maps.newHashMap();
-@@ -179,7 +_,7 @@
+@@ -178,7 +_,7 @@
          return new MapItemSavedData(0, 0, scale, false, false, isLocked, dimension);
      }
  
@@ -25,7 +25,7 @@
          MapItemSavedData result = new MapItemSavedData(
              this.centerX, this.centerZ, this.scale, this.trackingPosition, this.unlimitedTracking, true, this.dimension
          );
-@@ -199,7 +_,7 @@
+@@ -198,7 +_,7 @@
          return stack -> stack == mapStack || stack.is(mapStack.getItem()) && Objects.equals(mapId, stack.get(DataComponents.MAP_ID));
      }
  
@@ -34,7 +34,7 @@
          if (!this.carriedByPlayers.containsKey(tickingPlayer)) {
              MapItemSavedData.HoldingPlayer holdingPlayer = new MapItemSavedData.HoldingPlayer(tickingPlayer);
              this.carriedByPlayers.put(tickingPlayer, holdingPlayer);
-@@ -402,7 +_,7 @@
+@@ -398,7 +_,7 @@
          }
      }
  
@@ -43,8 +43,8 @@
          MapItemSavedData.HoldingPlayer holdingPlayer = this.carriedByPlayers.get(player);
          return holdingPlayer == null ? null : holdingPlayer.nextUpdatePacket(id);
      }
-@@ -516,7 +_,7 @@
-         return false;
+@@ -502,7 +_,7 @@
+         this.setColorsDirty(x, y);
      }
  
 -    public void addClientSideDecorations(final List<MapDecoration> decorations) {

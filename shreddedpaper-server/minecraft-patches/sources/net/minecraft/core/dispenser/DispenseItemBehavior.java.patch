@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/dispenser/DispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DispenseItemBehavior.java
-@@ -293,7 +_,7 @@
+@@ -294,7 +_,7 @@
                  // Paper end - Call BlockDispenseEvent
                  List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates; // Paper
                  org.bukkit.TreeType treeType; // Paper
@@ -9,7 +9,7 @@
                  try { // Paper
                  if (!BoneMealItem.growCrop(dispensed, level, target) && !BoneMealItem.growWaterPlant(dispensed, level, target, null)) {
                      this.setSuccess(false);
-@@ -302,13 +_,13 @@
+@@ -303,13 +_,13 @@
                  }
                  // Paper start
                  } finally {

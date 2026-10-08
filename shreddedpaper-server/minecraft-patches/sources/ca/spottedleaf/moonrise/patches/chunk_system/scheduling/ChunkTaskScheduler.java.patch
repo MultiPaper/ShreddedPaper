@@ -11,7 +11,7 @@
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
  import net.minecraft.ReportedException;
-@@ -334,6 +_,41 @@
+@@ -325,6 +_,41 @@
      }
  
      public boolean executeMainThreadTask() {
@@ -53,7 +53,7 @@
          TickThread.ensureTickThread("Cannot execute main thread task off-main");
          return this.mainThreadExecutor.executeTask();
      }
-@@ -840,7 +_,7 @@
+@@ -831,7 +_,7 @@
  
      public PrioritisedExecutor.PrioritisedTask createChunkTask(final int chunkX, final int chunkZ, final Runnable run,
                                                                 final Priority priority) {
@@ -62,7 +62,7 @@
      }
  
      public PrioritisedExecutor.PrioritisedTask scheduleChunkTask(final int chunkX, final int chunkZ, final Runnable run) {
-@@ -849,7 +_,7 @@
+@@ -840,7 +_,7 @@
  
      public PrioritisedExecutor.PrioritisedTask scheduleChunkTask(final int chunkX, final int chunkZ, final Runnable run,
                                                                   final Priority priority) {

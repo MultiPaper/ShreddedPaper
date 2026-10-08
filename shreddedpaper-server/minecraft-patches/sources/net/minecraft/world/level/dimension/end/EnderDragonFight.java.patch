@@ -8,7 +8,7 @@
  import it.unimi.dsi.fastutil.objects.ObjectArrayList;
  import java.util.ArrayList;
  import java.util.List;
-@@ -183,6 +_,7 @@
+@@ -189,6 +_,7 @@
          }
  
          if (!this.dragonEvent.getPlayers().isEmpty()) {
@@ -16,7 +16,7 @@
              this.level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, new ChunkPos(0, 0), 9);
              if (!this.isArenaLoaded()) {
                  return;
-@@ -220,6 +_,13 @@
+@@ -226,6 +_,13 @@
                      this.ticksSinceCrystalsScanned = 0;
                  }
              }

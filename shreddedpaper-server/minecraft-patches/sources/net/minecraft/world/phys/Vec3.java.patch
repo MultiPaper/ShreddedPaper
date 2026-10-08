@@ -12,7 +12,7 @@
  import net.minecraft.core.Direction;
  import net.minecraft.core.Position;
  import net.minecraft.core.Vec3i;
-@@ -338,4 +_,14 @@
+@@ -322,4 +_,14 @@
      public boolean isFinite() {
          return Double.isFinite(this.x) && Double.isFinite(this.y) && Double.isFinite(this.z);
      }

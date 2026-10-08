@@ -24,8 +24,8 @@
                      movedItem = callPushMoveEvent(destination, movedItem, hopper);
                      if (movedItem == null) { // cancelled
                          origItemStack.setCount(originalItemCount);
-@@ -274,7 +_,7 @@
-         container.setChanged(); // original logic always marks source inv as changed even if no move happens.
+@@ -273,7 +_,7 @@
+         final int movedItemCount = Math.min(level.spigotConfig.hopperAmount, originalItemCount);
          movedItem.setCount(movedItemCount);
  
 -        if (!skipPullModeEventFire) {
@@ -33,7 +33,7 @@
              movedItem = callPullMoveEvent(hopper, container, movedItem);
              if (movedItem == null) { // cancelled
                  origItemStack.setCount(originalItemCount);
-@@ -294,9 +_,9 @@
+@@ -293,9 +_,9 @@
                  origItemStack.setCount(originalItemCount - movedItemCount + remainingItemCount);
              }
  
@@ -45,7 +45,7 @@
              container.setChanged();
              return true;
          }
-@@ -320,7 +_,7 @@
+@@ -325,7 +_,7 @@
          );
          final boolean result = event.callEvent();
          if (!event.calledGetItem && !event.calledSetItem) {
@@ -54,8 +54,8 @@
          }
          if (!result) {
              applyCooldown(hopper);
-@@ -343,7 +_,7 @@
-         final io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent event = new io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent(sourceInventory, org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack), destination, false);
+@@ -348,7 +_,7 @@
+         final io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent event = new io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent(sourceInventory, org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(itemstack), destination, false);
          final boolean result = event.callEvent();
          if (!event.calledGetItem && !event.calledSetItem) {
 -            skipPullModeEventFire = true;
@@ -63,7 +63,7 @@
          }
          if (!result) {
              applyCooldown(hopper);
-@@ -481,7 +_,7 @@
+@@ -486,7 +_,7 @@
          Container container = getSourceContainer(level, hopper, blockPos, blockState);
          if (container != null) {
              Direction direction = Direction.DOWN;
@@ -72,7 +72,7 @@
  
              for (int slot : getSlots(container, direction)) {
                  if (tryTakeInItemFromSlot(hopper, container, slot, direction, level)) { // Spigot
-@@ -585,9 +_,9 @@
+@@ -590,9 +_,9 @@
                      itemStack = itemStack.split(container.getMaxStackSize());
                  }
                  // Spigot end

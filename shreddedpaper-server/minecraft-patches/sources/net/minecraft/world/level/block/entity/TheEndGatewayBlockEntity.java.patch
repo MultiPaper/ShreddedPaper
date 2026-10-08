@@ -10,7 +10,7 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.HolderLookup;
-@@ -26,6 +_,8 @@
+@@ -25,6 +_,8 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -19,7 +19,7 @@
  public class TheEndGatewayBlockEntity extends TheEndPortalBlockEntity {
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final int SPAWN_TIME = 200;
-@@ -128,21 +_,29 @@
+@@ -127,21 +_,29 @@
          }
      }
  
@@ -31,7 +31,7 @@
 +            future = findOrCreateValidTeleportPosAsync(currentLevel, portalEntryPos).thenApply(exitPortalPos -> { // ShreddedPaper - async teleportation
              exitPortalPos = exitPortalPos.above(10);
              LOGGER.debug("Creating portal at {}", exitPortalPos);
-             spawnGatewayPortal(currentLevel, exitPortalPos, EndGatewayConfiguration.knownExit(portalEntryPos, false));
+             spawnGatewayPortal(currentLevel, exitPortalPos, EndGatewayFeature.knownExit(portalEntryPos, false));
 +            return exitPortalPos; // ShreddedPaper - async teleportation
 +            }).thenCompose(exitPortalPos -> { // ShreddedPaper - async teleportation
 +            return CompletableFuture.runAsync(() -> { // ShreddedPaper - async teleportation
@@ -51,7 +51,7 @@
      }
  
      private static BlockPos findExitPosition(final Level level, final BlockPos exitPortal) {
-@@ -151,8 +_,9 @@
+@@ -150,8 +_,9 @@
          return pos.above();
      }
  
@@ -63,7 +63,7 @@
          LevelChunk exitPortalChunk = getChunk(level, exitPortalXZPosTentative);
          BlockPos exitPortalPos = findValidSpawnInChunk(exitPortalChunk);
          if (exitPortalPos == null) {
-@@ -171,33 +_,53 @@
+@@ -170,33 +_,53 @@
          }
  
          return findTallestBlock(level, exitPortalPos, 16, true);

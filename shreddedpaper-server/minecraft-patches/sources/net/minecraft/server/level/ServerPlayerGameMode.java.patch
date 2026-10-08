@@ -7,15 +7,15 @@
  import com.mojang.logging.LogUtils;
  import java.util.List;
  import java.util.Objects;
-@@ -25,6 +_,7 @@
- import net.minecraft.world.level.block.GameMasterBlock;
+@@ -29,6 +_,7 @@
+ import net.minecraft.world.level.block.Portal;
  import net.minecraft.world.level.block.entity.BlockEntity;
  import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.level.portal.TeleportTransition;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
- import net.minecraft.world.phys.shapes.VoxelShape;
-@@ -128,7 +_,7 @@
+@@ -135,7 +_,7 @@
          // this.gameTicks = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
          this.gameTicks = (int) this.level.getLagCompensationTick(); // Paper - lag compensate eating
          if (this.hasDelayedDestroy) {
@@ -24,7 +24,7 @@
              if (blockState == null || blockState.isAir()) { // Paper - Don't allow digging into unloaded chunks
                  this.hasDelayedDestroy = false;
              } else {
-@@ -140,7 +_,7 @@
+@@ -147,7 +_,7 @@
              }
          } else if (this.isDestroyingBlock) {
              // Paper start - Don't allow digging into unloaded chunks; don't want to do same logic as above, return instead
@@ -33,7 +33,7 @@
              if (blockState == null) {
                  this.isDestroyingBlock = false;
                  return;
-@@ -392,7 +_,7 @@
+@@ -423,7 +_,7 @@
  
          // CraftBukkit start
          org.bukkit.block.BlockState bState = bblock.getState();
@@ -42,7 +42,7 @@
          // CraftBukkit end
          BlockState adjustedState = block.playerWillDestroy(this.level, pos, state, this.player);
          boolean changed = this.level.removeBlock(pos, false);
-@@ -418,8 +_,8 @@
+@@ -449,8 +_,8 @@
          } // CraftBukkit
  
          // CraftBukkit start
@@ -53,7 +53,7 @@
          if (event.isDropItems()) {
              org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, bState, this.player, itemsToDrop); // Paper - capture all item additions to the world
          }
-@@ -436,6 +_,13 @@
+@@ -467,6 +_,13 @@
          }
          // Paper end - Trigger bee_nest_destroyed trigger in the correct place
          // CraftBukkit end

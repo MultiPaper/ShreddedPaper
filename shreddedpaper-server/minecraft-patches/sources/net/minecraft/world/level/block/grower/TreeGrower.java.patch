@@ -1,8 +1,8 @@
 --- a/net/minecraft/world/level/block/grower/TreeGrower.java
 +++ b/net/minecraft/world/level/block/grower/TreeGrower.java
-@@ -216,51 +_,51 @@
+@@ -235,53 +_,53 @@
      // CraftBukkit start
-     private void setTreeType(Holder<ConfiguredFeature<?, ?>> feature) {
+     private void setTreeType(Holder<Feature> feature) {
          if (feature.is(TreeFeatures.OAK) || feature.is(TreeFeatures.OAK_BEES_005)) {
 -            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.TREE;
 +            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.TREE); // ShreddedPaper - use thread local
@@ -72,6 +72,9 @@
          } else if (feature.is(TreeFeatures.PALE_OAK_CREAKING)) {
 -            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.PALE_OAK_CREAKING;
 +            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.PALE_OAK_CREAKING); // ShreddedPaper - use thread local
-         } else {
+         } else if (feature.is(TreeFeatures.RED_POPLAR) || feature.is(TreeFeatures.ORANGE_POPLAR) || feature.is(TreeFeatures.YELLOW_POPLAR)) {
+-            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.POPLAR;
++            net.minecraft.world.level.block.SaplingBlock.treeTypeThreadLocal.set(org.bukkit.TreeType.POPLAR); // ShreddedPaper - use thread local
+         }  else {
              throw new IllegalArgumentException("Unknown tree generator " + feature);
          }

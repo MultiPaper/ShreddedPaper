@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
-@@ -173,7 +_,7 @@
+@@ -166,7 +_,7 @@
              } else if (this.isInLava() && this.getFluidHeight(FluidTags.LAVA) > 0.1F) {
                  this.setUnderLavaMovement();
              } else {

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/WitherSkullBlock.java
 +++ b/net/minecraft/world/level/block/WitherSkullBlock.java
-@@ -43,7 +_,7 @@
+@@ -36,7 +_,7 @@
      }
  
      public static void checkSpawn(final Level level, final BlockPos pos) {

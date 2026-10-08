@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/MapItem.java
 +++ b/net/minecraft/world/item/MapItem.java
-@@ -74,6 +_,7 @@
+@@ -86,6 +_,7 @@
      }
  
      public void update(final Level level, final Entity player, final MapItemSavedData data) {
@@ -8,7 +8,7 @@
          if (level.dimension() == data.dimension && player instanceof Player player2) {
              int scale = 1 << data.scale;
              int centerX = data.centerX;
-@@ -188,6 +_,7 @@
+@@ -200,6 +_,7 @@
                  }
              }
          }
@@ -16,7 +16,7 @@
      }
  
      private BlockState getCorrectStateForFluidBlock(final Level level, final BlockState state, final BlockPos pos) {
-@@ -202,6 +_,7 @@
+@@ -214,6 +_,7 @@
      public static void renderBiomePreviewMap(final ServerLevel level, final ItemStack mapItemStack) {
          MapItemSavedData data = getSavedData(mapItemStack, level);
          if (data != null) {
@@ -24,7 +24,7 @@
              data.isExplorerMap = true; // Purpur - Explorer Map API
              if (level.dimension() == data.dimension) {
                  int scale = 1 << data.scale;
-@@ -272,6 +_,7 @@
+@@ -285,6 +_,7 @@
                      }
                  }
              }

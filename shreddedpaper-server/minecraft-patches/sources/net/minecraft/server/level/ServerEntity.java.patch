@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
-@@ -123,6 +_,7 @@
+@@ -133,6 +_,7 @@
                  MapId id = frame.cachedMapId; // Paper - Perf: Cache map ids on item frames
                  MapItemSavedData data = MapItem.getSavedData(id, this.level);
                  if (data != null) {
@@ -8,7 +8,7 @@
                      for (final net.minecraft.server.network.ServerPlayerConnection connection : this.trackedPlayers) { // Paper
                          final ServerPlayer player = connection.getPlayer(); // Paper
                          data.tickCarriedBy(player, itemStack, frame);
-@@ -131,6 +_,7 @@
+@@ -141,6 +_,7 @@
                              player.connection.send(packet);
                          }
                      }
@@ -16,7 +16,7 @@
                  }
              }
  
-@@ -357,7 +_,7 @@
+@@ -393,7 +_,7 @@
              if (!slots.isEmpty()) {
                  broadcast.accept(new ClientboundSetEquipmentPacket(this.entity.getId(), slots, true)); // Paper - data sanitization
              }

@@ -11,23 +11,17 @@
  import net.minecraft.commands.CommandBuildContext;
  import net.minecraft.commands.CommandSourceStack;
  import net.minecraft.commands.Commands;
-@@ -65,9 +_,16 @@
-         int count = 0;
+@@ -77,11 +_,13 @@
+         boolean countingOnly = maxCount == 0;
  
          for (ServerPlayer player : players) {
--            count += player.getInventory().clearOrCountMatchingItems(predicate, maxCount, player.inventoryMenu.getCraftSlots());
--            player.containerMenu.broadcastChanges();
--            player.inventoryMenu.slotsChanged(player.getInventory());
-+            // ShreddedPaper start - run on correct thread
-+            CompletableFuture<Integer> future = new CompletableFuture<>();
-+            ShreddedPaper.ensureSync(player, () -> {
-+                int j = player.getInventory().clearOrCountMatchingItems(predicate, maxCount, player.inventoryMenu.getCraftSlots());
-+                player.containerMenu.broadcastChanges();
-+                player.inventoryMenu.slotsChanged(player.getInventory());
-+                future.complete(j);
-+            });
-+            count += future.getNow(1); // ShreddedPaper - default to 1 if player is on a different thread
-+            // ShreddedPaper end - run on correct thread
++            ShreddedPaper.ensureSync(player, () -> { // ShreddedPaper - run on correct thread
+             tracker.track(player, player.getInventory().clearOrCountMatchingItems(predicate, countingOnly, maxCount, player.inventoryMenu.getCraftSlots()));
+             if (!countingOnly) {
+                 player.containerMenu.broadcastChanges();
+                 player.inventoryMenu.slotsChanged(player.getInventory());
+             }
++            }); // ShreddedPaper - run on correct thread
          }
  
-         if (count == 0) {
+         if (tracker.totalValue() == 0) {

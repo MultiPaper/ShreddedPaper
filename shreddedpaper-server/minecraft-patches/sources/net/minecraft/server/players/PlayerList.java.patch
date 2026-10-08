@@ -12,7 +12,7 @@
  import net.minecraft.ChatFormatting;
  import net.minecraft.commands.CommandSourceStack;
  import net.minecraft.core.BlockPos;
-@@ -84,6 +_,7 @@
+@@ -86,6 +_,7 @@
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
  import net.minecraft.world.item.crafting.RecipeManager;
@@ -20,7 +20,7 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
-@@ -491,7 +_,9 @@
+@@ -494,7 +_,9 @@
          for (ThrownEnderpearl enderpearl : player.getEnderPearls()) {
              // Paper start - Allow using old ender pearl behavior
              if (!enderpearl.level().paperConfig().misc.legacyEnderPearlBehavior) {
@@ -30,7 +30,7 @@
              }
              // Paper end - Allow using old ender pearl behavior
          }
-@@ -516,8 +_,7 @@
+@@ -519,8 +_,7 @@
          // CraftBukkit start
          // this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID())));
          ClientboundPlayerInfoRemovePacket packet = new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID()));
@@ -40,7 +40,7 @@
  
              if (otherPlayer.getBukkitEntity().canSee(player.getBukkitEntity())) {
                  otherPlayer.connection.send(packet);
-@@ -595,12 +_,13 @@
+@@ -598,12 +_,13 @@
      }
  
      // Paper start - respawn event
@@ -57,7 +57,7 @@
          Level fromLevel = serverPlayer.level();
          // Paper end - respawn event
          this.players.remove(serverPlayer);
-@@ -706,6 +_,8 @@
+@@ -714,6 +_,8 @@
          // Paper end
  
          return player;
@@ -66,7 +66,7 @@
      }
  
      public void sendActivePlayerEffects(final ServerPlayer player) {
-@@ -970,6 +_,7 @@
+@@ -974,6 +_,7 @@
          final ResourceKey<Level> dimension,
          final Packet<?> packet
      ) {

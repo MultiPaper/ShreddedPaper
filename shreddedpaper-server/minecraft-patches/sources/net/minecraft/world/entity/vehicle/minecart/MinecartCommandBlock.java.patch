@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/MinecartCommandBlock.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/MinecartCommandBlock.java
-@@ -149,5 +_,12 @@
+@@ -147,5 +_,12 @@
              return (ServerLevel) MinecartCommandBlock.this.level();
          }
          // CraftBukkit end

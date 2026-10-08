@@ -1,15 +1,14 @@
 --- a/net/minecraft/server/commands/GiveCommand.java
 +++ b/net/minecraft/server/commands/GiveCommand.java
-@@ -4,6 +_,8 @@
+@@ -4,6 +_,7 @@
  import com.mojang.brigadier.arguments.IntegerArgumentType;
  import com.mojang.brigadier.exceptions.CommandSyntaxException;
- import java.util.Collection;
-+
+ import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
+ import java.util.Collection;
  import net.minecraft.commands.CommandBuildContext;
  import net.minecraft.commands.CommandSourceStack;
- import net.minecraft.commands.Commands;
-@@ -61,8 +_,9 @@
+@@ -73,8 +_,9 @@
                  int size = Math.min(maxStackSize, remaining);
                  remaining -= size;
                  ItemStack copyToDrop = prototypeItemStack.copyWithCount(size);
@@ -18,13 +17,13 @@
 -                if (org.purpurmc.purpur.PurpurConfig.disableGiveCommandDrops) continue; // Purpur - add config option for toggling give command dropping
 +                if (org.purpurmc.purpur.PurpurConfig.disableGiveCommandDrops) return; // Purpur - add config option for toggling give command dropping // ShreddedPaper - run on player's thread
                  if (added && copyToDrop.isEmpty()) {
-                     ItemEntity drop = player.drop(prototypeItemStack.copy(), false, false, false, null); // Paper - do not fire PlayerDropItemEvent for /give command
+                     ItemEntity drop = player.createItemStackToDrop(prototypeItemStack.copy(), false, false);
                      if (drop != null) {
-@@ -88,6 +_,7 @@
-                         drop.setTarget(player.getUUID());
+@@ -102,6 +_,7 @@
+                         drop.level().addFreshEntity(drop);
                      }
                  }
 +                }); // ShreddedPaper - run on player's thread
              }
-         }
  
+             tracker.track(player);

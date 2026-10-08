@@ -1,14 +1,14 @@
 --- a/net/minecraft/world/level/block/RedstoneTorchBlock.java
 +++ b/net/minecraft/world/level/block/RedstoneTorchBlock.java
-@@ -2,6 +_,7 @@
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.level.block;
  
  import com.google.common.collect.Lists;
- import com.mojang.serialization.MapCodec;
 +import io.multipaper.shreddedpaper.region.RegionPos;
  import java.util.List;
  import java.util.Map;
  import java.util.WeakHashMap;
-@@ -69,7 +_,7 @@
+@@ -62,7 +_,7 @@
      protected void tick(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
          boolean neighborSignal = this.hasNeighborSignal(level, pos, state);
          // Paper start - Faster redstone torch rapid clock removal
@@ -17,7 +17,7 @@
          if (toggles != null) {
              RedstoneTorchBlock.Toggle curr;
              while ((curr = toggles.peek()) != null && level.getGameTime() - curr.when > 60L) {
-@@ -147,10 +_,12 @@
+@@ -140,10 +_,12 @@
  
      private static boolean isToggledTooFrequently(final Level level, final BlockPos pos, final boolean add) {
          // Paper start - Faster redstone torch rapid clock removal

@@ -17,7 +17,7 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
-@@ -255,6 +_,7 @@
+@@ -242,6 +_,7 @@
          float relativeOrAbsoluteYRot = relatives.contains(Relative.Y_ROT) ? yRot - victim.getYRot() : yRot;
          float relativeOrAbsoluteXRot = relatives.contains(Relative.X_ROT) ? xRot - victim.getXRot() : xRot;
          float newYRot = Mth.wrapDegrees(relativeOrAbsoluteYRot);
@@ -25,7 +25,7 @@
          float newXRot = Mth.wrapDegrees(relativeOrAbsoluteXRot);
          if (victim.teleportTo(level, relativeOrAbsoluteX, relativeOrAbsoluteY, relativeOrAbsoluteZ, relatives, newYRot, newXRot, true, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.COMMAND)) { // Paper - teleport cause
              if (lookAt != null) {
-@@ -270,5 +_,6 @@
+@@ -257,5 +_,6 @@
                  mob.getNavigation().stop();
              }
          }

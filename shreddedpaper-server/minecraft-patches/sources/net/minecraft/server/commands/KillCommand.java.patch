@@ -1,20 +1,19 @@
 --- a/net/minecraft/server/commands/KillCommand.java
 +++ b/net/minecraft/server/commands/KillCommand.java
-@@ -3,6 +_,8 @@
+@@ -3,6 +_,7 @@
  import com.google.common.collect.ImmutableList;
  import com.mojang.brigadier.CommandDispatcher;
- import java.util.Collection;
-+
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 +import io.multipaper.shreddedpaper.ShreddedPaper;
+ import java.util.Collection;
  import net.minecraft.commands.CommandSourceStack;
  import net.minecraft.commands.Commands;
- import net.minecraft.commands.arguments.EntityArgument;
-@@ -21,7 +_,7 @@
+@@ -29,7 +_,7 @@
+         CommandResponseTracker<Entity> tracker = CommandResponseTracker.create();
  
-     private static int kill(final CommandSourceStack source, final Collection<? extends Entity> victims) {
          for (Entity entity : victims) {
 -            entity.kill(source.getLevel());
 +            ShreddedPaper.ensureSync(entity, e -> e.kill(source.getLevel())); // ShreddedPaper - run on right thread
+             tracker.track(entity);
          }
  
-         if (victims.size() == 1) {

@@ -8,11 +8,11 @@
  import java.io.BufferedReader;
  import java.io.IOException;
  import java.io.InputStreamReader;
-@@ -244,6 +_,7 @@
+@@ -260,6 +_,7 @@
          }
          org.purpurmc.purpur.PurpurConfig.registerCommands();
-         // Purpur end - Migrate Setting to reintroduce end void rings
+         // Purpur end - Purpur config files
 +        ShreddedPaperCommands.registerCommands(this); // ShreddedPaper
-         // Paper start - initialize global and world-defaults configuration
-         this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
-         this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
+         com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
+ 
+         // this.worldData.setGameType(properties.gameMode.get()); // CraftBukkit - moved to world loading

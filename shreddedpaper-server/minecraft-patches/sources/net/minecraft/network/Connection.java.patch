@@ -10,7 +10,7 @@
  import io.netty.bootstrap.Bootstrap;
  import io.netty.channel.Channel;
  import io.netty.channel.ChannelException;
-@@ -30,6 +_,8 @@
+@@ -29,6 +_,8 @@
  import java.util.concurrent.RejectedExecutionException;
  import java.util.function.Consumer;
  import javax.crypto.Cipher;
@@ -19,7 +19,7 @@
  import net.minecraft.SharedConstants;
  import net.minecraft.network.chat.Component;
  import net.minecraft.network.protocol.BundlerInfo;
-@@ -45,8 +_,10 @@
+@@ -44,8 +_,10 @@
  import net.minecraft.network.protocol.login.LoginProtocols;
  import net.minecraft.network.protocol.status.ClientStatusPacketListener;
  import net.minecraft.network.protocol.status.StatusProtocols;
@@ -30,7 +30,7 @@
  import net.minecraft.util.Mth;
  import net.minecraft.util.Util;
  import net.minecraft.util.debugchart.LocalSampleLogger;
-@@ -303,6 +_,7 @@
+@@ -314,6 +_,7 @@
  
      private static void syncAfterConfigurationChange(final ChannelFuture future) {
          try {
@@ -38,7 +38,7 @@
              future.syncUninterruptibly();
          } catch (Exception e) {
              if (e instanceof ClosedChannelException) {
-@@ -398,7 +_,7 @@
+@@ -409,7 +_,7 @@
  
      public void send(final Packet<?> packet, final @Nullable ChannelFutureListener listener, final boolean flush) {
          // Paper start - Optimize network: Handle oversized packets better
@@ -47,7 +47,7 @@
          if (!connected && !this.preparing) {
              return;
          }
-@@ -427,7 +_,7 @@
+@@ -438,7 +_,7 @@
                  this.pendingActions.addAll(actions);
              }
  
@@ -56,7 +56,7 @@
              // Paper end - Optimize network
          }
      }
-@@ -487,6 +_,14 @@
+@@ -498,6 +_,14 @@
          if (this.channel.eventLoop().inEventLoop()) {
              this.doSendPacket(packet, listener, flush);
          } else {
@@ -71,7 +71,7 @@
              this.channel.eventLoop().execute(() -> this.doSendPacket(packet, listener, flush));
          }
      }
-@@ -540,7 +_,7 @@
+@@ -551,7 +_,7 @@
      }
  
      // Paper start - Optimize network: Rewrite this to be safer if ran off main thread
@@ -80,7 +80,7 @@
          if (!this.isConnected()) {
              return true;
          }
-@@ -596,7 +_,8 @@
+@@ -607,7 +_,8 @@
      private static int currTick; // Paper - Buffer joins to world
      private static int tickSecond; // Purpur - Max joins per second
      public void tick() {

@@ -17,7 +17,7 @@
              if (world.spigotConfig.ignoreSpectatorActivation && player.isSpectator()) {
                  continue;
              }
-@@ -178,13 +_,13 @@
+@@ -176,13 +_,13 @@
       * @param entity
       */
      private static void activateEntity(final Entity entity) {
