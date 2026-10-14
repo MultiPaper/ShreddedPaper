@@ -16,7 +16,7 @@
      // CraftBukkit start - data containers
      private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
      public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer;
-@@ -219,7 +_,8 @@
+@@ -210,7 +_,8 @@
  
      public void setChanged() {
          if (this.level != null) {

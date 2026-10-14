@@ -35,7 +35,7 @@
      private LevelChunk.UnsavedListener unsavedListener = chunkPos -> {};
      // CraftBukkit start
      public boolean mustNotSave;
-@@ -423,7 +_,7 @@
+@@ -428,7 +_,7 @@
              return null;
          }
  
@@ -44,7 +44,7 @@
              state.onPlace(this.level, pos, oldState, movedByPiston);
          }
  
-@@ -467,7 +_,7 @@
+@@ -472,7 +_,7 @@
  
      public @Nullable BlockEntity getBlockEntity(final BlockPos pos, final LevelChunk.EntityCreationType creationType) {
          // CraftBukkit start
@@ -53,7 +53,7 @@
          if (blockEntity == null) {
              blockEntity = this.blockEntities.get(pos);
          }
-@@ -654,13 +_,13 @@
+@@ -659,13 +_,13 @@
  
                  org.bukkit.World world = this.level.getWorld();
                  if (world != null) {

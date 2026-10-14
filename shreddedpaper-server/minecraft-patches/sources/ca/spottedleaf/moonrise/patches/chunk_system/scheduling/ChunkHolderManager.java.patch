@@ -127,7 +127,7 @@
                  if (saveStat != null) {
                      if (saveStat.savedChunk()) {
                          ++savedChunk;
-@@ -804,13 +_,13 @@
+@@ -819,13 +_,13 @@
          if (removeDelay == NO_TIMEOUT_MARKER) {
              return false;
          }
@@ -143,7 +143,7 @@
  
          final int sectionShift = ((ChunkSystemServerLevel)this.world).moonrise$getRegionChunkShift();
  
-@@ -1153,6 +_,16 @@
+@@ -1168,6 +_,16 @@
          if (changedFullStatus.isEmpty()) {
              return;
          }
@@ -160,7 +160,7 @@
          if (!TickThread.isTickThread()) {
              // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
              // which will invoke processTicketUpdates
-@@ -1167,98 +_,117 @@
+@@ -1182,98 +_,117 @@
  
      private void removeChunkHolder(final NewChunkHolder holder) {
          holder.onUnload();
@@ -344,7 +344,7 @@
  
                      // run stage 1
                      for (int i = 0, len = stage1.size(); i < len; ++i) {
-@@ -1323,10 +_,12 @@
+@@ -1338,10 +_,12 @@
  
              processedCount += stage1.size();
  
@@ -361,7 +361,7 @@
      }
  
      public enum TicketOperationType {
-@@ -1543,7 +_,7 @@
+@@ -1583,7 +_,7 @@
      public JsonObject getDebugJson() {
          final JsonObject ret = new JsonObject();
  
