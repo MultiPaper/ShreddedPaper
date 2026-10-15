@@ -57,7 +57,7 @@
          Level fromLevel = serverPlayer.level();
          // Paper end - respawn event
          this.players.remove(serverPlayer);
-@@ -714,6 +_,8 @@
+@@ -715,6 +_,8 @@
          // Paper end
  
          return player;
@@ -66,7 +66,7 @@
      }
  
      public void sendActivePlayerEffects(final ServerPlayer player) {
-@@ -974,6 +_,7 @@
+@@ -975,6 +_,7 @@
          final ResourceKey<Level> dimension,
          final Packet<?> packet
      ) {

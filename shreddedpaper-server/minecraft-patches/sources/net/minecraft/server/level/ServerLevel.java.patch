@@ -743,23 +743,23 @@
          public void onTrackingEnd(final Entity entity) {
 -            org.spigotmc.AsyncCatcher.catchOp("entity unregister"); // Spigot
 +            TickThread.ensureTickThread(entity, "entity unregister"); // org.spigotmc.AsyncCatcher.catchOp("entity unregister"); // Spigot // ShreddedPaper
-             // Spigot start // TODO I don't think this is needed anymore
+             // Spigot start
              if (entity instanceof Player player) {
-                 for (final ServerLevel level : ServerLevel.this.getServer().getAllLevels()) {
+                 SavedDataStorage storage = getServer().getDataStorage();
 @@ -3240,10 +_,12 @@
-                             continue;
-                         }
- 
-+                        synchronized (map) { // ShreddedPaper - thread-safe
-                         map.carriedByPlayers.remove(player);
-                         if (map.carriedBy.removeIf(holdingPlayer -> holdingPlayer.player == player)) {
-                             map.decorations.remove(player.getName().getString());
-                         }
-+                        } // ShreddedPaper - thread-safe
+                         continue;
                      }
+ 
++                    synchronized (map) { // ShreddedPaper - thread-safe
+                     net.minecraft.world.level.saveddata.maps.MapItemSavedData.HoldingPlayer holder = map.carriedByPlayers.remove(player);
+                     if (holder != null && map.carriedBy.remove(holder)) {
+                         map.decorations.remove(player.getName().getString());
+                     }
++                    } // ShreddedPaper - thread-safe
                  }
              }
-@@ -3262,20 +_,21 @@
+             // Spigot end
+@@ -3261,20 +_,21 @@
              // Spigot end
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer player) {
@@ -783,7 +783,7 @@
              }
  
              if (entity instanceof EnderDragon dragon) {
-@@ -3300,6 +_,9 @@
+@@ -3299,6 +_,9 @@
          @Override
          public void onSectionChange(final Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);

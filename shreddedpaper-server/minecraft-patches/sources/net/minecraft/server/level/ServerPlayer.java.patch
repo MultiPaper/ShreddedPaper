@@ -198,7 +198,7 @@
      }
  
      public void showEndCredits() {
-@@ -2732,6 +_,7 @@
+@@ -2733,6 +_,7 @@
      }
  
      public void setCamera(final @Nullable Entity newCamera) {
@@ -206,7 +206,7 @@
          Entity oldCamera = this.getCamera();
          this.camera = newCamera == null ? this : newCamera;
          if (oldCamera != this.camera) {
-@@ -2761,6 +_,7 @@
+@@ -2762,6 +_,7 @@
              this.connection.send(new ClientboundSetCameraPacket(this.camera));
              this.connection.resetPosition();
          }
@@ -214,7 +214,7 @@
      }
  
      @Override
-@@ -3026,6 +_,8 @@
+@@ -3027,6 +_,8 @@
              for (MobEffectInstance effect : livingEntity.getActiveEffects()) {
                  this.connection.send(new ClientboundRemoveMobEffectPacket(oldVehicle.getId(), effect.getEffect()));
              }
