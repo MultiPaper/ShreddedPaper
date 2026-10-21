@@ -8,13 +8,34 @@
  import net.minecraft.advancements.triggers.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.component.DataComponents;
-@@ -253,7 +_,9 @@
+@@ -29,6 +_,8 @@
+ import net.minecraft.world.level.storage.ValueInput;
+ import net.minecraft.world.level.storage.ValueOutput;
+ import net.minecraft.world.scores.PlayerTeam;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.util.CraftLocation;
+ import org.jspecify.annotations.Nullable;
+ 
+ public abstract class TamableAnimal extends Animal implements OwnableEntity {
+@@ -253,7 +_,10 @@
      public void tryToTeleportToOwner() {
          LivingEntity owner = this.getOwner();
          if (owner != null) {
 +            ShreddedPaper.ensureSync(this, owner, () -> { // ShreddedPaper - run on this and owner's thread
++            if (owner.level() != this.level()) return; // ShreddedPaper - don't teleport if owner is in a different world
              this.teleportToAroundBlockPos(owner.blockPosition());
 +            }); // ShreddedPaper - run on this and owner's thread
          }
      }
  
+@@ -286,7 +_,10 @@
+             return false;
+         }
+         org.bukkit.Location to = event.getTo();
++        ShreddedPaper.ensureSync(this, ((CraftWorld) to.getWorld()).getHandle(), CraftLocation.toChunkPosition(to), () -> { // ShreddedPaper - run on correct thread
++        if (this.level() != ((CraftWorld) to.getWorld()).getHandle()) return; // ShreddedPaper - don't teleport if we've changed levels since
+         this.snapTo(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch());
++        }); // ShreddedPaper - run on correct thread
+         // CraftBukkit end
+         this.navigation.stop();
+         return true;
