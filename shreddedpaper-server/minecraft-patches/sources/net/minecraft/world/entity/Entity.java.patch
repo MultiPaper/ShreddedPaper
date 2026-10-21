@@ -70,7 +70,7 @@
          // Paper start - detailed watchdog information
 -        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot move an entity off-main");
 +        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot move an entity off-main"); // ShreddedPaper
-+        final BlockPos newPos = new BlockPos((int) (this.getX() + delta.x), (int) (this.getY() + delta.y), (int) (this.getZ() + delta.z)); // ShreddedPaper - check destination region
++        final BlockPos newPos = BlockPos.containing(this.getX() + delta.x, this.getY() + delta.y, this.getZ() + delta.z); // ShreddedPaper - check destination region
 +        TickThread.ensureTickThread((ServerLevel) this.level, newPos, "Cannot move an entity into off-main"); // ShreddedPaper - check destination region
          synchronized (this.posLock) {
              this.moveStartX = this.getX();

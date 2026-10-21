@@ -12,12 +12,12 @@
      private void trySpawn(final ServerLevel level) {
          Vec3 spawnPos = this.findRandomSpawnPos(level, new BlockPos(this.spawnX, this.spawnY, this.spawnZ));
          if (spawnPos != null) {
-+            ShreddedPaper.runSync(level, new BlockPos((int) spawnPos.x, (int) spawnPos.y, (int) spawnPos.z), () -> { // ShreddedPaper - run on block's thread
++            ShreddedPaper.runSync(level, BlockPos.containing(spawnPos.x, spawnPos.y, spawnPos.z), () -> { // ShreddedPaper - run on block's thread
              Zombie zombie;
              try {
                  zombie = new Zombie(level);
 -                zombie.finalizeSpawn(level, level.getCurrentDifficultyAt(zombie.blockPosition()), EntitySpawnReason.EVENT, null);
-+                zombie.finalizeSpawn(level, level.getCurrentDifficultyAt(new BlockPos((int) spawnPos.x, (int) spawnPos.y, (int) spawnPos.z)), EntitySpawnReason.EVENT, null); // ShreddedPaper - use zombie's planned position, not 0,0
++                zombie.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(spawnPos.x, spawnPos.y, spawnPos.z)), EntitySpawnReason.EVENT, null); // ShreddedPaper - use zombie's planned position, not 0,0
              } catch (Exception e) {
                  LOGGER.warn("Failed to create zombie for village siege at {}", spawnPos, e);
                  com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(e); // Paper - ServerExceptionEvent
