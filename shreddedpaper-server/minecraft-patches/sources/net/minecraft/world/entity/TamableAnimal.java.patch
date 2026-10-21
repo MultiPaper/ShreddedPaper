@@ -8,11 +8,12 @@
  import net.minecraft.advancements.triggers.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.component.DataComponents;
-@@ -253,7 +_,9 @@
+@@ -253,7 +_,10 @@
      public void tryToTeleportToOwner() {
          LivingEntity owner = this.getOwner();
          if (owner != null) {
 +            ShreddedPaper.ensureSync(this, owner, () -> { // ShreddedPaper - run on this and owner's thread
++            if (this.getOwner() != owner) return; // ShreddedPaper - check if owner changed while waiting for sync (the new owner may be null if they changed dimensions)
              this.teleportToAroundBlockPos(owner.blockPosition());
 +            }); // ShreddedPaper - run on this and owner's thread
          }
