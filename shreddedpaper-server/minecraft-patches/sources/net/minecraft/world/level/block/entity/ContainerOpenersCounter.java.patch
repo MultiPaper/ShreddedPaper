@@ -11,12 +11,12 @@
  import net.minecraft.world.entity.ContainerUser;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.LivingEntity;
-@@ -173,7 +_,7 @@
+@@ -167,7 +_,7 @@
          scheduleRecheck(level, blockPos, blockState, 5);
      }
      private static void scheduleRecheck(final Level level, final BlockPos blockPos, final BlockState blockState, final int delay) {
 -        level.scheduleTick(blockPos, blockState.getBlock(), delay);
 +        ShreddedPaper.ensureSync((ServerLevel) level, blockPos, () -> level.scheduleTick(blockPos, blockState.getBlock(), delay)); // ShreddedPaper - run on container's thread
-         // Paper end - delay open/close callbacks
+         // Paper end - delay close callbacks
      }
  }

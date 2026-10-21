@@ -12,10 +12,10 @@
      private static boolean hopperPush(final Level level, final Container destination, final Direction direction, final HopperBlockEntity hopper) {
 -        skipPushModeEventFire = skipHopperEvents;
 +        skipPushModeEventFireThreadLocal.set(skipHopperEvents); // ShreddedPaper - use thread local for skipPushModeEventFire
+         final long disallowedSlots = callPrepareTransferEvent(level, hopper, destination, true); // Paper - Add PrepareHopperTransferEvent
          boolean foundItem = false;
          for (int i = 0; i < hopper.getContainerSize(); ++i) {
-             final ItemStack item = hopper.getItem(i);
-@@ -238,7 +_,7 @@
+@@ -240,7 +_,7 @@
  
                  // We only need to fire the event once to give protection plugins a chance to cancel this event
                  // Because nothing uses getItem, every event call should end up the same result.
@@ -24,7 +24,7 @@
                      movedItem = callPushMoveEvent(destination, movedItem, hopper);
                      if (movedItem == null) { // cancelled
                          origItemStack.setCount(originalItemCount);
-@@ -273,7 +_,7 @@
+@@ -275,7 +_,7 @@
          final int movedItemCount = Math.min(level.spigotConfig.hopperAmount, originalItemCount);
          movedItem.setCount(movedItemCount);
  
@@ -33,7 +33,7 @@
              movedItem = callPullMoveEvent(hopper, container, movedItem);
              if (movedItem == null) { // cancelled
                  origItemStack.setCount(originalItemCount);
-@@ -293,9 +_,9 @@
+@@ -295,9 +_,9 @@
                  origItemStack.setCount(originalItemCount - movedItemCount + remainingItemCount);
              }
  
@@ -45,7 +45,7 @@
              container.setChanged();
              return true;
          }
-@@ -325,7 +_,7 @@
+@@ -327,7 +_,7 @@
          );
          final boolean result = event.callEvent();
          if (!event.calledGetItem && !event.calledSetItem) {
@@ -54,7 +54,7 @@
          }
          if (!result) {
              applyCooldown(hopper);
-@@ -348,7 +_,7 @@
+@@ -350,7 +_,7 @@
          final io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent event = new io.papermc.paper.event.inventory.PaperInventoryMoveItemEvent(sourceInventory, org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(itemstack), destination, false);
          final boolean result = event.callEvent();
          if (!event.calledGetItem && !event.calledSetItem) {
@@ -63,16 +63,16 @@
          }
          if (!result) {
              applyCooldown(hopper);
-@@ -486,7 +_,7 @@
+@@ -505,7 +_,7 @@
          Container container = getSourceContainer(level, hopper, blockPos, blockState);
          if (container != null) {
              Direction direction = Direction.DOWN;
 -            skipPullModeEventFire = skipHopperEvents; // Paper - Perf: Optimize Hoppers
 +            skipPullModeEventFireThreadLocal.set(skipHopperEvents); // Paper - Perf: Optimize Hoppers // ShreddedPaper - use thread local for skipPullModeEventFire
+             final long disallowedSlots = callPrepareTransferEvent(level, container, hopper, false); // Paper - Add PrepareHopperTransferEvent
  
              for (int slot : getSlots(container, direction)) {
-                 if (tryTakeInItemFromSlot(hopper, container, slot, direction, level)) { // Spigot
-@@ -590,9 +_,9 @@
+@@ -611,9 +_,9 @@
                      itemStack = itemStack.split(container.getMaxStackSize());
                  }
                  // Spigot end

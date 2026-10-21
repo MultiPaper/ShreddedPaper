@@ -46,10 +46,10 @@
  dependencies {
 -    implementation(project(":purpur-api")) // Purpur
 +    implementation(project(":shreddedpaper-api")) // Purpur // ShreddedPaper
-     implementation(platform("ca.spottedleaf.leafpile:bom:1.2.4"))
+     implementation(platform("ca.spottedleaf.leafpile:bom:1.3.0"))
      implementation("ca.spottedleaf.leafpile:common")
      implementation("ca.spottedleaf.leafpile:concurrentutil")
-@@ -205,14 +_,14 @@
+@@ -206,14 +_,14 @@
          val gitBranch = git.exec(providers, "rev-parse", "--abbrev-ref", "HEAD").get().trim()
          attributes(
              "Main-Class" to "org.bukkit.craftbukkit.Main",
