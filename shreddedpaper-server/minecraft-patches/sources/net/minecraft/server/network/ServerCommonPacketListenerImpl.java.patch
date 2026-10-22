@@ -11,12 +11,18 @@
  import io.netty.channel.ChannelFutureListener;
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
-@@ -276,7 +_,7 @@
+@@ -52,3 +_,4 @@
+     private volatile int latency; // Paper - improve keepalives - make volatile
+     private final io.papermc.paper.util.KeepAlive keepAlive; // Paper - improve keepalives
+     private volatile boolean suspendFlushingOnServerThread = false;
++    private final java.util.concurrent.atomic.AtomicBoolean shreddedDisconnectQueued = new java.util.concurrent.atomic.AtomicBoolean(); // ShreddedPaper - keepalive kick is handed to the player region
+@@ -276,7 +_,8 @@
          this.disconnect(DISCONNECT_UNEXPECTED_QUERY, io.papermc.paper.connection.DisconnectionReason.INVALID_COOKIE); // Paper - kick event cause
      }
  
 -    protected void keepConnectionAlive() {
 +    public void keepConnectionAlive() { // ShreddedPaper - make public
++        if (this.shreddedDisconnectQueued.get()) return; // ShreddedPaper - already queued, do not log another timeout every tick
          Profiler.get().push("keepAlive");
          long now = Util.getMillis();
          // Paper start - improve keepalives
@@ -29,25 +35,40 @@
              org.bukkit.craftbukkit.util.Waitable waitable = new org.bukkit.craftbukkit.util.Waitable() {
                  @Override
                  protected @Nullable Object evaluate() {
-@@ -393,9 +_,20 @@
+@@ -393,9 +_,34 @@
                  }
              };
  
 -            this.server.processQueue.add(waitable);
-+            // ShreddedPaper - run on player's thread
++            // ShreddedPaper start - run on the player's region, and never wait from a tick thread
 +            if (this instanceof ServerGamePacketListenerImpl serverGamePacketListener) {
 +                if (TickThread.isTickThread()) {
-+                    serverGamePacketListener.player.level().getChunkSource().tickingRegions.execute(RegionPos.forChunk(serverGamePacketListener.player.chunkPosition()), waitable);
-+                } else {
-+                    ShreddedPaper.runSync(serverGamePacketListener.player, waitable); // this.server.processQueue.add(waitable);
++                    // Caller does not own this player (keepalive runs on the global server thread).
++                    // managedBlock() here deadlocks: the region cannot tick until this server tick returns.
++                    if (!this.shreddedDisconnectQueued.compareAndSet(false, true)) {
++                        return;
++                    }
++                    try {
++                        serverGamePacketListener.player.level().getChunkSource().tickingRegions.scheduleTask(RegionPos.forChunk(serverGamePacketListener.player.chunkPosition()), () -> {
++                            try {
++                                waitable.run();
++                            } finally {
++                                ServerCommonPacketListenerImpl.this.shreddedDisconnectQueued.set(false);
++                            }
++                        });
++                    } catch (Throwable throwable) {
++                        this.shreddedDisconnectQueued.set(false);
++                        throw throwable;
++                    }
++                    return;
 +                }
++                ShreddedPaper.runSync(serverGamePacketListener.player, waitable); // this.server.processQueue.add(waitable);
 +            } else {
 +                this.server.processQueue.add(waitable);
 +            }
-+            // ShreddedPaper end - run on player's thread
++            // ShreddedPaper end - run on the player's region, and never wait from a tick thread
  
              try {
-+                if (TickThread.isTickThread()) this.server.managedBlock(waitable::isDone); // ShreddedPaper - don't block when waiting
                  waitable.get();
              } catch (InterruptedException e) {
                  Thread.currentThread().interrupt();
