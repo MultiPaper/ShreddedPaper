@@ -18,7 +18,7 @@
      private final DataFixer fixerUpper;
      private final HolderLookup.Provider registries;
      private final Path dataFolder;
-@@ -63,24 +_,29 @@
+@@ -63,24 +_,39 @@
      }
  
      public <T extends SavedData> T computeIfAbsent(final SavedDataType<T> type) {
@@ -31,6 +31,12 @@
 -        this.set(type, newData);
 -        return newData;
 +        // ShreddedPaper start - thread-safe
++        // Fast path: ConcurrentHashMap#compute always locks the bin, even when the value is already present.
++        // This is called very frequently (eg. WorldBorder), so avoid lock contention with a lock-free get first.
++        Optional<SavedData> existing = this.cache.get(type);
++        if (existing != null && existing.isPresent()) {
++            return (T) existing.get();
++        }
 +        return (T) this.cache.compute(type, (key, optional) -> {
 +            if (optional == null) {
 +                optional = Optional.ofNullable(this.readSavedData(type));
@@ -56,9 +62,13 @@
 -
 -        return (T)data.orElse(null);
 +        // ShreddedPaper start - thread-safe
-+        return (T) this.cache.computeIfAbsent(type, (key) -> {
-+            return Optional.ofNullable(this.readSavedData(type));
-+        }).orElse(null);
++        Optional<SavedData> data = this.cache.get(type); // Lock-free fast path
++        if (data == null) {
++            data = this.cache.computeIfAbsent(type, (key) -> {
++                return Optional.ofNullable(this.readSavedData(type));
++            });
++        }
++        return (T) data.orElse(null);
 +        // ShreddedPaper end - thread-safe
      }
  
