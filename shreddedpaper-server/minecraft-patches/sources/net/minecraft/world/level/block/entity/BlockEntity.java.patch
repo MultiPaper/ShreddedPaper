@@ -16,10 +16,10 @@
      // CraftBukkit start - data containers
      private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
      public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer;
-@@ -210,7 +_,8 @@
+@@ -211,7 +_,8 @@
  
      public void setChanged() {
-         if (this.level != null) {
+         if (this.level != null && this.real) { // Paper - don't broadcast for fake block entities
 -            if (ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers
 +            if (ignoreBlockEntityUpdatesThreadLocal.get()) return; // Paper - Perf: Optimize Hoppers // ShreddedPaper - use thread local for ignoreBlockEntityUpdates
 +            TickThread.ensureTickThread(this.level, this.worldPosition, "Block entity modification"); // ShreddedPaper

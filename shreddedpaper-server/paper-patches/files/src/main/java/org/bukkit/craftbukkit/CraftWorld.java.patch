@@ -14,7 +14,7 @@
  import io.papermc.paper.FeatureHooks;
  import io.papermc.paper.entity.poi.PaperPoiSearchResult;
  import io.papermc.paper.entity.poi.PaperPoiType;
-@@ -240,7 +_,7 @@
+@@ -241,7 +_,7 @@
  
      @Override
      public int getTickableTileEntityCount() {
@@ -23,7 +23,7 @@
      }
  
      @Override
-@@ -376,6 +_,7 @@
+@@ -377,6 +_,7 @@
  
      @Override
      public Chunk getChunkAt(int x, int z) {
@@ -31,7 +31,7 @@
          warnUnsafeChunk("getting a faraway chunk", x, z); // Paper
          net.minecraft.world.level.chunk.LevelChunk chunk = (net.minecraft.world.level.chunk.LevelChunk) this.world.getChunk(x, z, ChunkStatus.FULL, true);
          return new CraftChunk(chunk);
-@@ -406,11 +_,13 @@
+@@ -407,11 +_,13 @@
      @Override
      public boolean isChunkGenerated(int x, int z) {
          // Paper start - Fix this method
@@ -50,7 +50,7 @@
          ChunkAccess chunk = world.getChunkSource().getChunkAtImmediately(x, z);
          if (chunk != null) {
              return chunk instanceof ImposterProtoChunk || chunk instanceof net.minecraft.world.level.chunk.LevelChunk;
-@@ -419,7 +_,7 @@
+@@ -420,7 +_,7 @@
          ca.spottedleaf.moonrise.common.PlatformHooks.get().scheduleChunkLoad(
              this.world, x, z, false, ChunkStatus.EMPTY, true, ca.spottedleaf.concurrentutil.util.Priority.BLOCKING, future::complete
          );
@@ -59,7 +59,7 @@
          return future.thenApply(c -> {
              if (c != null) {
                  return c.getPersistedStatus() == ChunkStatus.FULL;
-@@ -756,18 +_,20 @@
+@@ -757,18 +_,20 @@
  
      @Override
      public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
@@ -86,7 +86,7 @@
          }
          if (grownTree) { // Copy block data to delegate
              for (CraftBlockState snapshot : capturedBlockStates) {
-@@ -1611,7 +_,7 @@
+@@ -1654,7 +_,7 @@
          if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
  
          ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(CraftSound.bukkitToMinecraftHolder(sound), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
@@ -95,7 +95,7 @@
          if (entityTracker != null) {
              entityTracker.sendToTrackingPlayersAndSelf(packet);
          }
-@@ -1632,7 +_,7 @@
+@@ -1675,7 +_,7 @@
          if (!(entity instanceof CraftEntity craftEntity) || entity.getWorld() != this || sound == null || category == null) return;
  
          ClientboundSoundEntityPacket packet = new ClientboundSoundEntityPacket(Holder.direct(SoundEvent.createVariableRangeEvent(Identifier.parse(sound))), net.minecraft.sounds.SoundSource.valueOf(category.name()), craftEntity.getHandle(), volume, pitch, seed);
@@ -104,7 +104,7 @@
          if (entityTracker != null) {
              entityTracker.sendToTrackingPlayersAndSelf(packet);
          }
-@@ -2059,11 +_,12 @@
+@@ -2102,11 +_,12 @@
      @Override
      public void getChunkAtAsync(int x, int z, boolean gen, boolean urgent, @NotNull Consumer<? super Chunk> cb) {
          warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
@@ -118,7 +118,7 @@
              }
          );
  
-@@ -2073,11 +_,12 @@
+@@ -2116,11 +_,12 @@
      public void getChunksAtAsync(int minX, int minZ, int maxX, int maxZ, boolean urgent, Runnable cb) {
          warnUnsafeChunk("getting a faraway chunk async", minX, minZ); // Paper
          warnUnsafeChunk("getting a faraway chunk async", maxX, maxZ); // Paper

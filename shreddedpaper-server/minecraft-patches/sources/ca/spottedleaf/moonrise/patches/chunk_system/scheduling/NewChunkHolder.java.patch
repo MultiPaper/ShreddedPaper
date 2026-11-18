@@ -63,7 +63,7 @@
      // only to be called on the main thread, no locks need to be held
      public boolean handleFullStatusChange(final List<NewChunkHolder> changedFullStatus) {
          TickThread.ensureTickThread(this.world, this.chunkX, this.chunkZ, "Cannot update full status thread off-main");
-@@ -1256,6 +_,7 @@
+@@ -1257,6 +_,7 @@
                      }
  
                      if (!current.isOrAfter(FullChunkStatus.BLOCK_TICKING) && pending.isOrAfter(FullChunkStatus.BLOCK_TICKING)) {
@@ -71,7 +71,7 @@
                          this.updateCurrentState(FullChunkStatus.BLOCK_TICKING);
                          this.changeEntityChunkStatus(FullChunkStatus.BLOCK_TICKING);
                          PlatformHooks.get().onChunkTicking(chunk, this.vanillaChunkHolder);
-@@ -1263,6 +_,7 @@
+@@ -1265,6 +_,7 @@
                      }
  
                      if (!current.isOrAfter(FullChunkStatus.ENTITY_TICKING) && pending.isOrAfter(FullChunkStatus.ENTITY_TICKING)) {

@@ -29,7 +29,7 @@
              if (this.trackOutput && !this.closed) { // Paper - add back source when output disabled
 +                ShreddedPaper.ensureSync(this.level, BaseCommandBlock.this.getBlockPos(), () -> { // ShreddedPaper - run sync
                  org.spigotmc.AsyncCatcher.catchOp("sendSystemMessage to a command block"); // Paper - Don't broadcast messages to command blocks
-                 BaseCommandBlock.this.lastOutput = Component.literal("[" + TIME_FORMAT.format(ZonedDateTime.now()) + "] ").append(message);
+                 BaseCommandBlock.this.lastOutput = Component.literal("[" + this.level.paperConfig().commandBlocks.timeFormatPattern.or(TIME_FORMAT).format(ZonedDateTime.now()) + "] ").append(message); // Paper - per-world configurable time format
                  BaseCommandBlock.this.onUpdated(this.level);
 +                }); // ShreddedPaper - run sync
              }

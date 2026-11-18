@@ -9,20 +9,7 @@
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
  import net.minecraft.ReportedException;
-@@ -70,9 +_,9 @@
-     private void scheduleNext() {
-         int candidateIndex = this.nextCandidateIndex++;
-         if (candidateIndex < this.candidateCount) {
--            int value = (this.offset + this.coprime * candidateIndex) % this.candidateCount;
--            int deltaX = value % (this.radius * 2 + 1);
--            int deltaZ = value / (this.radius * 2 + 1);
-+            long value = ((this.offset + this.coprime * candidateIndex) % this.candidateCount) * ((this.radius * 2L + 1L) * (this.radius * 2L + 1L) / this.candidateCount); // ShreddedPaper - fix respawn_radius (MC-302446)
-+            int deltaX = (int) (value % (this.radius * 2L + 1L)); // ShreddedPaper - fix respawn_radius (MC-302446)
-+            int deltaZ = (int) (value / (this.radius * 2L + 1L)); // ShreddedPaper - fix respawn_radius (MC-302446)
-             int targetX = this.spawnSuggestion.getX() + deltaX - this.radius;
-             int targetZ = this.spawnSuggestion.getZ() + deltaZ - this.radius;
-             this.scheduleCandidate(targetX, targetZ, candidateIndex, () -> {
-@@ -141,7 +_,7 @@
+@@ -154,7 +_,7 @@
                          details.setDetail("Progress", () -> candidateIndex + " out of " + this.candidateCount);
                          this.finishedFuture.completeExceptionally(new ReportedException(report));
                      }
