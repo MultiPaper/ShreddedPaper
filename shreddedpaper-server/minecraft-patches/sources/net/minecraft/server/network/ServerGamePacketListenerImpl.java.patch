@@ -58,7 +58,7 @@
  
                      if (this.shouldCheckPlayerMovement(isFallFlying)) {
                          float metersPerTick = isFallFlying ? 300.0F : 100.0F;
-@@ -2389,7 +_,9 @@
+@@ -2391,7 +_,9 @@
              for (ServerLevel level : this.server.getAllLevels()) {
                  Entity entity = packet.getEntity(level);
                  if (entity != null) {
@@ -68,7 +68,7 @@
                      return;
                  }
              }
-@@ -2406,12 +_,15 @@
+@@ -2408,12 +_,15 @@
  
      @Override
      public void onDisconnect(final DisconnectionDetails details) {
@@ -84,7 +84,7 @@
      }
  
      private void removePlayerFromWorld() {
-@@ -2671,7 +_,7 @@
+@@ -2673,7 +_,7 @@
              this.player.resetLastActionTime();
              // CraftBukkit start
              if (sync) {
@@ -93,7 +93,7 @@
              } else {
                  chatHandler.run();
              }
-@@ -3134,22 +_,26 @@
+@@ -3136,22 +_,26 @@
          switch (action) {
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
@@ -122,7 +122,7 @@
                  }
                  break;
              case REQUEST_STATS:
-@@ -3692,7 +_,7 @@
+@@ -3694,7 +_,7 @@
          };
          List<String> lines = packet.lines().stream().map(lineLimiter).map(ChatFormatting::stripFormatting).collect(Collectors.toList());
          // Paper end - limit client sign length
@@ -131,7 +131,7 @@
      }
  
      private void updateSignText(final ServerboundSignUpdatePacket packet, final List<FilteredText> lines) {
-@@ -3700,7 +_,7 @@
+@@ -3702,7 +_,7 @@
          this.player.resetLastActionTime();
          ServerLevel level = this.player.level();
          BlockPos pos = packet.pos();
@@ -140,7 +140,7 @@
              // Paper start - Add API for client-side signs
              if (!new io.papermc.paper.event.packet.UncheckedSignChangeEvent(
                  this.player.getBukkitEntity(),
-@@ -3956,7 +_,7 @@
+@@ -3958,7 +_,7 @@
  
      @Override
      public void disconnectAsync(final net.minecraft.network.DisconnectionDetails disconnectionInfo) {
